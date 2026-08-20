@@ -14,6 +14,8 @@ import {
   logoutUser,
   getUserFavorites,
   saveUserFavorites,
+  syncUsersWithCloud,
+  fetchUserFavoritesFromCloud,
 } from './utils/userStorage';
 
 const THEME_KEY = 'gran_dt_theme';
@@ -36,6 +38,22 @@ export default function App() {
     return user ? getUserFavorites(user.id) : [];
   });
 
+  // Sync users and active favorites with Firestore cloud on startup
+  useEffect(() => {
+    syncUsersWithCloud().then(synced => {
+      setUsersList(synced);
+      const current = getActiveUser();
+      if (current) {
+        setActiveUserState(current);
+        fetchUserFavoritesFromCloud(current.id).then(cloudFavs => {
+          if (cloudFavs && cloudFavs.length > 0) {
+            setFavorites(cloudFavs);
+          }
+        });
+      }
+    });
+  }, []);
+
   // Save favorites to isolated user storage whenever favorites change
   useEffect(() => {
     if (activeUser?.id) {
@@ -44,12 +62,20 @@ export default function App() {
   }, [favorites, activeUser?.id]);
 
   // Handle successful login or registration
-  const handleLoginSuccess = (user: UserProfile) => {
+  const handleLoginSuccess = async (user: UserProfile) => {
     setActiveUserState(user);
     const updatedUsers = getStoredUsers();
     setUsersList(updatedUsers);
-    const loadedFavs = getUserFavorites(user.id);
-    setFavorites(loadedFavs);
+    
+    // Load favorites from cloud or local
+    const localFavs = getUserFavorites(user.id);
+    setFavorites(localFavs);
+    
+    const cloudFavs = await fetchUserFavoritesFromCloud(user.id);
+    if (cloudFavs && cloudFavs.length > 0) {
+      setFavorites(cloudFavs);
+    }
+    
     showToast(`✓ Bienvenido, ${user.name} (@${user.username})`);
   };
 
@@ -66,7 +92,7 @@ export default function App() {
   };
 
   // Handle switching to a different user account after password verification
-  const handleSelectUser = (user: UserProfile) => {
+  const handleSelectUser = async (user: UserProfile) => {
     if (activeUser?.id) {
       saveUserFavorites(activeUser.id, favorites);
     }
@@ -75,6 +101,11 @@ export default function App() {
     setUsersList(updatedUsers);
     const loadedFavs = getUserFavorites(user.id);
     setFavorites(loadedFavs);
+    
+    const cloudFavs = await fetchUserFavoritesFromCloud(user.id);
+    if (cloudFavs && cloudFavs.length > 0) {
+      setFavorites(cloudFavs);
+    }
   };
 
   const refreshUserList = () => {

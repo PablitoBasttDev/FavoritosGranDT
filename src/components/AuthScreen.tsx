@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../types';
 import { TEAMS_DATA } from '../data/teams';
-import { AVATAR_COLORS, getStoredUsers, loginUser, registerUser } from '../utils/userStorage';
+import { AVATAR_COLORS, getStoredUsers, loginUser, registerUser, syncUsersWithCloud } from '../utils/userStorage';
 import {
   Lock,
   User,
@@ -26,10 +26,20 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
   onLoginSuccess,
   initialMode = 'login',
 }) => {
-  const existingUsers = getStoredUsers();
+  const [existingUsers, setExistingUsers] = useState<UserProfile[]>(() => getStoredUsers());
   const [mode, setMode] = useState<'login' | 'register'>(
     existingUsers.length === 0 ? 'register' : initialMode
   );
+
+  // Sync users with cloud on load
+  useEffect(() => {
+    syncUsersWithCloud().then(synced => {
+      setExistingUsers(synced);
+      if (synced.length > 0 && !loginUsername) {
+        setLoginUsername(synced[0].username);
+      }
+    });
+  }, []);
 
   // Login form state
   const [loginUsername, setLoginUsername] = useState(

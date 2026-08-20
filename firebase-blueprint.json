@@ -1,0 +1,42 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User account profile and authentication credential hash",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "username": { "type": "string" },
+        "name": { "type": "string" },
+        "passwordHash": { "type": "string" },
+        "salt": { "type": "string" },
+        "favoriteClub": { "type": "string" },
+        "avatarColor": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "lastActive": { "type": "number" }
+      },
+      "required": ["id", "username", "name", "passwordHash", "salt", "createdAt"]
+    },
+    "UserFavorites": {
+      "title": "UserFavorites",
+      "description": "Isolated player favorites list and scouting notes for a user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "items": { "type": "array" },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["userId", "items", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "users": {
+      "entity": "User",
+      "description": "Registered user accounts"
+    },
+    "user_favorites": {
+      "entity": "UserFavorites",
+      "description": "Favorites lists per user"
+    }
+  }
+}
