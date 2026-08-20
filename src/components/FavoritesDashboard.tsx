@@ -314,8 +314,8 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5">
           {/* Autocomplete Input */}
           <div className="relative flex-1" ref={dropdownRef}>
-            <div className="flex items-center gap-2 bg-[#f8fafc] dark:bg-slate-800/80 border border-slate-300/80 dark:border-slate-700 rounded-lg px-2.5 py-1.5 focus-within:bg-white focus-within:ring-2 focus-within:ring-[#1b55e2] focus-within:border-transparent transition">
-              <Search className="w-4 h-4 text-slate-400 shrink-0" />
+            <div className="flex items-center gap-2 bg-[#f8fafc] dark:bg-slate-800/90 border border-slate-300/80 dark:border-slate-700 rounded-lg px-2.5 py-1.5 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:ring-2 focus-within:ring-[#1b55e2] dark:focus-within:ring-cyan-500 focus-within:border-transparent transition">
+              <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
               <input
                 type="text"
                 value={selectorSearch}
@@ -326,7 +326,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                 }}
                 onFocus={() => setIsDropdownOpen(true)}
                 placeholder="Buscar jugador o club (ej. Sarmiento, Di María, Paredes, River)..."
-                className="w-full bg-transparent text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 outline-none font-medium"
+                className="w-full bg-transparent text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none font-medium"
               />
 
               {/* Club selector shortcut */}
