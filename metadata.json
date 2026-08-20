@@ -1,0 +1,6 @@
+{
+  "name": "Gran DT Clausura 2026",
+  "description": "Asistente de scouting y lista de favoritos por club para el Torneo Clausura 2026 de Gran DT con los 30 clubes de Primera División y 991 futbolistas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
