@@ -62,58 +62,58 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({ onSelectClub }) 
 
       {/* Top 4 Metrics Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-        <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-          <span className="text-slate-500 text-[10px] font-bold uppercase block tracking-wider">
+        <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300/90 dark:border-slate-800 shadow-xs">
+          <span className="text-slate-600 dark:text-slate-400 text-[10px] font-black uppercase block tracking-wider">
             Total Futbolistas
           </span>
-          <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 mt-0.5">
+          <p className="text-2xl sm:text-3xl font-black text-slate-950 dark:text-slate-100 mt-0.5">
             {ALL_PLAYERS.length}
           </p>
-          <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold">
+          <span className="text-[11px] text-emerald-800 dark:text-emerald-400 font-extrabold">
             En los 30 clubes de Primera
           </span>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-          <span className="text-slate-500 text-[10px] font-bold uppercase block tracking-wider">
+        <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300/90 dark:border-slate-800 shadow-xs">
+          <span className="text-slate-600 dark:text-slate-400 text-[10px] font-black uppercase block tracking-wider">
             Clubes Oficiales
           </span>
-          <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 mt-0.5">
+          <p className="text-2xl sm:text-3xl font-black text-slate-950 dark:text-slate-100 mt-0.5">
             {Object.keys(TEAMS_DATA).length}
           </p>
-          <span className="text-[11px] text-[#1b55e2] dark:text-cyan-400 font-bold">
+          <span className="text-[11px] text-[#1b55e2] dark:text-cyan-400 font-extrabold">
             Con escudos vectoriales SVG
           </span>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-          <span className="text-slate-500 text-[10px] font-bold uppercase block tracking-wider">
+        <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300/90 dark:border-slate-800 shadow-xs">
+          <span className="text-slate-600 dark:text-slate-400 text-[10px] font-black uppercase block tracking-wider">
             Cotización Máxima
           </span>
-          <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 mt-0.5 font-mono">
+          <p className="text-2xl sm:text-3xl font-black text-slate-950 dark:text-slate-100 mt-0.5 font-mono">
             $7.000.000
           </p>
-          <span className="text-[11px] text-amber-700 dark:text-amber-400 font-bold">
+          <span className="text-[11px] text-amber-800 dark:text-amber-400 font-extrabold">
             Di María & Almada
           </span>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-          <span className="text-slate-500 text-[10px] font-bold uppercase block tracking-wider">
+        <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300/90 dark:border-slate-800 shadow-xs">
+          <span className="text-slate-600 dark:text-slate-400 text-[10px] font-black uppercase block tracking-wider">
             Cotización Mínima
           </span>
-          <p className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 mt-0.5 font-mono">
+          <p className="text-2xl sm:text-3xl font-black text-slate-950 dark:text-slate-100 mt-0.5 font-mono">
             $300.000
           </p>
-          <span className="text-[11px] text-cyan-700 dark:text-cyan-400 font-bold">
+          <span className="text-[11px] text-cyan-800 dark:text-cyan-400 font-extrabold">
             Juveniles y alternativas
           </span>
         </div>
       </div>
 
       {/* Position Breakdown Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs p-4">
-        <h3 className="text-xs font-black uppercase text-slate-900 dark:text-slate-100 tracking-wider mb-3">
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs p-4">
+        <h3 className="text-xs font-black uppercase text-slate-950 dark:text-slate-100 tracking-wider mb-3">
           Distribución de Jugadores por Posición
         </h3>
 
@@ -125,12 +125,12 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({ onSelectClub }) 
             return (
               <div
                 key={pos}
-                className="p-3 rounded-lg bg-[#f8fafc] dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 flex items-center justify-between"
+                className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 flex items-center justify-between"
               >
                 <div className="flex items-center gap-2">
                   <PositionBadge position={pos} size="md" />
                   <div>
-                    <span className="font-bold text-xs text-slate-900 dark:text-slate-100 block">
+                    <span className="font-black text-xs text-slate-950 dark:text-slate-100 block">
                       {pos === 'ARQ'
                         ? 'Arqueros'
                         : pos === 'DEF'
@@ -139,12 +139,12 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({ onSelectClub }) 
                         ? 'Volantes'
                         : 'Delanteros'}
                     </span>
-                    <span className="text-[11px] text-slate-500">
+                    <span className="text-[11px] text-slate-600 dark:text-slate-400 font-semibold">
                       Promedio: {formatMoney(avg)}
                     </span>
                   </div>
                 </div>
-                <span className="text-base font-black font-mono text-slate-800 dark:text-slate-200">
+                <span className="text-base font-black font-mono text-slate-900 dark:text-slate-200">
                   {list.length}
                 </span>
               </div>
@@ -240,43 +240,43 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({ onSelectClub }) 
       </div>
 
       {/* Official Standings Table (Torneo Clausura 2026 - Fecha 5 disputada) */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs p-4 space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs p-4 space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2">
             <Table className="w-4 h-4 text-[#1b55e2] dark:text-cyan-400" />
-            <h3 className="font-black text-xs uppercase tracking-wider text-slate-900 dark:text-slate-100">
+            <h3 className="font-black text-xs uppercase tracking-wider text-slate-950 dark:text-slate-100">
               Tabla Oficial de Posiciones - Torneo Clausura 2026
             </h3>
           </div>
 
           {/* Zone Selector Pills */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-300 dark:border-slate-700">
             <button
               onClick={() => setStandingsZone('Zona A')}
-              className={`px-3 py-1 rounded-md text-[11px] font-bold transition ${
+              className={`px-3 py-1 rounded-md text-[11px] font-black transition ${
                 standingsZone === 'Zona A'
                   ? 'bg-white dark:bg-slate-700 text-[#1b55e2] dark:text-cyan-300 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  : 'text-slate-700 dark:text-slate-400 hover:text-slate-950'
               }`}
             >
               Zona A (15)
             </button>
             <button
               onClick={() => setStandingsZone('Zona B')}
-              className={`px-3 py-1 rounded-md text-[11px] font-bold transition ${
+              className={`px-3 py-1 rounded-md text-[11px] font-black transition ${
                 standingsZone === 'Zona B'
                   ? 'bg-white dark:bg-slate-700 text-[#1b55e2] dark:text-cyan-300 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  : 'text-slate-700 dark:text-slate-400 hover:text-slate-950'
               }`}
             >
               Zona B (15)
             </button>
             <button
               onClick={() => setStandingsZone('GENERAL')}
-              className={`px-3 py-1 rounded-md text-[11px] font-bold transition ${
+              className={`px-3 py-1 rounded-md text-[11px] font-black transition ${
                 standingsZone === 'GENERAL'
                   ? 'bg-white dark:bg-slate-700 text-[#1b55e2] dark:text-cyan-300 shadow-xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  : 'text-slate-700 dark:text-slate-400 hover:text-slate-950'
               }`}
             >
               General (30)
@@ -288,10 +288,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({ onSelectClub }) 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-[10px] uppercase font-bold bg-slate-50/70 dark:bg-slate-800/40">
+              <tr className="border-b border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-400 text-[10px] uppercase font-black bg-slate-100 dark:bg-slate-800/40">
                 <th className="py-2 px-2 text-center w-8">#</th>
                 <th className="py-2 px-2">Equipo</th>
-                <th className="py-2 px-2 text-center font-bold text-slate-800 dark:text-slate-200">PTS</th>
+                <th className="py-2 px-2 text-center font-black text-slate-900 dark:text-slate-200">PTS</th>
                 <th className="py-2 px-2 text-center">PJ</th>
                 <th className="py-2 px-2 text-center">G</th>
                 <th className="py-2 px-2 text-center">E</th>

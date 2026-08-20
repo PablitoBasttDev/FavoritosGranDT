@@ -186,7 +186,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
       </div>
 
       {/* Crisp White Gran DT Filter Toolbar */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs p-3 space-y-3">
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs p-3 space-y-3">
         <div className="flex flex-col md:flex-row gap-2.5 items-stretch md:items-center justify-between">
           {/* Search Input */}
           <div className="relative flex-1">
@@ -197,7 +197,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
               placeholder="Paredes, Vélez, Di María"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-8 py-1.5 bg-[#f8fafc] dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-[#1b55e2] dark:focus:ring-cyan-500 focus:bg-white dark:focus:bg-slate-800 transition outline-none font-medium"
+              className="w-full pl-9 pr-8 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs sm:text-sm text-slate-950 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-[#1b55e2] dark:focus:ring-cyan-500 focus:bg-white dark:focus:bg-slate-800 transition outline-none font-medium"
             />
             {searchTerm && (
               <button
@@ -210,7 +210,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
           </div>
 
           {/* Position Selector Tabs */}
-          <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg gap-1 shrink-0 overflow-x-auto">
+          <div className="flex bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg gap-1 shrink-0 overflow-x-auto border border-slate-300 dark:border-slate-700">
             {positions.map(pos => (
               <button
                 key={pos}
@@ -219,7 +219,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
                 className={`px-3 py-1 rounded-md text-xs font-bold transition whitespace-nowrap ${
                   selectedPosition === pos
                     ? 'bg-[#1b55e2] text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                    : 'text-slate-700 dark:text-slate-400 hover:text-slate-950'
                 }`}
               >
                 {pos === 'ALL' ? 'Todas' : pos}
@@ -228,13 +228,13 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
           </div>
 
           {/* View Switcher: Grid vs Table */}
-          <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg gap-0.5 shrink-0 self-end md:self-auto">
+          <div className="flex bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg gap-0.5 shrink-0 self-end md:self-auto border border-slate-300 dark:border-slate-700">
             <button
               onClick={() => setViewMode('grid')}
               className={`p-1.5 rounded-md transition ${
                 viewMode === 'grid'
                   ? 'bg-white dark:bg-slate-700 text-[#1b55e2] dark:text-cyan-300 shadow-xs'
-                  : 'text-slate-400 hover:text-slate-700'
+                  : 'text-slate-500 hover:text-slate-800'
               }`}
               title="Vista en tarjetas"
             >
@@ -245,7 +245,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
               className={`p-1.5 rounded-md transition ${
                 viewMode === 'table'
                   ? 'bg-white dark:bg-slate-700 text-[#1b55e2] dark:text-cyan-300 shadow-xs'
-                  : 'text-slate-400 hover:text-slate-700'
+                  : 'text-slate-500 hover:text-slate-800'
               }`}
               title="Vista en tabla"
             >
@@ -255,14 +255,14 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
         </div>
 
         {/* Secondary Filter Row: Club dropdown & Price Slider */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200 dark:border-slate-800 text-xs">
           {/* Club Dropdown */}
           <div className="flex items-center gap-2">
-            <span className="text-slate-500 font-bold uppercase text-[10px]">Club:</span>
+            <span className="text-slate-600 font-extrabold uppercase text-[10px]">Club:</span>
             <select
               value={selectedTeam}
               onChange={e => setSelectedTeam(e.target.value)}
-              className="bg-[#f8fafc] dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 dark:text-slate-200 outline-none cursor-pointer max-w-[200px] truncate"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-900 dark:text-slate-200 outline-none cursor-pointer max-w-[200px] truncate hover:border-slate-400"
             >
               <option value="ALL">Todos los 30 clubes</option>
               {Object.keys(TEAMS_DATA)
@@ -277,7 +277,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
 
           {/* Max Price Slider */}
           <div className="flex items-center gap-2">
-            <span className="text-slate-500 font-bold uppercase text-[10px]">Precio máx:</span>
+            <span className="text-slate-600 font-extrabold uppercase text-[10px]">Precio máx:</span>
             <input
               type="range"
               min="300000"
@@ -287,21 +287,21 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
               onChange={e => setMaxPrice(Number(e.target.value))}
               className="w-24 sm:w-32 accent-[#1b55e2] cursor-pointer"
             />
-            <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">
+            <span className="font-mono font-black text-emerald-800 dark:text-emerald-400">
               ${(maxPrice / 1000000).toFixed(1)}M
             </span>
           </div>
 
           {/* Active Filter Indicators & Reset */}
           <div className="flex items-center gap-2 ml-auto">
-            <span className="text-slate-500">
+            <span className="text-slate-600 font-bold">
               Mostrando <strong>{filteredPlayers.length}</strong> de {players.length}
             </span>
 
             {isFiltering && (
               <button
                 onClick={clearAllFilters}
-                className="px-2 py-0.5 rounded bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 font-bold text-[11px] hover:bg-rose-100 flex items-center gap-1"
+                className="px-2 py-0.5 rounded bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 font-bold text-[11px] hover:bg-rose-100 flex items-center gap-1 border border-rose-200 dark:border-rose-800"
               >
                 <X className="w-3 h-3" />
                 <span>Restablecer</span>

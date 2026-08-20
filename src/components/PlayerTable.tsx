@@ -34,10 +34,10 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden">
+    <div className="rounded-xl border border-slate-300/90 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs text-slate-700 dark:text-slate-300">
-          <thead className="bg-[#f8fafc] dark:bg-slate-800/80 text-[11px] uppercase font-black text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-800">
+        <table className="w-full text-left text-xs text-slate-800 dark:text-slate-300">
+          <thead className="bg-slate-100 dark:bg-slate-800/80 text-[11px] uppercase font-black text-slate-800 dark:text-slate-200 border-b border-slate-300 dark:border-slate-700">
             <tr>
               <th scope="col" className="py-3 px-4 sm:px-5">
                 <button
@@ -80,7 +80,7 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+          <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
             {players.map(player => {
               const isFav = favoriteIds.has(player.id);
               const isStar = starredIds?.has(player.id);
@@ -91,14 +91,14 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
                   id={`table-row-${player.id}`}
                   className={`transition-colors ${
                     isFav
-                      ? 'bg-blue-50/70 hover:bg-blue-50 dark:bg-blue-950/20 dark:hover:bg-blue-950/30'
-                      : 'hover:bg-[#f8fafc] dark:hover:bg-slate-800/40'
+                      ? 'bg-blue-50 hover:bg-blue-100/70 dark:bg-blue-950/30 dark:hover:bg-blue-950/40'
+                      : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
                   }`}
                 >
                   {/* Name */}
                   <td className="py-2.5 px-4 sm:px-5">
                     <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-slate-900 dark:text-slate-100 text-xs sm:text-sm">
+                      <span className="font-black text-slate-950 dark:text-slate-100 text-xs sm:text-sm">
                         {player.nombre}
                       </span>
                       {isStar && (
@@ -116,7 +116,7 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
                   <td className="py-2.5 px-4">
                     <div className="flex items-center gap-2.5">
                       <TeamBadge teamName={player.equipo} size="xs" />
-                      <span className="text-xs text-slate-800 dark:text-slate-300 font-bold">
+                      <span className="text-xs text-slate-900 dark:text-slate-300 font-bold">
                         {player.equipo}
                       </span>
                     </div>
@@ -124,7 +124,7 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
 
                   {/* Price */}
                   <td className="py-2.5 px-4 sm:px-5 text-right">
-                    <span className="font-mono font-black text-emerald-700 dark:text-emerald-400 text-xs sm:text-sm">
+                    <span className="font-mono font-black text-emerald-800 dark:text-emerald-400 text-xs sm:text-sm">
                       {formatPrice(player.precioNum)}
                     </span>
                   </td>

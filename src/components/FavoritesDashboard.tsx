@@ -310,11 +310,11 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
       <CountdownBanner onSelectClub={onNavigateToDatabase} />
 
       {/* 2. PURE WHITE SEARCH & CONTROL PANEL (Clean Gran DT Aesthetic) */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xs border border-slate-200/90 dark:border-slate-800 p-2.5 sm:p-3 transition">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xs border border-slate-300/90 dark:border-slate-800 p-2.5 sm:p-3 transition">
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5">
           {/* Autocomplete Input */}
           <div className="relative flex-1" ref={dropdownRef}>
-            <div className="flex items-center gap-2 bg-[#f8fafc] dark:bg-slate-800/90 border border-slate-300/80 dark:border-slate-700 rounded-lg px-2.5 py-1.5 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:ring-2 focus-within:ring-[#1b55e2] dark:focus-within:ring-cyan-500 focus-within:border-transparent transition">
+            <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:ring-2 focus-within:ring-[#1b55e2] dark:focus-within:ring-cyan-500 focus-within:border-transparent transition">
               <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
               <input
                 type="text"
@@ -326,7 +326,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                 }}
                 onFocus={() => setIsDropdownOpen(true)}
                 placeholder="Buscar jugador o club (ej. Sarmiento, Di María, Paredes, River)..."
-                className="w-full bg-transparent text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none font-medium"
+                className="w-full bg-transparent text-xs sm:text-sm text-slate-950 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none font-medium"
               />
 
               {/* Club selector shortcut */}
@@ -336,7 +336,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                   setSelectorTeam(e.target.value);
                   setIsDropdownOpen(true);
                 }}
-                className="hidden sm:block text-[11px] font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded px-2 py-0.5 outline-none cursor-pointer max-w-[140px] truncate"
+                className="hidden sm:block text-[11px] font-bold bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded px-2 py-0.5 outline-none cursor-pointer max-w-[140px] truncate hover:border-slate-400"
               >
                 <option value="ALL">Todos los Clubes</option>
                 {Object.keys(TEAMS_DATA)
@@ -355,7 +355,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                   setSelectorPos(e.target.value);
                   setIsDropdownOpen(true);
                 }}
-                className="hidden sm:block text-[11px] font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 outline-none cursor-pointer"
+                className="hidden sm:block text-[11px] font-bold bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded px-1.5 py-0.5 outline-none cursor-pointer hover:border-slate-400"
               >
                 <option value="ALL">Posición</option>
                 <option value="ARQ">ARQ</option>
@@ -554,27 +554,27 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
       </div>
 
       {/* 2.5 CARD FILTERS & SORTING TOOLBAR (Local/Visitante, Día, Posición en Tabla, Nombre) */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/90 dark:border-slate-800 p-2 sm:p-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-2 text-xs">
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 p-2 sm:p-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-2 text-xs">
         {/* Left: Filter Controls */}
         <div className="flex items-center flex-wrap gap-2">
           {/* Local vs Visitante filter pills */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-300 dark:border-slate-700">
             <button
               onClick={() => setCardRoleFilter('ALL')}
-              className={`px-2 py-1 rounded-md text-[11px] font-bold transition ${
+              className={`px-2 py-1 rounded-md text-[11px] font-black transition ${
                 cardRoleFilter === 'ALL'
-                  ? 'bg-white dark:bg-slate-700 text-[#1b55e2] dark:text-cyan-300 shadow-2xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  ? 'bg-white dark:bg-slate-700 text-[#1b55e2] dark:text-cyan-300 shadow-xs'
+                  : 'text-slate-700 dark:text-slate-400 hover:text-slate-950'
               }`}
             >
               Todos ({clubsToDisplay.length})
             </button>
             <button
               onClick={() => setCardRoleFilter('LOCAL')}
-              className={`px-2 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
+              className={`px-2 py-1 rounded-md text-[11px] font-black transition flex items-center gap-1 ${
                 cardRoleFilter === 'LOCAL'
-                  ? 'bg-white dark:bg-slate-700 text-amber-700 dark:text-amber-300 shadow-2xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  ? 'bg-white dark:bg-slate-700 text-amber-800 dark:text-amber-300 shadow-xs'
+                  : 'text-slate-700 dark:text-slate-400 hover:text-slate-950'
               }`}
               title="Equipos que juegan de local en la fecha"
             >
@@ -583,10 +583,10 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
             </button>
             <button
               onClick={() => setCardRoleFilter('VISITANTE')}
-              className={`px-2 py-1 rounded-md text-[11px] font-bold transition flex items-center gap-1 ${
+              className={`px-2 py-1 rounded-md text-[11px] font-black transition flex items-center gap-1 ${
                 cardRoleFilter === 'VISITANTE'
-                  ? 'bg-white dark:bg-slate-700 text-purple-700 dark:text-purple-300 shadow-2xs'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  ? 'bg-white dark:bg-slate-700 text-purple-800 dark:text-purple-300 shadow-xs'
+                  : 'text-slate-700 dark:text-slate-400 hover:text-slate-950'
               }`}
               title="Equipos que juegan de visitante en la fecha"
             >
@@ -597,11 +597,11 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
 
           {/* Day of Week Filter */}
           <div className="flex items-center gap-1">
-            <span className="text-[11px] font-bold text-slate-500 hidden sm:inline">Día:</span>
+            <span className="text-[11px] font-extrabold text-slate-600 dark:text-slate-400 hidden sm:inline">Día:</span>
             <select
               value={cardDayFilter}
               onChange={e => setCardDayFilter(e.target.value as any)}
-              className="text-[11px] font-bold bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 outline-none cursor-pointer hover:border-blue-400 transition"
+              className="text-[11px] font-bold bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 outline-none cursor-pointer hover:border-blue-400 transition"
             >
               <option value="ALL">📅 Todos los días</option>
               <option value="Viernes">Viernes (4 clubes)</option>
@@ -613,11 +613,11 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
 
           {/* Zone Filter */}
           <div className="flex items-center gap-1">
-            <span className="text-[11px] font-bold text-slate-500 hidden md:inline">Zona:</span>
+            <span className="text-[11px] font-extrabold text-slate-600 dark:text-slate-400 hidden md:inline">Zona:</span>
             <select
               value={cardZoneFilter}
               onChange={e => setCardZoneFilter(e.target.value as any)}
-              className="text-[11px] font-bold bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 outline-none cursor-pointer hover:border-blue-400 transition"
+              className="text-[11px] font-bold bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 outline-none cursor-pointer hover:border-blue-400 transition"
             >
               <option value="ALL">Todas las Zonas</option>
               <option value="Zona A">Zona A (15 clubes)</option>
@@ -629,12 +629,12 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
         {/* Right: Sorting & Reset */}
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">
-            <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span className="text-[11px] font-bold text-slate-500 hidden sm:inline">Ordenar:</span>
+            <ArrowUpDown className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+            <span className="text-[11px] font-extrabold text-slate-600 dark:text-slate-400 hidden sm:inline">Ordenar:</span>
             <select
               value={cardSortBy}
               onChange={e => setCardSortBy(e.target.value as any)}
-              className="text-[11px] font-bold bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 outline-none cursor-pointer hover:border-blue-400 transition"
+              className="text-[11px] font-bold bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 outline-none cursor-pointer hover:border-blue-400 transition"
             >
               <option value="table-pos">🏆 Posición en la Tabla (1º - 30º)</option>
               <option value="name-asc">🔤 Nombre (A - Z)</option>
@@ -746,7 +746,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
               <div
                 key={teamName}
                 id={`team-card-${teamName.replace(/\s+/g, '-').toLowerCase()}`}
-                className={`relative bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden group h-full ${spanClass}`}
+                className={`relative bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-slate-400 dark:hover:border-slate-700 transition-all duration-200 flex flex-col justify-between overflow-hidden group h-full ${spanClass}`}
               >
                 {/* Top Club Color Accent Bar */}
                 <div
@@ -769,16 +769,16 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                 </div>
 
                 {/* Team Card Header: Shield, Name, Standings (Posición, Puntos, Zona), +Sumar */}
-                <div className="relative z-10 p-2 bg-slate-50/95 dark:bg-slate-800/90 backdrop-blur-xs border-b border-slate-100 dark:border-slate-800 shrink-0 space-y-1.5">
+                <div className="relative z-10 p-2.5 bg-slate-100/95 dark:bg-slate-800/90 backdrop-blur-xs border-b border-slate-200 dark:border-slate-800 shrink-0 space-y-1.5">
                   {/* Row 1: Badge, Name, Count, +Sumar */}
                   <div className="flex items-center justify-between gap-1.5">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <TeamBadge teamName={teamName} size="sm" showName={false} />
                       <div className="min-w-0">
-                        <h4 className="font-black text-xs text-slate-900 dark:text-slate-100 truncate leading-tight">
+                        <h4 className="font-black text-xs text-slate-950 dark:text-slate-100 truncate leading-tight">
                           {teamName}
                         </h4>
-                        <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block leading-none mt-0.5">
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block leading-none mt-0.5">
                           {teamPlayers.length > 0
                             ? `${teamPlayers.length} ${teamPlayers.length === 1 ? 'jugador guardado' : 'jugadores guardados'}`
                             : '0 guardados'}
@@ -793,7 +793,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                         setClubPickerSearch('');
                         setClubPickerPos('ALL');
                       }}
-                      className="px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900 text-[#1b55e2] dark:text-cyan-300 text-[10px] font-black flex items-center gap-0.5 transition shrink-0 border border-blue-200/60 dark:border-blue-800/60 active:scale-95"
+                      className="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900 text-[#1b55e2] dark:text-cyan-300 text-[10px] font-black flex items-center gap-0.5 transition shrink-0 border border-blue-300/80 dark:border-blue-800/60 active:scale-95 shadow-2xs"
                       title={`Agregar futbolistas de ${teamName}`}
                     >
                       <Plus className="w-3 h-3" />
@@ -802,14 +802,14 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                   </div>
 
                   {/* Row 2: Standings Info (Posición, Puntos, Zona) & Fixture Info */}
-                  <div className="flex items-center justify-between gap-1 text-[10px] pt-1 border-t border-slate-200/70 dark:border-slate-700/70 flex-wrap">
+                  <div className="flex items-center justify-between gap-1 text-[10px] pt-1.5 border-t border-slate-200 dark:border-slate-700/70 flex-wrap">
                     <div className="flex items-center gap-1">
                       {/* Zone Badge */}
                       <span
                         className={`px-1.5 py-0.5 rounded font-black text-[9px] uppercase tracking-wider ${
                           standing?.zone === 'Zona A'
-                            ? 'bg-blue-100 text-blue-900 dark:bg-blue-950 dark:text-blue-200 border border-blue-200/60 dark:border-blue-800/60'
-                            : 'bg-indigo-100 text-indigo-900 dark:bg-indigo-950 dark:text-indigo-200 border border-indigo-200/60 dark:border-indigo-800/60'
+                            ? 'bg-blue-100 text-blue-950 dark:bg-blue-950 dark:text-blue-200 border border-blue-300/80 dark:border-blue-800/60'
+                            : 'bg-indigo-100 text-indigo-950 dark:bg-indigo-950 dark:text-indigo-200 border border-indigo-300/80 dark:border-indigo-800/60'
                         }`}
                       >
                         {standing?.zone || 'AFA'}
@@ -817,7 +817,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
 
                       {/* Position in Table */}
                       <span
-                        className="px-1.5 py-0.5 rounded font-black text-[9px] bg-slate-200/80 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300/60 dark:border-slate-600"
+                        className="px-1.5 py-0.5 rounded font-black text-[9px] bg-slate-200/90 dark:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-600"
                         title={`Posición general en la tabla del Clausura 2026: ${standing?.positionGeneral}º (${standing?.positionZone}º en ${standing?.zone})`}
                       >
                         #{standing?.positionGeneral || '-'}º
@@ -825,7 +825,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
 
                       {/* Points */}
                       <span
-                        className="px-1.5 py-0.5 rounded font-black text-[9px] bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60 font-mono"
+                        className="px-1.5 py-0.5 rounded font-black text-[9px] bg-emerald-100 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-800/60 font-mono"
                         title={`${standing?.points || 0} puntos acumulados en 5 fechas disputadas`}
                       >
                         {standing?.points ?? '-'} pts
@@ -835,15 +835,15 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                     {/* Match Fixture Badge (Local/Visitante + Rival 3-letter Abbr + Día) */}
                     {matchInfo && (
                       <span
-                        className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1 ${
+                        className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1 ${
                           matchInfo.isHome
-                            ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-900 dark:text-amber-200 border border-amber-200/70 dark:border-amber-800/70'
-                            : 'bg-purple-50 dark:bg-purple-950/50 text-purple-900 dark:text-purple-200 border border-purple-200/70 dark:border-purple-800/70'
+                            ? 'bg-amber-100/90 dark:bg-amber-950/50 text-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-800/70'
+                            : 'bg-purple-100/90 dark:bg-purple-950/50 text-purple-950 dark:text-purple-200 border border-purple-300 dark:border-purple-800/70'
                         }`}
                         title={`Fecha 6: ${matchInfo.role} vs ${matchInfo.rival} (${matchInfo.displayTime})`}
                       >
                         <span>{matchInfo.isHome ? '🏠' : '✈️'}</span>
-                        <span className="font-semibold">{matchInfo.dayOfWeek.slice(0, 3)}</span>
+                        <span>{matchInfo.dayOfWeek.slice(0, 3)}</span>
                         <span className="font-mono font-black uppercase tracking-tight">vs {matchInfo.rivalShort}</span>
                       </span>
                     )}
@@ -851,10 +851,10 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                 </div>
 
                 {/* Team Players List (High Density with dynamic list layout) */}
-                <div className={`relative z-10 p-1.5 flex-1 ${listClass} min-h-[90px] overflow-y-auto`}>
+                <div className={`relative z-10 p-1.5 flex-1 ${listClass} min-h-[90px] overflow-y-auto bg-slate-50/40 dark:bg-slate-950/20`}>
                   {teamPlayers.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center py-4 text-center">
-                      <span className="text-[11px] text-slate-400 dark:text-slate-500 italic">
+                      <span className="text-[11px] text-slate-400 dark:text-slate-500 italic font-medium">
                         Sin jugadores guardados
                       </span>
                     </div>
@@ -862,7 +862,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                     teamPlayers.map(player => (
                       <div
                         key={player.id}
-                        className="group/item flex items-center justify-between gap-1 p-1 rounded-md bg-[#f8fafc]/85 dark:bg-slate-800/85 backdrop-blur-[1px] hover:bg-blue-50/90 dark:hover:bg-slate-800 transition text-xs border border-slate-100/90 dark:border-slate-800/90 shadow-2xs"
+                        className="group/item flex items-center justify-between gap-1 p-1.5 rounded-md bg-white dark:bg-slate-800/90 backdrop-blur-[1px] hover:bg-blue-50/90 dark:hover:bg-slate-700/80 transition text-xs border border-slate-200/90 dark:border-slate-700/80 shadow-2xs hover:border-blue-300"
                       >
                         {/* Position Pill & Player Name */}
                         <div className="flex items-center gap-1.5 min-w-0 flex-1">
@@ -870,8 +870,8 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1">
                               <span
-                                className={`font-bold text-[11px] truncate leading-tight ${
-                                  player.star ? 'text-amber-700 dark:text-amber-300' : 'text-slate-900 dark:text-slate-100'
+                                className={`font-black text-[11px] truncate leading-tight ${
+                                  player.star ? 'text-amber-800 dark:text-amber-300' : 'text-slate-950 dark:text-slate-100'
                                 }`}
                               >
                                 {player.nombre}
@@ -880,7 +880,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                                 <Star className="w-2.5 h-2.5 text-amber-500 fill-amber-500 shrink-0" />
                               )}
                             </div>
-                            <span className="font-mono text-[10px] text-emerald-700 dark:text-emerald-400 font-bold block leading-none">
+                            <span className="font-mono text-[10px] text-emerald-800 dark:text-emerald-400 font-extrabold block leading-none mt-0.5">
                               {player.precio}
                             </span>
                           </div>
@@ -894,10 +894,10 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                               setEditingPlayer(player);
                               setEditingNoteText(player.notes || '');
                             }}
-                            className={`p-0.5 rounded text-[10px] ${
+                            className={`p-1 rounded text-[10px] transition ${
                               player.notes
-                                ? 'text-[#1b55e2] dark:text-cyan-400 bg-blue-50 dark:bg-blue-950 font-bold'
-                                : 'text-slate-300 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-300'
+                                ? 'text-[#1b55e2] dark:text-cyan-400 bg-blue-100 dark:bg-blue-950 font-bold border border-blue-200'
+                                : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                             }`}
                             title={player.notes || 'Agregar nota táctica'}
                           >
@@ -907,10 +907,10 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                           {/* Star toggle */}
                           <button
                             onClick={() => onToggleStar(player.id)}
-                            className={`p-0.5 rounded text-[10px] ${
+                            className={`p-1 rounded text-[10px] transition ${
                               player.star
-                                ? 'text-amber-500'
-                                : 'text-slate-300 dark:text-slate-600 hover:text-amber-400'
+                                ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/60'
+                                : 'text-slate-400 dark:text-slate-500 hover:text-amber-500 hover:bg-amber-50/50'
                             }`}
                             title="Marcar como prioridad"
                           >
@@ -924,7 +924,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                           {/* Remove button */}
                           <button
                             onClick={() => onRemoveFavorite(player.id)}
-                            className="p-0.5 rounded text-slate-300 dark:text-slate-600 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 transition"
+                            className="p-1 rounded text-slate-400 dark:text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 transition"
                             title="Quitar de favoritos"
                           >
                             <X className="w-3 h-3" />

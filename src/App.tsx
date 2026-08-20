@@ -225,7 +225,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#f8fafc] dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 flex flex-col">
+    <div className="min-h-screen w-full bg-[#edf2f7] dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 flex flex-col">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-5 duration-200 pointer-events-none">

@@ -83,7 +83,7 @@ export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favori
               placeholder="Buscar club (ej. River, Boca, Vélez)..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-400 font-medium"
+              className="w-full pl-9 pr-3 py-1.5 rounded-lg text-xs bg-white dark:bg-slate-800 text-slate-950 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-400 font-medium shadow-2xs"
             />
           </div>
         </div>
@@ -101,7 +101,7 @@ export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favori
             <div
               key={team.name}
               id={`club-card-${team.shortName.toLowerCase().replace(/\s+/g, '-')}`}
-              className="relative bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-[#1b55e2]/50 transition flex flex-col justify-between overflow-hidden group"
+              className="relative bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-slate-400 dark:hover:border-[#1b55e2]/50 transition flex flex-col justify-between overflow-hidden group"
             >
               {/* Top Accent Color Bar */}
               <div
@@ -129,17 +129,17 @@ export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favori
                   <div className="flex items-center gap-2.5 min-w-0">
                     <TeamBadge teamName={team.name} size="md" />
                     <div className="min-w-0">
-                      <h3 className="font-black text-sm text-slate-900 dark:text-slate-100 truncate">
+                      <h3 className="font-black text-sm text-slate-950 dark:text-slate-100 truncate">
                         {team.name}
                       </h3>
-                      <span className="text-[11px] font-bold text-slate-400">
+                      <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
                         {team.shortName} • {stats.count} futbolistas
                       </span>
                     </div>
                   </div>
 
                   {stats.favoritesCount > 0 && (
-                    <span className="bg-blue-50 dark:bg-blue-950 text-[#1b55e2] dark:text-cyan-300 px-2 py-0.5 rounded-full text-[11px] font-black border border-blue-200 dark:border-blue-800 shrink-0">
+                    <span className="bg-blue-100 dark:bg-blue-950 text-[#1b55e2] dark:text-cyan-300 px-2 py-0.5 rounded-full text-[11px] font-black border border-blue-300/80 dark:border-blue-800 shrink-0">
                       {stats.favoritesCount} favs
                     </span>
                   )}
@@ -149,17 +149,17 @@ export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favori
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
                     standing?.zone === 'Zona A'
-                      ? 'bg-blue-100 text-blue-900 dark:bg-blue-950 dark:text-blue-200 border border-blue-200/60 dark:border-blue-800/60'
-                      : 'bg-indigo-100 text-indigo-900 dark:bg-indigo-950 dark:text-indigo-200 border border-indigo-200/60 dark:border-indigo-800/60'
+                      ? 'bg-blue-100 text-blue-950 dark:bg-blue-950 dark:text-blue-200 border border-blue-300/80 dark:border-blue-800/60'
+                      : 'bg-indigo-100 text-indigo-950 dark:bg-indigo-950 dark:text-indigo-200 border border-indigo-300/80 dark:border-indigo-800/60'
                   }`}>
                     {standing?.zone || 'AFA'}
                   </span>
 
-                  <span className="px-2 py-0.5 rounded text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-black bg-slate-200/90 dark:bg-slate-800 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700">
                     #{standing?.positionGeneral || '-'}º en tabla
                   </span>
 
-                  <span className="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-mono border border-emerald-200/60 dark:border-emerald-800/60">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-300 font-mono border border-emerald-300/80 dark:border-emerald-800/60">
                     {standing?.points ?? '-'} pts
                   </span>
 
