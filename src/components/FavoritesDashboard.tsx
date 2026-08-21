@@ -726,17 +726,17 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
 
             // Dynamic card dimensions and watermark scaling according to player count:
             // 0-4 players: 1 col, 1 row (exact height to fit 4 players with 0 scrolling)
-            // 5-8 players: 1 col, 2 rows (exact height to fit 8 players with 0 scrolling)
-            // 9+ players: 2 cols, 2 rows (2-column layout to fit 9-16 players cleanly)
+            // 5-10 players: 1 col, 2 rows (fits up to 10 players in single column with 0 scrolling)
+            // 11+ players: 2 cols, 2 rows (2-column layout to fit 11-20+ players cleanly with 0 scrolling)
             let spanClass = 'col-span-1 row-span-1';
             let listClass = 'space-y-1';
             let watermarkSizeClass = 'w-36 h-36 sm:w-40 sm:h-40 -bottom-4 -right-4';
 
-            if (count >= 5 && count <= 8) {
+            if (count >= 5 && count <= 10) {
               spanClass = 'col-span-1 row-span-2';
               listClass = 'space-y-1';
               watermarkSizeClass = 'w-60 h-60 sm:w-72 sm:h-72 md:w-80 md:h-80 -bottom-6 -right-6';
-            } else if (count >= 9) {
+            } else if (count >= 11) {
               spanClass = 'col-span-1 sm:col-span-2 row-span-2';
               listClass = 'grid grid-cols-1 sm:grid-cols-2 gap-1 content-start';
               watermarkSizeClass = 'w-72 h-72 sm:w-88 sm:h-88 md:w-96 md:h-96 -bottom-8 -right-8';
