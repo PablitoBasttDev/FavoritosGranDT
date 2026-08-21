@@ -104,10 +104,10 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
         onClick={() => setIsExpanded(!isExpanded)}
         className="cursor-pointer select-none"
       >
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-start justify-between gap-1.5 mb-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             <TeamBadge teamName={player.equipo} size="sm" />
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block truncate">
                 {player.equipo}
               </span>
@@ -117,7 +117,7 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
             <PositionBadge position={player.posicion} size="sm" />
             <button
               type="button"
@@ -131,25 +131,25 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
       </div>
 
       {/* Bottom row: Price, Promedio & Favorite Toggle Action */}
-      <div className="flex items-center justify-between pt-2.5 border-t border-slate-200 dark:border-slate-800 mt-2 gap-2">
+      <div className="flex items-center justify-between pt-2.5 border-t border-slate-200 dark:border-slate-800 mt-2 gap-1.5 min-w-0">
         <div
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-3 cursor-pointer select-none"
+          className="flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none min-w-0 flex-1"
         >
-          <div>
-            <span className="text-[9px] uppercase font-black text-slate-500 dark:text-slate-400 block tracking-wider">
+          <div className="min-w-0">
+            <span className="text-[9px] uppercase font-black text-slate-500 dark:text-slate-400 block tracking-wider truncate">
               Cotización
             </span>
-            <span className="text-sm font-black font-mono tracking-tight text-emerald-800 dark:text-emerald-400">
+            <span className="text-xs sm:text-sm font-black font-mono tracking-tight text-emerald-800 dark:text-emerald-400 whitespace-nowrap">
               {formattedPrice}
             </span>
           </div>
 
-          <div className="border-l border-slate-200 dark:border-slate-700 pl-3">
-            <span className="text-[9px] uppercase font-black text-amber-700 dark:text-amber-400 block tracking-wider flex items-center gap-0.5">
-              <TrendingUp className="w-2.5 h-2.5" /> Promedio
+          <div className="border-l border-slate-200 dark:border-slate-700 pl-2 sm:pl-2.5 min-w-0">
+            <span className="text-[9px] uppercase font-black text-amber-700 dark:text-amber-400 block tracking-wider flex items-center gap-0.5 whitespace-nowrap">
+              <TrendingUp className="w-2.5 h-2.5 shrink-0" /> Promedio
             </span>
-            <span className="text-sm font-black font-mono tracking-tight text-amber-800 dark:text-amber-300">
+            <span className="text-xs sm:text-sm font-black font-mono tracking-tight text-amber-800 dark:text-amber-300 whitespace-nowrap">
               {formattedPromedio} {formattedPromedio !== '-' ? <span className="text-[10px] font-normal">pts</span> : ''}
             </span>
           </div>
@@ -161,7 +161,7 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
             e.stopPropagation();
             onToggleFavorite(player);
           }}
-          className={`px-2.5 py-1.5 rounded-lg text-xs font-black transition active:scale-95 flex items-center gap-1 shadow-xs shrink-0 ${
+          className={`px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-black transition active:scale-95 flex items-center gap-1 shadow-xs shrink-0 whitespace-nowrap ${
             isFavorite
               ? 'bg-blue-100 text-[#1b55e2] dark:bg-blue-900/60 dark:text-cyan-300 hover:bg-rose-500 hover:text-white border border-blue-300 dark:border-blue-700'
               : 'bg-[#1b55e2] hover:bg-[#1444b8] text-white'
@@ -169,13 +169,13 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
         >
           {isFavorite ? (
             <>
-              <Check className="w-3.5 h-3.5" />
+              <Check className="w-3.5 h-3.5 shrink-0" />
               <span>En Lista</span>
             </>
           ) : (
             <>
-              <Plus className="w-3.5 h-3.5" />
-              <span>+ Sumar</span>
+              <Plus className="w-3.5 h-3.5 shrink-0" />
+              <span>Sumar</span>
             </>
           )}
         </button>

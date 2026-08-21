@@ -165,7 +165,7 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
                           e.stopPropagation();
                           onToggleFavorite(player);
                         }}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-black transition flex items-center gap-1 shadow-xs mx-auto ${
+                        className={`px-2.5 py-1 rounded-lg text-xs font-black transition flex items-center gap-1 shadow-xs mx-auto shrink-0 whitespace-nowrap ${
                           isFav
                             ? 'bg-blue-100 text-[#1b55e2] dark:bg-blue-900/60 dark:text-cyan-300 hover:bg-rose-500 hover:text-white border border-blue-200'
                             : 'bg-[#1b55e2] hover:bg-[#1444b8] text-white'
@@ -173,13 +173,13 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
                       >
                         {isFav ? (
                           <>
-                            <Check className="w-3.5 h-3.5" />
+                            <Check className="w-3.5 h-3.5 shrink-0" />
                             <span>En Lista</span>
                           </>
                         ) : (
                           <>
-                            <Plus className="w-3.5 h-3.5" />
-                            <span>+ Sumar</span>
+                            <Plus className="w-3.5 h-3.5 shrink-0" />
+                            <span>Sumar</span>
                           </>
                         )}
                       </button>
