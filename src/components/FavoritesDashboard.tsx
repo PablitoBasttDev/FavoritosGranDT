@@ -713,7 +713,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
 
       {/* 3. DENSE RESPONSIVE CLUB GRID WITH DYNAMIC ROW & COL SPANNING (Auto-Flow Dense) */}
       {clubsToDisplay.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 auto-rows-[240px] [grid-auto-flow:dense] gap-2 sm:gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 auto-rows-[260px] [grid-auto-flow:dense] gap-2 sm:gap-2.5">
           {clubsToDisplay.map(teamName => {
             const teamPlayers = groupedFavorites[teamName] || [];
             const count = teamPlayers.length;
@@ -725,18 +725,18 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
             const matchInfo = getTeamMatchInfo(teamName);
 
             // Dynamic card dimensions and watermark scaling according to player count:
-            // 0-4 players: 1 col, 1 row (fixed 240px initial height)
-            // 5-7 players: 1 col, 2 rows (vertical expansion without stretching neighboring cards)
-            // 8+ players: 2 cols, 2 rows (prevents overly tall vertical towers, splits into 2 clean columns)
+            // 0-4 players: 1 col, 1 row (exact height to fit 4 players with 0 scrolling)
+            // 5-8 players: 1 col, 2 rows (exact height to fit 8 players with 0 scrolling)
+            // 9+ players: 2 cols, 2 rows (2-column layout to fit 9-16 players cleanly)
             let spanClass = 'col-span-1 row-span-1';
             let listClass = 'space-y-1';
             let watermarkSizeClass = 'w-36 h-36 sm:w-40 sm:h-40 -bottom-4 -right-4';
 
-            if (count >= 5 && count <= 7) {
+            if (count >= 5 && count <= 8) {
               spanClass = 'col-span-1 row-span-2';
               listClass = 'space-y-1';
               watermarkSizeClass = 'w-60 h-60 sm:w-72 sm:h-72 md:w-80 md:h-80 -bottom-6 -right-6';
-            } else if (count >= 8) {
+            } else if (count >= 9) {
               spanClass = 'col-span-1 sm:col-span-2 row-span-2';
               listClass = 'grid grid-cols-1 sm:grid-cols-2 gap-1 content-start';
               watermarkSizeClass = 'w-72 h-72 sm:w-88 sm:h-88 md:w-96 md:h-96 -bottom-8 -right-8';
@@ -769,7 +769,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                 </div>
 
                 {/* Team Card Header: Shield, Name, Standings (Posición, Puntos, Zona), +Sumar */}
-                <div className="relative z-10 p-2.5 bg-slate-100/95 dark:bg-slate-800/90 backdrop-blur-xs border-b border-slate-200 dark:border-slate-800 shrink-0 space-y-1.5">
+                <div className="relative z-10 p-2 sm:p-2.5 bg-slate-100/95 dark:bg-slate-800/90 backdrop-blur-xs border-b border-slate-200 dark:border-slate-800 shrink-0 space-y-1 sm:space-y-1.5">
                   {/* Row 1: Badge, Name, Count, +Sumar */}
                   <div className="flex items-center justify-between gap-1.5">
                     <div className="flex items-center gap-1.5 min-w-0">
@@ -802,7 +802,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                   </div>
 
                   {/* Row 2: Standings Info (Posición, Puntos, Zona) & Fixture Info */}
-                  <div className="flex items-center justify-between gap-1 text-[10px] pt-1.5 border-t border-slate-200 dark:border-slate-700/70 flex-wrap">
+                  <div className="flex items-center justify-between gap-1 text-[10px] pt-1 sm:pt-1.5 border-t border-slate-200 dark:border-slate-700/70 flex-wrap">
                     <div className="flex items-center gap-1">
                       {/* Zone Badge */}
                       <span
@@ -862,7 +862,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                     teamPlayers.map(player => (
                       <div
                         key={player.id}
-                        className="group/item flex items-center justify-between gap-1 p-1.5 rounded-md bg-white dark:bg-slate-800/90 backdrop-blur-[1px] hover:bg-blue-50/90 dark:hover:bg-slate-700/80 transition text-xs border border-slate-200/90 dark:border-slate-700/80 shadow-2xs hover:border-blue-300"
+                        className="group/item flex items-center justify-between gap-1 px-1.5 py-1 rounded-md bg-white dark:bg-slate-800/90 backdrop-blur-[1px] hover:bg-blue-50/90 dark:hover:bg-slate-700/80 transition text-xs border border-slate-200/90 dark:border-slate-700/80 shadow-2xs hover:border-blue-300"
                       >
                         {/* Position Pill & Player Name */}
                         <div className="flex items-center gap-1.5 min-w-0 flex-1">

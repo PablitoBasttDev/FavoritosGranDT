@@ -65,28 +65,28 @@ export const Navbar: React.FC<NavbarProps> = ({
     <>
       {/* COMPACT GRAN DT HEADER (Official Style) */}
       <header className="sticky top-0 z-40 bg-[#07193b] text-white border-b border-blue-900/60 shadow-md">
-        <div className="max-w-[1920px] mx-auto px-3 sm:px-5 flex items-center justify-between h-14 sm:h-16">
+        <div className="max-w-[1920px] mx-auto px-3 sm:px-5 flex items-center justify-between h-16 sm:h-20">
           {/* Left: Gran DT Logo & Navigation Tabs */}
           <div className="flex items-center gap-3 sm:gap-6 h-full">
             {/* Logo El Gran Asistente */}
             <div
               onClick={() => setActiveTab('favorites')}
-              className="flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none group py-1"
+              className="flex items-center gap-2.5 sm:gap-3.5 cursor-pointer select-none group py-1"
             >
               <img
                 src="/logo.png"
                 alt="El Gran Asistente"
                 referrerPolicy="no-referrer"
-                className="w-10 h-10 sm:w-12 sm:h-12 md:w-13 md:h-13 object-contain shrink-0 filter drop-shadow-md group-hover:scale-105 transition-transform duration-200"
+                className="w-13 h-13 sm:w-16 sm:h-16 md:w-20 md:h-20 object-contain shrink-0 filter drop-shadow-lg group-hover:scale-105 transition-transform duration-200"
               />
               <div className="flex flex-col justify-center leading-none">
-                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300/90 leading-tight">
+                <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.25em] text-cyan-300 leading-tight">
                   EL GRAN
                 </span>
-                <span className="text-sm sm:text-base md:text-lg font-black italic uppercase tracking-tight text-white leading-none group-hover:text-cyan-300 transition-colors">
+                <span className="text-base sm:text-xl md:text-2xl font-black italic uppercase tracking-tight text-white leading-none group-hover:text-cyan-300 transition-colors">
                   ASISTENTE
                 </span>
-                <span className="hidden sm:inline-block text-[9px] font-semibold text-blue-200/75 tracking-wider mt-0.5">
+                <span className="hidden sm:inline-block text-[10px] font-semibold text-blue-200/80 tracking-wider mt-1">
                   Gran DT · Clausura 2026
                 </span>
               </div>
