@@ -1,4 +1,6 @@
 import { Player } from '../types';
+import { RAW_STANDINGS_DATA } from '../data/standings';
+import { SHEET_TEAM_MAP } from '../services/sheetsService';
 
 export interface PlayerTrait {
   id: string;
@@ -18,6 +20,24 @@ export function getPlayerTraits(player: Player): PlayerTrait[] {
   const partidos = player.partidosJugados || 0;
   const vi = player.vallaInvicta || 0;
   const pos = player.posicion;
+
+  // 0. Posible Titular (jugó 80% o más de los partidos disputados por su equipo/torneo)
+  const mappedTeam = SHEET_TEAM_MAP[player.equipo] || player.equipo;
+  const teamStanding = RAW_STANDINGS_DATA[mappedTeam] || RAW_STANDINGS_DATA[player.equipo];
+  const teamMatchesPlayed = teamStanding?.played || 5;
+
+  if (teamMatchesPlayed > 0 && partidos / teamMatchesPlayed >= 0.8) {
+    const pct = Math.round((partidos / teamMatchesPlayed) * 100);
+    traits.push({
+      id: 'posible_titular',
+      label: 'Posible Titular',
+      emoji: '🟢',
+      colorClass: 'text-emerald-800 dark:text-emerald-300',
+      bgClass: 'bg-emerald-50 dark:bg-emerald-950/60',
+      borderClass: 'border-emerald-200 dark:border-emerald-800/80',
+      description: `Disputó el ${pct}% de los partidos del torneo (${partidos}/${teamMatchesPlayed} partidos)`,
+    });
+  }
 
   // 1. Arqueros y Defensores: Vallas invictas
   if ((pos === 'ARQ' || pos === 'DEF') && partidos >= 2) {
@@ -46,7 +66,9 @@ export function getPlayerTraits(player: Player): PlayerTrait[] {
   }
 
   // 2. Cualquier jugador: En racha
-  // Condición: Haber marcado al menos 1 gol en los últimos 2 partidos, o bien haber obtenido más de 15 puntos en cada uno de los últimos 2 partidos consecutivos (>15 pts en F_n y >15 pts en F_n-1)
+  // Condición:
+  // - Al menos 1 gol en 2 de los últimos 3 partidos del torneo
+  // - O BIEN al menos 15 puntos en cada uno de los 2 últimos partidos (>= 15 pts en F_n y >= 15 pts en F_n-1)
   const scoresObj = player.fechasPuntajes || {};
   const playedFixtures = Object.entries(scoresObj)
     .filter(([_, val]) => val !== '' && val !== 's/c' && !isNaN(Number(val)))
@@ -54,26 +76,28 @@ export function getPlayerTraits(player: Player): PlayerTrait[] {
     .sort((a, b) => a.fecha - b.fecha);
 
   const last2 = playedFixtures.slice(-2);
+  const last3 = playedFixtures.slice(-3);
 
-  // Condición A: 2 fechas consecutivas con más de 15 puntos en cada una
-  const hasHighPointsConsecutive =
-    last2.length === 2 && last2[0].pts > 15 && last2[1].pts > 15;
+  // Condición A: 15 puntos o más en cada uno de los 2 últimos partidos
+  const has15PtsInLast2 =
+    last2.length === 2 && last2[0].pts >= 15 && last2[1].pts >= 15;
 
-  // Condición B: Marcó al menos 1 gol en los últimos 2 partidos
-  // En Gran DT, un gol suma +4 (DEL), +5 (VOL) o +6 (DEF), alcanzando habitualmente puntajes >= 8 en esa fecha
-  const hasScoredInLast2 =
-    (player.goles || 0) >= 1 &&
-    last2.length > 0 &&
-    (last2.some(f => f.pts >= 8) || (player.partidosJugados || 0) <= 2);
+  // Condición B: Al menos 1 gol en 2 de los últimos 3 partidos
+  // Requiere al menos 2 goles en el torneo y que al menos 2 de los últimos 3 partidos tengan puntaje con gol (>= 8 pts)
+  const matchesWithGoalInLast3 = last3.filter(f => f.pts >= 8).length;
+  const hasGoalIn2OfLast3 =
+    (player.goles || 0) >= 2 &&
+    last3.length >= 2 &&
+    matchesWithGoalInLast3 >= 2;
 
-  if (hasHighPointsConsecutive || hasScoredInLast2) {
+  if (has15PtsInLast2 || hasGoalIn2OfLast3) {
     let streakDesc = '';
-    if (hasHighPointsConsecutive && hasScoredInLast2) {
-      streakDesc = `Gol en fechas recientes y 2 fechas consecutivas con más de 15 pts (${last2[0].pts} y ${last2[1].pts} pts)`;
-    } else if (hasHighPointsConsecutive) {
-      streakDesc = `2 fechas consecutivas con más de 15 puntos (${last2[0].pts} pts y ${last2[1].pts} pts)`;
+    if (has15PtsInLast2 && hasGoalIn2OfLast3) {
+      streakDesc = `Gol en 2 de los últimos 3 partidos y 15+ pts en los últimos 2 (${last2[0].pts} y ${last2[1].pts} pts)`;
+    } else if (has15PtsInLast2) {
+      streakDesc = `15 o más puntos en cada uno de los 2 últimos partidos (${last2[0].pts} pts y ${last2[1].pts} pts)`;
     } else {
-      streakDesc = `Gol convertido en los últimos 2 partidos del torneo`;
+      streakDesc = `Gol en 2 de los últimos 3 partidos disputados (${matchesWithGoalInLast3} partidos con gol)`;
     }
 
     traits.push({
