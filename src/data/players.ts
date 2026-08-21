@@ -1,13 +1,15 @@
 import { Player } from '../types';
-import { PLAYERS_PART_1 } from './playersPart1';
-import { PLAYERS_PART_2 } from './playersPart2';
-import { PLAYERS_PART_3 } from './playersPart3';
+import defaultPlayersSnapshot from './liveSheetSnapshot.json';
+import { getCachedSheetPlayers } from '../services/sheetsService';
 
-export const ALL_PLAYERS: Player[] = [
-  ...PLAYERS_PART_1,
-  ...PLAYERS_PART_2,
-  ...PLAYERS_PART_3
-];
+// Initialize with latest cached or default snapshot of all 1000 players from Google Sheet
+export const ALL_PLAYERS: Player[] = (function () {
+  if (typeof window !== 'undefined') {
+    const cached = getCachedSheetPlayers();
+    if (cached && cached.length > 0) return cached;
+  }
+  return defaultPlayersSnapshot as unknown as Player[];
+})();
 
 export const getPlayerById = (id: number): Player | undefined => {
   return ALL_PLAYERS.find(p => p.id === id);
@@ -20,3 +22,4 @@ export const getPlayersByTeam = (teamName: string): Player[] => {
 export const getPlayersByPosition = (pos: string): Player[] => {
   return ALL_PLAYERS.filter(p => p.posicion === pos);
 };
+

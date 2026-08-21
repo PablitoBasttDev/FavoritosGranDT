@@ -1,10 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Player, Position } from '../types';
 import { TEAMS_DATA } from '../data/teams';
-import { normalizeText, playerMatchesQuery } from '../utils/textUtils';
+import { playerMatchesQuery } from '../utils/textUtils';
 import { PlayerCard } from './PlayerCard';
 import { PlayerTable } from './PlayerTable';
-import { TeamBadge } from './TeamBadge';
 import {
   Search,
   LayoutGrid,
@@ -12,21 +11,14 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  TrendingDown,
   TrendingUp,
-  Database,
-  Users,
-  Shield,
-  Sparkles,
   BookmarkCheck,
 } from 'lucide-react';
 
 interface PlayerExplorerProps {
   players: Player[];
   favoriteIds: Set<number>;
-  starredIds?: Set<number>;
   onToggleFavorite: (player: Player) => void;
-  onToggleStar?: (playerId: number) => void;
   selectedClubFilter?: string;
   onClearClubFilter?: () => void;
   targetPositionFilter?: string;
@@ -37,9 +29,7 @@ interface PlayerExplorerProps {
 export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
   players,
   favoriteIds,
-  starredIds,
   onToggleFavorite,
-  onToggleStar,
   selectedClubFilter = '',
   onClearClubFilter,
   targetPositionFilter = 'ALL',
@@ -51,7 +41,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
   const [selectedTeam, setSelectedTeam] = useState<string>(selectedClubFilter || 'ALL');
   const [selectedPosition, setSelectedPosition] = useState<string>(targetPositionFilter || 'ALL');
   const [maxPrice, setMaxPrice] = useState<number>(7500000);
-  const [sortBy, setSortBy] = useState<'precio' | 'nombre' | 'equipo' | 'posicion'>('precio');
+  const [sortBy, setSortBy] = useState<'precio' | 'promedio' | 'nombre' | 'equipo' | 'posicion'>('promedio');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 24;
@@ -100,7 +90,11 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
       })
       .sort((a, b) => {
         let comparison = 0;
-        if (sortBy === 'precio') {
+        if (sortBy === 'promedio') {
+          const promA = a.promedio || 0;
+          const promB = b.promedio || 0;
+          comparison = promA - promB;
+        } else if (sortBy === 'precio') {
           comparison = a.precioNum - b.precioNum;
         } else if (sortBy === 'nombre') {
           comparison = a.nombre.localeCompare(b.nombre);
@@ -125,7 +119,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
     currentPage * itemsPerPage
   );
 
-  const handleSortChange = (field: 'precio' | 'nombre' | 'equipo' | 'posicion') => {
+  const handleSortChange = (field: 'precio' | 'promedio' | 'nombre' | 'equipo' | 'posicion') => {
     if (sortBy === field) {
       setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
     } else {
@@ -139,7 +133,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
     setSelectedTeam('ALL');
     setSelectedPosition('ALL');
     setMaxPrice(7500000);
-    setSortBy('precio');
+    setSortBy('promedio');
     setSortOrder('desc');
     onClearClubFilter?.();
     onClearTargetPositionFilter?.();
@@ -159,17 +153,18 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="bg-cyan-400 text-slate-950 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider">
-                991 Futbolistas
+                {players.length} Futbolistas
               </span>
-              <span className="text-xs text-blue-200 font-bold uppercase tracking-wide">
-                Catálogo Completo
+              <span className="text-xs text-blue-200 font-bold uppercase tracking-wide flex items-center gap-1">
+                <TrendingUp className="w-3.5 h-3.5 text-amber-300" />
+                Base en Vivo de Google Sheet
               </span>
             </div>
             <h2 className="text-lg sm:text-xl font-black tracking-tight text-white">
-              Base de Datos y Cotizaciones AFA 2026
+              Base de Datos, Cotizaciones y Puntos Promedio AFA 2026
             </h2>
             <p className="text-blue-100/80 text-xs max-w-xl mt-0.5">
-              Filtrá por club, posición o rango de cotización y sumá jugadores a tus favoritos con un clic.
+              Consultá el valor de mercado y el promedio de rendimiento de cada jugador actualizado fecha a fecha.
             </p>
           </div>
 
@@ -179,7 +174,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
               className="px-4 py-2 rounded-lg text-xs font-black bg-cyan-400 hover:bg-cyan-300 text-slate-950 shadow-sm transition flex items-center gap-1.5 self-start md:self-auto shrink-0"
             >
               <BookmarkCheck className="w-4 h-4" />
-              <span>Ver mis {favoriteIds.size} Favoritos</span>
+              <span>Ver mis {favoriteIds.size} Jugadores</span>
             </button>
           )}
         </div>
@@ -194,7 +189,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
             <input
               id="player-search-input"
               type="text"
-              placeholder="Paredes, Vélez, Di María"
+              placeholder="Buscar por nombre o club (ej: Paredes, River, Acosta)..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-8 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs sm:text-sm text-slate-950 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-[#1b55e2] dark:focus:ring-cyan-500 focus:bg-white dark:focus:bg-slate-800 transition outline-none font-medium"
@@ -254,7 +249,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
           </div>
         </div>
 
-        {/* Secondary Filter Row: Club dropdown & Price Slider */}
+        {/* Secondary Filter Row: Club dropdown, Price Slider & Sort selector */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200 dark:border-slate-800 text-xs">
           {/* Club Dropdown */}
           <div className="flex items-center gap-2">
@@ -275,6 +270,27 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
             </select>
           </div>
 
+          {/* Sort By selector */}
+          <div className="flex items-center gap-2">
+            <span className="text-slate-600 font-extrabold uppercase text-[10px]">Ordenar por:</span>
+            <select
+              value={`${sortBy}-${sortOrder}`}
+              onChange={e => {
+                const [f, o] = e.target.value.split('-') as [any, any];
+                setSortBy(f);
+                setSortOrder(o);
+              }}
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-900 dark:text-slate-200 outline-none cursor-pointer hover:border-slate-400"
+            >
+              <option value="promedio-desc">⭐ Mayor Promedio Pts</option>
+              <option value="promedio-asc">Menor Promedio Pts</option>
+              <option value="precio-desc">💰 Mayor Cotización</option>
+              <option value="precio-asc">💵 Menor Cotización</option>
+              <option value="nombre-asc">🔤 Nombre A-Z</option>
+              <option value="equipo-asc">🛡️ Club A-Z</option>
+            </select>
+          </div>
+
           {/* Max Price Slider */}
           <div className="flex items-center gap-2">
             <span className="text-slate-600 font-extrabold uppercase text-[10px]">Precio máx:</span>
@@ -285,7 +301,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
               step="100000"
               value={maxPrice}
               onChange={e => setMaxPrice(Number(e.target.value))}
-              className="w-24 sm:w-32 accent-[#1b55e2] cursor-pointer"
+              className="w-24 sm:w-28 accent-[#1b55e2] cursor-pointer"
             />
             <span className="font-mono font-black text-emerald-800 dark:text-emerald-400">
               ${(maxPrice / 1000000).toFixed(1)}M
@@ -320,8 +336,6 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
               player={player}
               isFavorite={favoriteIds.has(player.id)}
               onToggleFavorite={onToggleFavorite}
-              isStarred={starredIds?.has(player.id)}
-              onToggleStar={onToggleStar}
             />
           ))}
         </div>
@@ -365,3 +379,4 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
     </div>
   );
 };
+

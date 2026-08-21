@@ -36,7 +36,6 @@ interface FavoritesDashboardProps {
   onAddFavorite: (player: Player, notes?: string) => void;
   onRemoveFavorite: (playerId: number) => void;
   onUpdateNotes: (playerId: number, notes: string) => void;
-  onToggleStar: (playerId: number) => void;
   onClearAll: () => void;
   onNavigateToDatabase: (clubName?: string) => void;
 }
@@ -46,7 +45,6 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
   onAddFavorite,
   onRemoveFavorite,
   onUpdateNotes,
-  onToggleStar,
   onClearAll,
   onNavigateToDatabase,
 }) => {
@@ -859,79 +857,67 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                       </span>
                     </div>
                   ) : (
-                    teamPlayers.map(player => (
-                      <div
-                        key={player.id}
-                        className="group/item flex items-center justify-between gap-1 px-1.5 py-1 rounded-md bg-white dark:bg-slate-800/90 backdrop-blur-[1px] hover:bg-blue-50/90 dark:hover:bg-slate-700/80 transition text-xs border border-slate-200/90 dark:border-slate-700/80 shadow-2xs hover:border-blue-300"
-                      >
-                        {/* Position Pill & Player Name */}
-                        <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                          <PositionBadge position={player.posicion} size="sm" />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1">
-                              <span
-                                className={`font-black text-[11px] truncate leading-tight ${
-                                  player.star ? 'text-amber-800 dark:text-amber-300' : 'text-slate-950 dark:text-slate-100'
-                                }`}
-                              >
+                    teamPlayers.map(player => {
+                      const formattedPromedio =
+                        typeof player.promedio === 'number' && player.promedio > 0
+                          ? player.promedio.toFixed(2)
+                          : null;
+
+                      return (
+                        <div
+                          key={player.id}
+                          className="group/item flex items-center justify-between gap-1 px-1.5 py-1 rounded-md bg-white dark:bg-slate-800/90 backdrop-blur-[1px] hover:bg-blue-50/90 dark:hover:bg-slate-700/80 transition text-xs border border-slate-200/90 dark:border-slate-700/80 shadow-2xs hover:border-blue-300"
+                        >
+                          {/* Position Pill & Player Name */}
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                            <PositionBadge position={player.posicion} size="sm" />
+                            <div className="min-w-0 flex-1">
+                              <span className="font-black text-[11px] truncate leading-tight block text-slate-950 dark:text-slate-100">
                                 {player.nombre}
                               </span>
-                              {player.star && (
-                                <Star className="w-2.5 h-2.5 text-amber-500 fill-amber-500 shrink-0" />
-                              )}
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="font-mono text-[10px] text-emerald-800 dark:text-emerald-400 font-extrabold leading-none">
+                                  {player.precio}
+                                </span>
+                                {formattedPromedio && (
+                                  <span className="font-mono text-[9px] text-amber-900 dark:text-amber-300 font-black bg-amber-100 dark:bg-amber-950/70 px-1 py-0.2 rounded leading-none">
+                                    {formattedPromedio} pts
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                            <span className="font-mono text-[10px] text-emerald-800 dark:text-emerald-400 font-extrabold block leading-none mt-0.5">
-                              {player.precio}
-                            </span>
+                          </div>
+
+                          {/* Actions: Notes, Remove */}
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            {/* Note icon / edit */}
+                            <button
+                              onClick={() => {
+                                setEditingPlayer(player);
+                                setEditingNoteText(player.notes || '');
+                              }}
+                              className={`p-1 rounded text-[10px] transition ${
+                                player.notes
+                                  ? 'text-[#1b55e2] dark:text-cyan-400 bg-blue-100 dark:bg-blue-950 font-bold border border-blue-200'
+                                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                              }`}
+                              title={player.notes || 'Agregar nota táctica'}
+                            >
+                              <Edit3 className="w-3 h-3" />
+                            </button>
+
+                            {/* Remove button */}
+                            <button
+                              onClick={() => onRemoveFavorite(player.id)}
+                              className="p-1 rounded text-slate-400 dark:text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 transition"
+                              title="Quitar de favoritos"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
                           </div>
                         </div>
-
-                        {/* Actions: Notes, Star, Remove */}
-                        <div className="flex items-center gap-0.5 shrink-0">
-                          {/* Note icon / edit */}
-                          <button
-                            onClick={() => {
-                              setEditingPlayer(player);
-                              setEditingNoteText(player.notes || '');
-                            }}
-                            className={`p-1 rounded text-[10px] transition ${
-                              player.notes
-                                ? 'text-[#1b55e2] dark:text-cyan-400 bg-blue-100 dark:bg-blue-950 font-bold border border-blue-200'
-                                : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-                            }`}
-                            title={player.notes || 'Agregar nota táctica'}
-                          >
-                            <Edit3 className="w-3 h-3" />
-                          </button>
-
-                          {/* Star toggle */}
-                          <button
-                            onClick={() => onToggleStar(player.id)}
-                            className={`p-1 rounded text-[10px] transition ${
-                              player.star
-                                ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/60'
-                                : 'text-slate-400 dark:text-slate-500 hover:text-amber-500 hover:bg-amber-50/50'
-                            }`}
-                            title="Marcar como prioridad"
-                          >
-                            <Star
-                              className={`w-3 h-3 ${
-                                player.star ? 'fill-amber-400 text-amber-500' : ''
-                              }`}
-                            />
-                          </button>
-
-                          {/* Remove button */}
-                          <button
-                            onClick={() => onRemoveFavorite(player.id)}
-                            className="p-1 rounded text-slate-400 dark:text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 transition"
-                            title="Quitar de favoritos"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -1023,6 +1009,11 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                       </div>
 
                       <div className="flex items-center gap-2.5">
+                        {typeof p.promedio === 'number' && p.promedio > 0 && (
+                          <span className="font-mono font-black text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/70 px-1.5 py-0.5 rounded text-[10px]">
+                            {p.promedio.toFixed(2)} pts
+                          </span>
+                        )}
                         <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
                           {p.precio}
                         </span>

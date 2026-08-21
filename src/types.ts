@@ -7,12 +7,23 @@ export interface Player {
   posicion: Position;
   precio: string;
   precioNum: number;
+  promedio?: number; // Puntos promedio en el torneo (PrT)
+  promedioGranDT?: number; // Promedio Gran DT (PrG)
+  puntosTotales?: number; // Acumulado torneo (AcT)
+  partidosJugados?: number; // Partidos calificados (CT)
+  goles?: number; // Goles totales convertidos
+  figura?: number; // Veces figura (VF)
+  vallaInvicta?: number; // Vallas invictas (VI)
+  amarillas?: number; // Tarjetas amarillas (TA)
+  rojas?: number; // Tarjetas rojas (TR)
+  penalesErrados?: number; // Penales errados (PE)
+  penalesAtajados?: number; // Penales atajados (PA)
+  fechasPuntajes?: Record<string, string | number>; // F1..F18
 }
 
 export interface FavoritePlayer extends Player {
   notes?: string;
   addedAt?: number;
-  star?: boolean;
 }
 
 export interface UserProfile {
@@ -41,8 +52,9 @@ export interface FilterState {
   searchQuery: string;
   selectedTeam: string;
   selectedPosition: string; // '' | 'ARQ' | 'DEF' | 'VOL' | 'DEL'
-  sortBy: 'price-desc' | 'price-asc' | 'name-asc' | 'team-asc';
+  sortBy: 'promedio-desc' | 'promedio-asc' | 'price-desc' | 'price-asc' | 'name-asc' | 'team-asc';
   maxPrice: number;
   minPrice: number;
 }
+
 

@@ -2,14 +2,12 @@ import React from 'react';
 import { Player } from '../types';
 import { TeamBadge } from './TeamBadge';
 import { PositionBadge } from './PositionBadge';
-import { Plus, Star, Check, X } from 'lucide-react';
+import { Plus, Check, X, TrendingUp } from 'lucide-react';
 
 interface PlayerCardProps {
   player: Player;
   isFavorite: boolean;
   onToggleFavorite: (player: Player) => void;
-  isStarred?: boolean;
-  onToggleStar?: (playerId: number) => void;
   compact?: boolean;
 }
 
@@ -17,8 +15,6 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
   player,
   isFavorite,
   onToggleFavorite,
-  isStarred = false,
-  onToggleStar,
   compact = false,
 }) => {
   // Format currency
@@ -27,6 +23,11 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
     currency: 'ARS',
     maximumFractionDigits: 0,
   }).format(player.precioNum);
+
+  const formattedPromedio =
+    typeof player.promedio === 'number' && player.promedio > 0
+      ? player.promedio.toFixed(2)
+      : '-';
 
   if (compact) {
     return (
@@ -44,10 +45,14 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
             <p className="font-black text-xs text-slate-950 dark:text-slate-100 truncate">
               {player.nombre}
             </p>
-            <div className="flex items-center gap-1.5 text-[11px] mt-0.5">
+            <div className="flex items-center gap-2 text-[11px] mt-0.5 flex-wrap">
               <PositionBadge position={player.posicion} size="sm" />
               <span className="font-mono text-emerald-800 dark:text-emerald-400 font-black">
                 {formattedPrice}
+              </span>
+              <span className="px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-black text-[10px] flex items-center gap-0.5">
+                <TrendingUp className="w-2.5 h-2.5" />
+                {formattedPromedio} pts
               </span>
             </div>
           </div>
@@ -95,55 +100,51 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
         </div>
       </div>
 
-      {/* Bottom row: Price & Favorite Toggle Action */}
-      <div className="flex items-center justify-between pt-2.5 border-t border-slate-200 dark:border-slate-800 mt-2">
-        <div>
-          <span className="text-[9px] uppercase font-black text-slate-500 dark:text-slate-400 block tracking-wider">
-            Cotización
-          </span>
-          <span className="text-sm font-black font-mono tracking-tight text-emerald-800 dark:text-emerald-400">
-            {formattedPrice}
-          </span>
+      {/* Bottom row: Price, Promedio & Favorite Toggle Action */}
+      <div className="flex items-center justify-between pt-2.5 border-t border-slate-200 dark:border-slate-800 mt-2 gap-2">
+        <div className="flex items-center gap-3">
+          <div>
+            <span className="text-[9px] uppercase font-black text-slate-500 dark:text-slate-400 block tracking-wider">
+              Cotización
+            </span>
+            <span className="text-sm font-black font-mono tracking-tight text-emerald-800 dark:text-emerald-400">
+              {formattedPrice}
+            </span>
+          </div>
+
+          <div className="border-l border-slate-200 dark:border-slate-700 pl-3">
+            <span className="text-[9px] uppercase font-black text-amber-700 dark:text-amber-400 block tracking-wider flex items-center gap-0.5">
+              <TrendingUp className="w-2.5 h-2.5" /> Promedio
+            </span>
+            <span className="text-sm font-black font-mono tracking-tight text-amber-800 dark:text-amber-300">
+              {formattedPromedio} <span className="text-[10px] font-normal">pts</span>
+            </span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          {isFavorite && onToggleStar && (
-            <button
-              onClick={() => onToggleStar(player.id)}
-              className={`p-1.5 rounded-lg transition ${
-                isStarred
-                  ? 'bg-amber-400 text-slate-950 font-bold shadow-xs'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-amber-500 border border-slate-200 dark:border-slate-700'
-              }`}
-              title={isStarred ? 'Destacado de scouting' : 'Marcar destacado'}
-            >
-              <Star className={`w-3.5 h-3.5 ${isStarred ? 'fill-current' : ''}`} />
-            </button>
+        <button
+          id={`btn-fav-toggle-${player.id}`}
+          onClick={() => onToggleFavorite(player)}
+          className={`px-2.5 py-1.5 rounded-lg text-xs font-black transition active:scale-95 flex items-center gap-1 shadow-xs shrink-0 ${
+            isFavorite
+              ? 'bg-blue-100 text-[#1b55e2] dark:bg-blue-900/60 dark:text-cyan-300 hover:bg-rose-500 hover:text-white border border-blue-300 dark:border-blue-700'
+              : 'bg-[#1b55e2] hover:bg-[#1444b8] text-white'
+          }`}
+        >
+          {isFavorite ? (
+            <>
+              <Check className="w-3.5 h-3.5" />
+              <span>En Lista</span>
+            </>
+          ) : (
+            <>
+              <Plus className="w-3.5 h-3.5" />
+              <span>+ Sumar</span>
+            </>
           )}
-
-          <button
-            id={`btn-fav-toggle-${player.id}`}
-            onClick={() => onToggleFavorite(player)}
-            className={`px-2.5 py-1.5 rounded-lg text-xs font-black transition active:scale-95 flex items-center gap-1 shadow-xs ${
-              isFavorite
-                ? 'bg-blue-100 text-[#1b55e2] dark:bg-blue-900/60 dark:text-cyan-300 hover:bg-rose-500 hover:text-white border border-blue-300 dark:border-blue-700'
-                : 'bg-[#1b55e2] hover:bg-[#1444b8] text-white'
-            }`}
-          >
-            {isFavorite ? (
-              <>
-                <Check className="w-3.5 h-3.5" />
-                <span>En Lista</span>
-              </>
-            ) : (
-              <>
-                <Plus className="w-3.5 h-3.5" />
-                <span>+ Sumar</span>
-              </>
-            )}
-          </button>
-        </div>
+        </button>
       </div>
     </div>
   );
 };
+

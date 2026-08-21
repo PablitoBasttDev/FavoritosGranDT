@@ -137,7 +137,6 @@ export default function App() {
   }, [isDark]);
 
   const favoriteIds = useMemo(() => new Set(favorites.map(p => p.id)), [favorites]);
-  const starredIds = useMemo(() => new Set(favorites.filter(p => p.star).map(p => p.id)), [favorites]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -164,7 +163,6 @@ export default function App() {
       ...player,
       notes: notes || undefined,
       addedAt: Date.now(),
-      star: false,
     };
 
     setFavorites(prev => [newFav, ...prev]);
@@ -196,13 +194,6 @@ export default function App() {
       prev.map(p => (p.id === playerId ? { ...p, notes: notes || undefined } : p))
     );
     showToast('Nota de scouting guardada');
-  };
-
-  // Toggle star / top priority
-  const handleToggleStar = (playerId: number) => {
-    setFavorites(prev =>
-      prev.map(p => (p.id === playerId ? { ...p, star: !p.star } : p))
-    );
   };
 
   // Clear all favorites
@@ -271,7 +262,6 @@ export default function App() {
             onAddFavorite={handleAddFavorite}
             onRemoveFavorite={handleRemoveFavorite}
             onUpdateNotes={handleUpdateNotes}
-            onToggleStar={handleToggleStar}
             onClearAll={handleClearAll}
             onNavigateToDatabase={handleNavigateToDatabase}
           />
@@ -281,9 +271,7 @@ export default function App() {
           <PlayerExplorer
             players={ALL_PLAYERS}
             favoriteIds={favoriteIds}
-            starredIds={starredIds}
             onToggleFavorite={handleToggleFavorite}
-            onToggleStar={handleToggleStar}
             selectedClubFilter={selectedClubFilter}
             onClearClubFilter={() => setSelectedClubFilter('')}
             targetPositionFilter={targetPositionFilter}
