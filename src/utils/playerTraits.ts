@@ -46,7 +46,7 @@ export function getPlayerTraits(player: Player): PlayerTrait[] {
   }
 
   // 2. Cualquier jugador: En racha
-  // Condición: Haber marcado al menos 1 gol en los últimos 2 partidos, o bien haber sumado más de 15 puntos totales en los últimos 2 partidos
+  // Condición: Haber marcado al menos 1 gol en los últimos 2 partidos, o bien haber obtenido más de 15 puntos en cada uno de los últimos 2 partidos consecutivos (>15 pts en F_n y >15 pts en F_n-1)
   const scoresObj = player.fechasPuntajes || {};
   const playedFixtures = Object.entries(scoresObj)
     .filter(([_, val]) => val !== '' && val !== 's/c' && !isNaN(Number(val)))
@@ -54,10 +54,10 @@ export function getPlayerTraits(player: Player): PlayerTrait[] {
     .sort((a, b) => a.fecha - b.fecha);
 
   const last2 = playedFixtures.slice(-2);
-  const sumLast2 = last2.reduce((acc, f) => acc + f.pts, 0);
 
-  // Condición A: Sumó más de 15 puntos totales en los últimos 2 partidos jugados
-  const hasHighPoints = last2.length > 0 && sumLast2 > 15;
+  // Condición A: 2 fechas consecutivas con más de 15 puntos en cada una
+  const hasHighPointsConsecutive =
+    last2.length === 2 && last2[0].pts > 15 && last2[1].pts > 15;
 
   // Condición B: Marcó al menos 1 gol en los últimos 2 partidos
   // En Gran DT, un gol suma +4 (DEL), +5 (VOL) o +6 (DEF), alcanzando habitualmente puntajes >= 8 en esa fecha
@@ -66,14 +66,14 @@ export function getPlayerTraits(player: Player): PlayerTrait[] {
     last2.length > 0 &&
     (last2.some(f => f.pts >= 8) || (player.partidosJugados || 0) <= 2);
 
-  if (hasHighPoints || hasScoredInLast2) {
+  if (hasHighPointsConsecutive || hasScoredInLast2) {
     let streakDesc = '';
-    if (hasHighPoints && hasScoredInLast2) {
-      streakDesc = `Gol en fechas recientes y ${sumLast2} pts en los últimos 2 partidos`;
-    } else if (hasHighPoints) {
-      streakDesc = `${sumLast2} pts acumulados en los últimos 2 partidos (>15 pts)`;
+    if (hasHighPointsConsecutive && hasScoredInLast2) {
+      streakDesc = `Gol en fechas recientes y 2 fechas consecutivas con más de 15 pts (${last2[0].pts} y ${last2[1].pts} pts)`;
+    } else if (hasHighPointsConsecutive) {
+      streakDesc = `2 fechas consecutivas con más de 15 puntos (${last2[0].pts} pts y ${last2[1].pts} pts)`;
     } else {
-      streakDesc = `Gol convertido en los últimos partidos del torneo`;
+      streakDesc = `Gol convertido en los últimos 2 partidos del torneo`;
     }
 
     traits.push({
