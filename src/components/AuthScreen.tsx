@@ -130,22 +130,32 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       {/* Main Container */}
       <div className="w-full max-w-md relative z-10 space-y-4">
         {/* Brand Header */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-950/90 border border-cyan-500/40 text-cyan-300 text-xs font-black uppercase tracking-widest shadow-md">
+        <div className="text-center space-y-3">
+          <div className="flex justify-center -mb-1">
+            <img
+              src="/logo.png"
+              alt="El Gran Asistente Logo"
+              referrerPolicy="no-referrer"
+              className="w-36 h-36 sm:w-44 sm:h-44 md:w-52 md:h-52 object-contain filter drop-shadow-2xl hover:scale-105 transition-transform duration-300"
+            />
+          </div>
+
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-blue-950/90 border border-cyan-500/40 text-cyan-300 text-xs font-black uppercase tracking-widest shadow-md">
             <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
             <span>Gran DT • Torneo Clausura 2026</span>
           </div>
 
-          <div className="flex items-center justify-center gap-1">
-            <span className="text-3xl font-black text-white tracking-tight uppercase">GRAN</span>
-            <span className="text-3xl font-black text-cyan-400 italic">DT</span>
-            <span className="text-sm font-extrabold text-blue-300 ml-1.5 bg-blue-900/60 px-2 py-0.5 rounded-lg border border-blue-700/50">
-              Scouting
+          <div className="flex flex-col items-center justify-center leading-none space-y-0.5">
+            <span className="text-xs sm:text-sm font-black uppercase tracking-[0.3em] text-cyan-300/90">
+              EL GRAN
+            </span>
+            <span className="text-3xl sm:text-4xl md:text-5xl font-black italic tracking-tight uppercase text-white drop-shadow-md">
+              ASISTENTE
             </span>
           </div>
 
-          <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            Accedé a tu lista personal de favoritos y seguimiento de jugadores protegida con tu usuario y contraseña.
+          <p className="text-xs sm:text-sm text-slate-300 max-w-sm mx-auto leading-relaxed">
+            Accedé a tu lista personal de favoritos, armado táctico y seguimiento de jugadores protegida con tu usuario y clave.
           </p>
         </div>
 

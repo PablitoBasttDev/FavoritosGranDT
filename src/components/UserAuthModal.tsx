@@ -196,18 +196,22 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({
         {/* Modal Header */}
         <div className="bg-[#07193b] text-white p-4 sm:p-5 flex items-center justify-between border-b border-blue-900/60">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600/30 border border-cyan-400/40 flex items-center justify-center text-cyan-300">
-              <Users className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] uppercase font-black tracking-widest text-cyan-400">
-                  Gran DT Clausura 2026
-                </span>
-              </div>
-              <h2 className="text-base sm:text-lg font-black tracking-tight text-white">
+            <img
+              src="/logo.png"
+              alt="El Gran Asistente"
+              referrerPolicy="no-referrer"
+              className="w-12 h-12 sm:w-14 sm:h-14 object-contain filter drop-shadow-md shrink-0"
+            />
+            <div className="flex flex-col justify-center leading-none">
+              <span className="text-[10px] uppercase font-black tracking-[0.2em] text-cyan-400 leading-tight">
+                EL GRAN
+              </span>
+              <span className="text-base sm:text-lg font-black uppercase tracking-tight text-white leading-none">
+                ASISTENTE
+              </span>
+              <span className="text-[10px] text-blue-200/80 font-semibold mt-0.5">
                 Mi Cuenta & Seguridad
-              </h2>
+              </span>
             </div>
           </div>
 

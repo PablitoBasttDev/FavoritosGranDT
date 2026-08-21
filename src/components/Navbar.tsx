@@ -65,25 +65,31 @@ export const Navbar: React.FC<NavbarProps> = ({
     <>
       {/* COMPACT GRAN DT HEADER (Official Style) */}
       <header className="sticky top-0 z-40 bg-[#07193b] text-white border-b border-blue-900/60 shadow-md">
-        <div className="max-w-[1920px] mx-auto px-3 sm:px-5 flex items-center justify-between h-12">
+        <div className="max-w-[1920px] mx-auto px-3 sm:px-5 flex items-center justify-between h-14 sm:h-16">
           {/* Left: Gran DT Logo & Navigation Tabs */}
           <div className="flex items-center gap-3 sm:gap-6 h-full">
-            {/* Logo GRAN DT */}
+            {/* Logo El Gran Asistente */}
             <div
               onClick={() => setActiveTab('favorites')}
-              className="flex items-center gap-1.5 cursor-pointer select-none group"
+              className="flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none group py-1"
             >
-              <div className="flex items-baseline font-black tracking-tighter">
-                <span className="text-cyan-400 text-sm sm:text-base font-extrabold uppercase tracking-tight">
-                  GRAN
+              <img
+                src="/logo.png"
+                alt="El Gran Asistente"
+                referrerPolicy="no-referrer"
+                className="w-10 h-10 sm:w-12 sm:h-12 md:w-13 md:h-13 object-contain shrink-0 filter drop-shadow-md group-hover:scale-105 transition-transform duration-200"
+              />
+              <div className="flex flex-col justify-center leading-none">
+                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.22em] text-cyan-300/90 leading-tight">
+                  EL GRAN
                 </span>
-                <span className="text-white text-lg sm:text-xl font-black italic ml-0.5 group-hover:text-cyan-300 transition-colors">
-                  DT
+                <span className="text-sm sm:text-base md:text-lg font-black italic uppercase tracking-tight text-white leading-none group-hover:text-cyan-300 transition-colors">
+                  ASISTENTE
+                </span>
+                <span className="hidden sm:inline-block text-[9px] font-semibold text-blue-200/75 tracking-wider mt-0.5">
+                  Gran DT · Clausura 2026
                 </span>
               </div>
-              <span className="hidden sm:inline-block text-[10px] font-extrabold text-blue-200 bg-blue-900/80 px-2 py-0.5 rounded-full border border-blue-600/40 uppercase tracking-wider">
-                Clausura 2026
-              </span>
             </div>
 
             {/* Desktop Navigation Links with Gran DT Cyan Underline */}
