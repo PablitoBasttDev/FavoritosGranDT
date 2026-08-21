@@ -18,6 +18,7 @@ export interface Player {
   rojas?: number; // Tarjetas rojas (TR)
   penalesErrados?: number; // Penales errados (PE)
   penalesAtajados?: number; // Penales atajados (PA)
+  golesPenal?: number; // Goles de penal (GP)
   fechasPuntajes?: Record<string, string | number>; // F1..F18
 }
 

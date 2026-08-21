@@ -7,12 +7,12 @@ import { normalizeText, playerMatchesQuery } from '../utils/textUtils';
 import { TeamBadge } from './TeamBadge';
 import { PositionBadge } from './PositionBadge';
 import { CountdownBanner } from './CountdownBanner';
+import { PlayerTraitsDetail } from './PlayerTraitsDetail';
 import {
   Search,
   Plus,
   Trash2,
   Share2,
-  Star,
   Shield,
   X,
   Check,
@@ -29,6 +29,8 @@ import {
   Plane,
   RotateCcw,
   AlertTriangle,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 interface FavoritesDashboardProps {
@@ -92,6 +94,9 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
   // Note editing modal / popup state
   const [editingPlayer, setEditingPlayer] = useState<FavoritePlayer | null>(null);
   const [editingNoteText, setEditingNoteText] = useState('');
+
+  // Expand player traits & details accordion
+  const [expandedPlayerId, setExpandedPlayerId] = useState<number | null>(null);
 
   // Warning confirmation modal for clearing the favorites list
   const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
@@ -431,6 +436,15 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
+                          {typeof p.promedio === 'number' && p.promedio > 0 ? (
+                            <span className="font-mono text-[10px] font-black text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/70 px-1.5 py-0.5 rounded">
+                              {p.promedio.toFixed(2)} pts
+                            </span>
+                          ) : (
+                            <span className="font-mono text-[10px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                              -
+                            </span>
+                          )}
                           <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
                             {p.precio}
                           </span>
@@ -849,7 +863,85 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                 </div>
 
                 {/* Team Players List (High Density with dynamic list layout) */}
-                <div className={`relative z-10 p-1.5 flex-1 ${listClass} min-h-[90px] overflow-y-auto bg-slate-50/40 dark:bg-slate-950/20`}>
+                <div className={`relative p-1.5 flex-1 ${listClass} min-h-[90px] overflow-y-auto bg-slate-50/40 dark:bg-slate-950/20`}>
+                  {/* Pinned top overlay when a player is selected */}
+                  {(() => {
+                    const expandedPlayerInCard = teamPlayers.find(p => p.id === expandedPlayerId);
+                    if (!expandedPlayerInCard) return null;
+
+                    const formattedProm =
+                      typeof expandedPlayerInCard.promedio === 'number' && expandedPlayerInCard.promedio > 0
+                        ? expandedPlayerInCard.promedio.toFixed(2)
+                        : '-';
+
+                    return (
+                      <div className="absolute inset-0 z-30 bg-white dark:bg-slate-900 backdrop-blur-md p-1.5 flex flex-col rounded-b-xl border-t-2 border-[#1b55e2] overflow-hidden animate-in fade-in zoom-in-95 duration-150 shadow-md">
+                        {/* Selected player pinned at top - Click to collapse/close */}
+                        <div
+                          onClick={() => setExpandedPlayerId(null)}
+                          className="flex items-center justify-between gap-1 px-1.5 py-1 rounded-md bg-blue-50/95 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-xs mb-1.5 cursor-pointer hover:bg-blue-100/90 dark:hover:bg-blue-900/60 transition select-none group/pinned shrink-0"
+                          title="Tocar para cerrar y volver a la vista normal"
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                            <PositionBadge position={expandedPlayerInCard.posicion} size="sm" />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1">
+                                <span className="font-black text-[11px] truncate leading-tight block text-slate-950 dark:text-slate-100 group-hover/pinned:text-[#1b55e2] transition-colors">
+                                  {expandedPlayerInCard.nombre}
+                                </span>
+                                <ChevronUp className="w-3 h-3 text-[#1b55e2] shrink-0" />
+                              </div>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="font-mono text-[10px] text-emerald-800 dark:text-emerald-400 font-extrabold leading-none">
+                                  {expandedPlayerInCard.precio}
+                                </span>
+                                <span
+                                  className={`font-mono text-[9px] font-black px-1 py-0.2 rounded leading-none ${
+                                    formattedProm !== '-'
+                                      ? 'text-amber-900 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/70'
+                                      : 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800'
+                                  }`}
+                                >
+                                  {formattedProm !== '-' ? `${formattedProm} pts` : '-'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => {
+                                setEditingPlayer(expandedPlayerInCard);
+                                setEditingNoteText(expandedPlayerInCard.notes || '');
+                              }}
+                              className={`p-1 rounded text-[10px] transition ${
+                                expandedPlayerInCard.notes
+                                  ? 'text-[#1b55e2] dark:text-cyan-400 bg-blue-100 dark:bg-blue-950 font-bold border border-blue-200'
+                                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                              }`}
+                              title={expandedPlayerInCard.notes || 'Agregar nota táctica'}
+                            >
+                              <Edit3 className="w-3 h-3" />
+                            </button>
+
+                            <button
+                              onClick={() => setExpandedPlayerId(null)}
+                              className="p-1 rounded text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-800 transition"
+                              title="Cerrar detalle"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Full width trait badges & fixture scores */}
+                        <div className="w-full flex-1 overflow-hidden flex flex-col justify-start">
+                          <PlayerTraitsDetail player={expandedPlayerInCard} />
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {teamPlayers.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center py-4 text-center">
                       <span className="text-[11px] text-slate-400 dark:text-slate-500 italic font-medium">
@@ -861,59 +953,72 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                       const formattedPromedio =
                         typeof player.promedio === 'number' && player.promedio > 0
                           ? player.promedio.toFixed(2)
-                          : null;
+                          : '-';
 
                       return (
-                        <div
-                          key={player.id}
-                          className="group/item flex items-center justify-between gap-1 px-1.5 py-1 rounded-md bg-white dark:bg-slate-800/90 backdrop-blur-[1px] hover:bg-blue-50/90 dark:hover:bg-slate-700/80 transition text-xs border border-slate-200/90 dark:border-slate-700/80 shadow-2xs hover:border-blue-300"
-                        >
-                          {/* Position Pill & Player Name */}
-                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                            <PositionBadge position={player.posicion} size="sm" />
-                            <div className="min-w-0 flex-1">
-                              <span className="font-black text-[11px] truncate leading-tight block text-slate-950 dark:text-slate-100">
-                                {player.nombre}
-                              </span>
-                              <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className="font-mono text-[10px] text-emerald-800 dark:text-emerald-400 font-extrabold leading-none">
-                                  {player.precio}
-                                </span>
-                                {formattedPromedio && (
-                                  <span className="font-mono text-[9px] text-amber-900 dark:text-amber-300 font-black bg-amber-100 dark:bg-amber-950/70 px-1 py-0.2 rounded leading-none">
-                                    {formattedPromedio} pts
+                        <div key={player.id} className="flex flex-col mb-1 last:mb-0">
+                          <div
+                            onClick={() => setExpandedPlayerId(expandedPlayerId === player.id ? null : player.id)}
+                            className="group/item flex items-center justify-between gap-1 px-1.5 py-1 rounded-md transition text-xs border shadow-2xs cursor-pointer select-none bg-white dark:bg-slate-800/90 backdrop-blur-[1px] hover:bg-blue-50/80 dark:hover:bg-slate-700/80 border-slate-200/90 dark:border-slate-700/80 hover:border-blue-300"
+                          >
+                            {/* Position Pill & Player Name */}
+                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                              <PositionBadge position={player.posicion} size="sm" />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1">
+                                  <span className="font-black text-[11px] truncate leading-tight block text-slate-950 dark:text-slate-100 group-hover/item:text-[#1b55e2] transition-colors">
+                                    {player.nombre}
                                   </span>
-                                )}
+                                  <ChevronDown className="w-3 h-3 text-slate-400 opacity-0 group-hover/item:opacity-100 transition-opacity shrink-0" />
+                                </div>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <span className="font-mono text-[10px] text-emerald-800 dark:text-emerald-400 font-extrabold leading-none">
+                                    {player.precio}
+                                  </span>
+                                  <span
+                                    className={`font-mono text-[9px] font-black px-1 py-0.2 rounded leading-none ${
+                                      formattedPromedio !== '-'
+                                        ? 'text-amber-900 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/70'
+                                        : 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800'
+                                    }`}
+                                  >
+                                    {formattedPromedio !== '-' ? `${formattedPromedio} pts` : '-'}
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                          </div>
 
-                          {/* Actions: Notes, Remove */}
-                          <div className="flex items-center gap-0.5 shrink-0">
-                            {/* Note icon / edit */}
-                            <button
-                              onClick={() => {
-                                setEditingPlayer(player);
-                                setEditingNoteText(player.notes || '');
-                              }}
-                              className={`p-1 rounded text-[10px] transition ${
-                                player.notes
-                                  ? 'text-[#1b55e2] dark:text-cyan-400 bg-blue-100 dark:bg-blue-950 font-bold border border-blue-200'
-                                  : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-                              }`}
-                              title={player.notes || 'Agregar nota táctica'}
-                            >
-                              <Edit3 className="w-3 h-3" />
-                            </button>
+                            {/* Actions: Notes, Remove */}
+                            <div className="flex items-center gap-0.5 shrink-0">
+                              {/* Note icon / edit */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingPlayer(player);
+                                  setEditingNoteText(player.notes || '');
+                                }}
+                                className={`p-1 rounded text-[10px] transition ${
+                                  player.notes
+                                    ? 'text-[#1b55e2] dark:text-cyan-400 bg-blue-100 dark:bg-blue-950 font-bold border border-blue-200'
+                                    : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                                }`}
+                                title={player.notes || 'Agregar nota táctica'}
+                              >
+                                <Edit3 className="w-3 h-3" />
+                              </button>
 
-                            {/* Remove button */}
-                            <button
-                              onClick={() => onRemoveFavorite(player.id)}
-                              className="p-1 rounded text-slate-400 dark:text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 transition"
-                              title="Quitar de favoritos"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
+                              {/* Remove button */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onRemoveFavorite(player.id);
+                                }}
+                                className="p-1 rounded text-slate-400 dark:text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 transition"
+                                title="Quitar de favoritos"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );
@@ -988,42 +1093,50 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
             </div>
 
             {/* Player list of this Club */}
-            <div className="flex-1 overflow-y-auto p-2.5 divide-y divide-slate-100 dark:divide-slate-800 space-y-0.5">
-              {clubModalPlayers.length === 0 ? (
-                <div className="text-center py-6 text-xs text-slate-400">
-                  No se encontraron futbolistas con ese filtro.
-                </div>
-              ) : (
-                clubModalPlayers.map(p => {
-                  const isFav = favoriteIds.has(p.id);
-                  return (
+            <div className="flex-1 overflow-y-auto p-2.5 divide-y divide-slate-100 dark:divide-slate-800 space-y-0.5 relative">
+              {/* Sticky top view when a player in modal is expanded */}
+              {(() => {
+                const expandedModalPlayer = clubModalPlayers.find(p => p.id === expandedPlayerId);
+                if (!expandedModalPlayer) return null;
+                const isFav = favoriteIds.has(expandedModalPlayer.id);
+                const formattedPromedio =
+                  typeof expandedModalPlayer.promedio === 'number' && expandedModalPlayer.promedio > 0
+                    ? expandedModalPlayer.promedio.toFixed(2)
+                    : '-';
+
+                return (
+                  <div className="sticky top-0 z-20 mb-2 p-2 bg-white dark:bg-slate-900 border-2 border-[#1b55e2] rounded-xl shadow-lg animate-in fade-in zoom-in-95 duration-150">
                     <div
-                      key={p.id}
-                      className="py-1.5 px-2 hover:bg-blue-50/60 dark:hover:bg-slate-800/80 rounded-lg flex items-center justify-between gap-3 text-xs transition"
+                      onClick={() => setExpandedPlayerId(null)}
+                      className="flex items-center justify-between gap-2 mb-2 pb-1.5 border-b border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded p-1 transition select-none group/modalpinned"
+                      title="Tocar para cerrar detalle y volver a la lista"
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <PositionBadge position={p.posicion} size="sm" />
-                        <span className="font-extrabold text-slate-900 dark:text-slate-100 truncate">
-                          {p.nombre}
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <PositionBadge position={expandedModalPlayer.posicion} size="sm" />
+                        <span className="font-extrabold text-sm text-slate-950 dark:text-slate-100 truncate group-hover/modalpinned:text-[#1b55e2] transition-colors">
+                          {expandedModalPlayer.nombre}
                         </span>
+                        <ChevronUp className="w-3.5 h-3.5 text-[#1b55e2] shrink-0" />
                       </div>
-
-                      <div className="flex items-center gap-2.5">
-                        {typeof p.promedio === 'number' && p.promedio > 0 && (
-                          <span className="font-mono font-black text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/70 px-1.5 py-0.5 rounded text-[10px]">
-                            {p.promedio.toFixed(2)} pts
-                          </span>
-                        )}
-                        <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
-                          {p.precio}
+                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        <span
+                          className={`font-mono text-[10px] font-black px-1.5 py-0.5 rounded ${
+                            formattedPromedio !== '-'
+                              ? 'text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/70'
+                              : 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800'
+                          }`}
+                        >
+                          {formattedPromedio !== '-' ? `${formattedPromedio} pts` : '-'}
                         </span>
-
+                        <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                          {expandedModalPlayer.precio}
+                        </span>
                         <button
                           onClick={() => {
                             if (isFav) {
-                              onRemoveFavorite(p.id);
+                              onRemoveFavorite(expandedModalPlayer.id);
                             } else {
-                              onAddFavorite(p);
+                              onAddFavorite(expandedModalPlayer);
                             }
                           }}
                           className={`px-2.5 py-1 rounded-md text-[11px] font-bold flex items-center gap-1 transition ${
@@ -1032,18 +1145,90 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                               : 'bg-[#1b55e2] hover:bg-[#1444b8] text-white shadow-xs'
                           }`}
                         >
-                          {isFav ? (
-                            <>
-                              <X className="w-3 h-3" />
-                              <span>Quitar</span>
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="w-3 h-3" />
-                              <span>Sumar</span>
-                            </>
-                          )}
+                          {isFav ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                          <span>{isFav ? 'Quitar' : 'Sumar'}</span>
                         </button>
+                        <button
+                          onClick={() => setExpandedPlayerId(null)}
+                          className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          title="Cerrar detalle"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <PlayerTraitsDetail player={expandedModalPlayer} />
+                  </div>
+                );
+              })()}
+
+              {clubModalPlayers.length === 0 ? (
+                <div className="text-center py-6 text-xs text-slate-400">
+                  No se encontraron futbolistas con ese filtro.
+                </div>
+              ) : (
+                clubModalPlayers.map(p => {
+                  const isFav = favoriteIds.has(p.id);
+                  const formattedPromedio =
+                    typeof p.promedio === 'number' && p.promedio > 0
+                      ? p.promedio.toFixed(2)
+                      : '-';
+
+                  return (
+                    <div key={p.id} className="flex flex-col">
+                      <div
+                        onClick={() => setExpandedPlayerId(expandedPlayerId === p.id ? null : p.id)}
+                        className="py-1.5 px-2 hover:bg-blue-50/60 dark:hover:bg-slate-800/80 rounded-lg flex items-center justify-between gap-3 text-xs transition cursor-pointer select-none"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <PositionBadge position={p.posicion} size="sm" />
+                          <span className="font-extrabold text-slate-900 dark:text-slate-100 truncate">
+                            {p.nombre}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className={`font-mono text-[10px] font-black px-1.5 py-0.5 rounded ${
+                              formattedPromedio !== '-'
+                                ? 'text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/70'
+                                : 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800'
+                            }`}
+                          >
+                            {formattedPromedio !== '-' ? `${formattedPromedio} pts` : '-'}
+                          </span>
+                          <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
+                            {p.precio}
+                          </span>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isFav) {
+                                onRemoveFavorite(p.id);
+                              } else {
+                                onAddFavorite(p);
+                              }
+                            }}
+                            className={`px-2.5 py-1 rounded-md text-[11px] font-bold flex items-center gap-1 transition ${
+                              isFav
+                                ? 'bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200'
+                                : 'bg-[#1b55e2] hover:bg-[#1444b8] text-white shadow-xs'
+                            }`}
+                          >
+                            {isFav ? (
+                              <>
+                                <X className="w-3 h-3" />
+                                <span>Quitar</span>
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="w-3 h-3" />
+                                <span>Sumar</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );

@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Player } from '../types';
 import { TeamBadge } from './TeamBadge';
 import { PositionBadge } from './PositionBadge';
-import { Plus, Check, X, TrendingUp } from 'lucide-react';
+import { PlayerTraitsDetail } from './PlayerTraitsDetail';
+import { Plus, Check, X, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface PlayerCardProps {
   player: Player;
@@ -17,6 +18,8 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
   onToggleFavorite,
   compact = false,
 }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   // Format currency
   const formattedPrice = new Intl.NumberFormat('es-AR', {
     style: 'currency',
@@ -33,41 +36,56 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
     return (
       <div
         id={`player-compact-${player.id}`}
-        className={`flex items-center justify-between p-2 rounded-xl border transition ${
+        className={`flex flex-col p-2 rounded-xl border transition ${
           isFavorite
             ? 'bg-blue-50/95 border-[#1b55e2] ring-1 ring-[#1b55e2] dark:bg-blue-950/40 dark:border-blue-700 shadow-xs'
             : 'bg-white dark:bg-slate-900 border-slate-300/90 dark:border-slate-800 hover:border-slate-400 shadow-xs'
         }`}
       >
-        <div className="flex items-center gap-2 min-w-0">
-          <TeamBadge teamName={player.equipo} size="xs" />
-          <div className="min-w-0">
-            <p className="font-black text-xs text-slate-950 dark:text-slate-100 truncate">
-              {player.nombre}
-            </p>
-            <div className="flex items-center gap-2 text-[11px] mt-0.5 flex-wrap">
-              <PositionBadge position={player.posicion} size="sm" />
-              <span className="font-mono text-emerald-800 dark:text-emerald-400 font-black">
-                {formattedPrice}
-              </span>
-              <span className="px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-black text-[10px] flex items-center gap-0.5">
-                <TrendingUp className="w-2.5 h-2.5" />
-                {formattedPromedio} pts
-              </span>
+        <div
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center justify-between cursor-pointer select-none"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <TeamBadge teamName={player.equipo} size="xs" />
+            <div className="min-w-0">
+              <p className="font-black text-xs text-slate-950 dark:text-slate-100 truncate">
+                {player.nombre}
+              </p>
+              <div className="flex items-center gap-2 text-[11px] mt-0.5 flex-wrap">
+                <PositionBadge position={player.posicion} size="sm" />
+                <span className="font-mono text-emerald-800 dark:text-emerald-400 font-black">
+                  {formattedPrice}
+                </span>
+                <span className="px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-black text-[10px] flex items-center gap-0.5">
+                  <TrendingUp className="w-2.5 h-2.5" />
+                  {formattedPromedio} {formattedPromedio !== '-' ? 'pts' : ''}
+                </span>
+              </div>
             </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-slate-400 p-1">
+              {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite(player);
+              }}
+              className={`p-1.5 rounded-lg text-xs font-black transition ${
+                isFavorite
+                  ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 hover:bg-rose-600 hover:text-white border border-rose-200 dark:border-rose-800'
+                  : 'bg-[#1b55e2] text-white hover:bg-[#1444b8]'
+              }`}
+            >
+              {isFavorite ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+            </button>
           </div>
         </div>
 
-        <button
-          onClick={() => onToggleFavorite(player)}
-          className={`p-1.5 rounded-lg text-xs font-black transition ${
-            isFavorite
-              ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 hover:bg-rose-600 hover:text-white border border-rose-200 dark:border-rose-800'
-              : 'bg-[#1b55e2] text-white hover:bg-[#1444b8]'
-          }`}
-        >
-          {isFavorite ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-        </button>
+        {isExpanded && <PlayerTraitsDetail player={player} compact />}
       </div>
     );
   }
@@ -82,7 +100,10 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
       }`}
     >
       {/* Top row: Team badge, Name, Position */}
-      <div>
+      <div
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="cursor-pointer select-none"
+      >
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2.5 min-w-0">
             <TeamBadge teamName={player.equipo} size="sm" />
@@ -96,13 +117,25 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
             </div>
           </div>
 
-          <PositionBadge position={player.posicion} size="sm" />
+          <div className="flex items-center gap-1.5 shrink-0">
+            <PositionBadge position={player.posicion} size="sm" />
+            <button
+              type="button"
+              className="text-slate-400 hover:text-slate-600 p-0.5 rounded transition"
+              title={isExpanded ? 'Ocultar detalles' : 'Ver características y puntajes'}
+            >
+              {isExpanded ? <ChevronUp className="w-4 h-4 text-[#1b55e2]" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Bottom row: Price, Promedio & Favorite Toggle Action */}
       <div className="flex items-center justify-between pt-2.5 border-t border-slate-200 dark:border-slate-800 mt-2 gap-2">
-        <div className="flex items-center gap-3">
+        <div
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-3 cursor-pointer select-none"
+        >
           <div>
             <span className="text-[9px] uppercase font-black text-slate-500 dark:text-slate-400 block tracking-wider">
               Cotización
@@ -117,14 +150,17 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
               <TrendingUp className="w-2.5 h-2.5" /> Promedio
             </span>
             <span className="text-sm font-black font-mono tracking-tight text-amber-800 dark:text-amber-300">
-              {formattedPromedio} <span className="text-[10px] font-normal">pts</span>
+              {formattedPromedio} {formattedPromedio !== '-' ? <span className="text-[10px] font-normal">pts</span> : ''}
             </span>
           </div>
         </div>
 
         <button
           id={`btn-fav-toggle-${player.id}`}
-          onClick={() => onToggleFavorite(player)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleFavorite(player);
+          }}
           className={`px-2.5 py-1.5 rounded-lg text-xs font-black transition active:scale-95 flex items-center gap-1 shadow-xs shrink-0 ${
             isFavorite
               ? 'bg-blue-100 text-[#1b55e2] dark:bg-blue-900/60 dark:text-cyan-300 hover:bg-rose-500 hover:text-white border border-blue-300 dark:border-blue-700'
@@ -144,6 +180,9 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
           )}
         </button>
       </div>
+
+      {/* Expandable Section: Player characteristics and scores */}
+      {isExpanded && <PlayerTraitsDetail player={player} />}
     </div>
   );
 };

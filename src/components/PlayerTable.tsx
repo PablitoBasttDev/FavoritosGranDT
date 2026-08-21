@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Player } from '../types';
 import { TeamBadge } from './TeamBadge';
 import { PositionBadge } from './PositionBadge';
-import { Plus, Check, ArrowUpDown, TrendingUp } from 'lucide-react';
+import { PlayerTraitsDetail } from './PlayerTraitsDetail';
+import { Plus, Check, ArrowUpDown, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface PlayerTableProps {
   players: Player[];
@@ -21,6 +22,8 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
   sortOrder,
   onSortChange,
 }) => {
+  const [expandedPlayerId, setExpandedPlayerId] = useState<number | null>(null);
+
   const formatPrice = (val: number) => {
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
@@ -89,81 +92,108 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
             {players.map(player => {
               const isFav = favoriteIds.has(player.id);
+              const isExpanded = expandedPlayerId === player.id;
               const formattedPromedio =
                 typeof player.promedio === 'number' && player.promedio > 0
                   ? player.promedio.toFixed(2)
                   : '-';
 
               return (
-                <tr
-                  key={player.id}
-                  id={`table-row-${player.id}`}
-                  className={`transition-colors ${
-                    isFav
-                      ? 'bg-blue-50 hover:bg-blue-100/70 dark:bg-blue-950/30 dark:hover:bg-blue-950/40'
-                      : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                  }`}
-                >
-                  {/* Name */}
-                  <td className="py-2.5 px-4 sm:px-5">
-                    <span className="font-black text-slate-950 dark:text-slate-100 text-xs sm:text-sm">
-                      {player.nombre}
-                    </span>
-                  </td>
+                <React.Fragment key={player.id}>
+                  <tr
+                    id={`table-row-${player.id}`}
+                    onClick={() => setExpandedPlayerId(isExpanded ? null : player.id)}
+                    className={`transition-colors cursor-pointer select-none ${
+                      isExpanded
+                        ? 'bg-blue-50/90 dark:bg-blue-950/40'
+                        : isFav
+                        ? 'bg-blue-50/60 hover:bg-blue-100/70 dark:bg-blue-950/20 dark:hover:bg-blue-950/40'
+                        : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                    }`}
+                  >
+                    {/* Name */}
+                    <td className="py-2.5 px-4 sm:px-5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-400">
+                          {isExpanded ? <ChevronUp className="w-3.5 h-3.5 text-[#1b55e2]" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                        </span>
+                        <span className="font-black text-slate-950 dark:text-slate-100 text-xs sm:text-sm">
+                          {player.nombre}
+                        </span>
+                      </div>
+                    </td>
 
-                  {/* Position */}
-                  <td className="py-2.5 px-4">
-                    <PositionBadge position={player.posicion} size="sm" />
-                  </td>
+                    {/* Position */}
+                    <td className="py-2.5 px-4">
+                      <PositionBadge position={player.posicion} size="sm" />
+                    </td>
 
-                  {/* Team with Shield */}
-                  <td className="py-2.5 px-4">
-                    <div className="flex items-center gap-2.5">
-                      <TeamBadge teamName={player.equipo} size="xs" />
-                      <span className="text-xs text-slate-900 dark:text-slate-300 font-bold">
-                        {player.equipo}
+                    {/* Team with Shield */}
+                    <td className="py-2.5 px-4">
+                      <div className="flex items-center gap-2.5">
+                        <TeamBadge teamName={player.equipo} size="xs" />
+                        <span className="text-xs text-slate-900 dark:text-slate-300 font-bold">
+                          {player.equipo}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Promedio */}
+                    <td className="py-2.5 px-4 text-center">
+                      <span
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-black font-mono text-xs ${
+                          formattedPromedio !== '-'
+                            ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                        }`}
+                      >
+                        {formattedPromedio !== '-' ? `${formattedPromedio} pts` : '-'}
                       </span>
-                    </div>
-                  </td>
+                    </td>
 
-                  {/* Promedio */}
-                  <td className="py-2.5 px-4 text-center">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 font-black font-mono text-xs">
-                      {formattedPromedio} <span className="text-[10px] opacity-75">pts</span>
-                    </span>
-                  </td>
+                    {/* Price */}
+                    <td className="py-2.5 px-4 sm:px-5 text-right">
+                      <span className="font-mono font-black text-emerald-800 dark:text-emerald-400 text-xs sm:text-sm">
+                        {formatPrice(player.precioNum)}
+                      </span>
+                    </td>
 
-                  {/* Price */}
-                  <td className="py-2.5 px-4 sm:px-5 text-right">
-                    <span className="font-mono font-black text-emerald-800 dark:text-emerald-400 text-xs sm:text-sm">
-                      {formatPrice(player.precioNum)}
-                    </span>
-                  </td>
+                    {/* Actions */}
+                    <td className="py-2.5 px-4 text-center">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleFavorite(player);
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-black transition flex items-center gap-1 shadow-xs mx-auto ${
+                          isFav
+                            ? 'bg-blue-100 text-[#1b55e2] dark:bg-blue-900/60 dark:text-cyan-300 hover:bg-rose-500 hover:text-white border border-blue-200'
+                            : 'bg-[#1b55e2] hover:bg-[#1444b8] text-white'
+                        }`}
+                      >
+                        {isFav ? (
+                          <>
+                            <Check className="w-3.5 h-3.5" />
+                            <span>En Lista</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>+ Sumar</span>
+                          </>
+                        )}
+                      </button>
+                    </td>
+                  </tr>
 
-                  {/* Actions */}
-                  <td className="py-2.5 px-4 text-center">
-                    <button
-                      onClick={() => onToggleFavorite(player)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-black transition flex items-center gap-1 shadow-xs mx-auto ${
-                        isFav
-                          ? 'bg-blue-100 text-[#1b55e2] dark:bg-blue-900/60 dark:text-cyan-300 hover:bg-rose-500 hover:text-white border border-blue-200'
-                          : 'bg-[#1b55e2] hover:bg-[#1444b8] text-white'
-                      }`}
-                    >
-                      {isFav ? (
-                        <>
-                          <Check className="w-3.5 h-3.5" />
-                          <span>En Lista</span>
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>+ Sumar</span>
-                        </>
-                      )}
-                    </button>
-                  </td>
-                </tr>
+                  {isExpanded && (
+                    <tr className="bg-slate-50/50 dark:bg-slate-900/50">
+                      <td colSpan={6} className="p-3">
+                        <PlayerTraitsDetail player={player} />
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               );
             })}
           </tbody>
