@@ -45,31 +45,37 @@ export function getPlayerTraits(player: Player): PlayerTrait[] {
     }
   }
 
-  // 2. Cualquier jugador: En racha (goles en los últimos partidos o racha goleadora activa)
-  // Inspeccionamos los puntajes de las fechas jugadas
+  // 2. Cualquier jugador: En racha
+  // Condición: Haber marcado al menos 1 gol en los últimos 2 partidos, o bien haber sumado más de 15 puntos totales en los últimos 2 partidos
   const scoresObj = player.fechasPuntajes || {};
   const playedFixtures = Object.entries(scoresObj)
     .filter(([_, val]) => val !== '' && val !== 's/c' && !isNaN(Number(val)))
     .map(([key, val]) => ({ fecha: parseInt(key.replace('F', ''), 10), pts: Number(val) }))
     .sort((a, b) => a.fecha - b.fecha);
 
-  let isStreak = false;
-  if (player.goles && player.goles >= 2 && playedFixtures.length >= 2) {
-    const last2 = playedFixtures.slice(-2);
-    // En Gran DT, goles suman entre 4 y 6 puntos adicionales, superando los 8-9 pts
-    if (last2[0].pts >= 8 && last2[1].pts >= 8) {
-      isStreak = true;
-    }
-  }
-  // También si tiene goles >= 2 y su último partido fue muy alto (>= 9)
-  if (!isStreak && player.goles && player.goles >= 2 && playedFixtures.length > 0) {
-    const last = playedFixtures[playedFixtures.length - 1];
-    if (last.pts >= 9) {
-      isStreak = true;
-    }
-  }
+  const last2 = playedFixtures.slice(-2);
+  const sumLast2 = last2.reduce((acc, f) => acc + f.pts, 0);
 
-  if (isStreak) {
+  // Condición A: Sumó más de 15 puntos totales en los últimos 2 partidos jugados
+  const hasHighPoints = last2.length > 0 && sumLast2 > 15;
+
+  // Condición B: Marcó al menos 1 gol en los últimos 2 partidos
+  // En Gran DT, un gol suma +4 (DEL), +5 (VOL) o +6 (DEF), alcanzando habitualmente puntajes >= 8 en esa fecha
+  const hasScoredInLast2 =
+    (player.goles || 0) >= 1 &&
+    last2.length > 0 &&
+    (last2.some(f => f.pts >= 8) || (player.partidosJugados || 0) <= 2);
+
+  if (hasHighPoints || hasScoredInLast2) {
+    let streakDesc = '';
+    if (hasHighPoints && hasScoredInLast2) {
+      streakDesc = `Gol en fechas recientes y ${sumLast2} pts en los últimos 2 partidos`;
+    } else if (hasHighPoints) {
+      streakDesc = `${sumLast2} pts acumulados en los últimos 2 partidos (>15 pts)`;
+    } else {
+      streakDesc = `Gol convertido en los últimos partidos del torneo`;
+    }
+
     traits.push({
       id: 'en_racha',
       label: 'En racha',
@@ -77,7 +83,7 @@ export function getPlayerTraits(player: Player): PlayerTrait[] {
       colorClass: 'text-amber-800 dark:text-amber-300',
       bgClass: 'bg-amber-50 dark:bg-amber-950/60',
       borderClass: 'border-amber-200 dark:border-amber-800/80',
-      description: `${player.goles} goles en el torneo y actuaciones destacadas consecutivas`,
+      description: streakDesc,
     });
   }
 
