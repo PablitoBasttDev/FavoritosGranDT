@@ -6,6 +6,7 @@ import { getTeamStanding, getTeamMatchInfo, STANDINGS_DATA } from '../data/stand
 import { normalizeText, playerMatchesQuery } from '../utils/textUtils';
 import { TeamBadge } from './TeamBadge';
 import { PositionBadge } from './PositionBadge';
+import { SHEET_TEAM_MAP } from '../services/sheetsService';
 import { CountdownBanner } from './CountdownBanner';
 import { PlayerTraitsDetail } from './PlayerTraitsDetail';
 import {
@@ -172,10 +173,11 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
     const groups: Record<string, FavoritePlayer[]> = {};
 
     favorites.forEach(player => {
-      if (!groups[player.equipo]) {
-        groups[player.equipo] = [];
+      const canonicalTeam = SHEET_TEAM_MAP[player.equipo] || player.equipo;
+      if (!groups[canonicalTeam]) {
+        groups[canonicalTeam] = [];
       }
-      groups[player.equipo].push(player);
+      groups[canonicalTeam].push(player);
     });
 
     return groups;
@@ -864,7 +866,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
 
                 {/* Team Players List (High Density with dynamic list layout) */}
                 <div className={`relative p-1.5 flex-1 ${listClass} min-h-[90px] overflow-y-auto bg-slate-50/40 dark:bg-slate-950/20`}>
-                  {/* Pinned top overlay when a player is selected */}
+                  {/* Pinned top overlay when a player is selected - Constrained to 1 row height even on multi-row/multi-col cards */}
                   {(() => {
                     const expandedPlayerInCard = teamPlayers.find(p => p.id === expandedPlayerId);
                     if (!expandedPlayerInCard) return null;
@@ -874,8 +876,10 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                         ? expandedPlayerInCard.promedio.toFixed(2)
                         : '-';
 
+                    const overlayHeightClass = count >= 5 ? 'top-0 left-0 right-0 h-[168px] border-b border-b-blue-200 dark:border-b-blue-900' : 'inset-0';
+
                     return (
-                      <div className="absolute inset-0 z-30 bg-white dark:bg-slate-900 backdrop-blur-md p-1.5 flex flex-col rounded-b-xl border-t-2 border-[#1b55e2] overflow-hidden animate-in fade-in zoom-in-95 duration-150 shadow-md">
+                      <div className={`absolute ${overlayHeightClass} z-30 bg-white dark:bg-slate-900 backdrop-blur-md p-1.5 flex flex-col rounded-b-xl border-t-2 border-[#1b55e2] overflow-hidden animate-in fade-in zoom-in-95 duration-150 shadow-md`}>
                         {/* Selected player pinned at top - Click to collapse/close */}
                         <div
                           onClick={() => setExpandedPlayerId(null)}

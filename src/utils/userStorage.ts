@@ -1,6 +1,7 @@
 import { UserProfile, FavoritePlayer } from '../types';
 import { hashPassword, generateSalt } from './crypto';
 import { db } from '../firebase';
+import { hydrateFavorites } from './hydrateFavorites';
 import {
   collection,
   doc,
@@ -423,7 +424,7 @@ export function getUserFavorites(userId: string): FavoritePlayer[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return parsed;
+        return hydrateFavorites(parsed);
       }
     }
   } catch (e) {
@@ -439,9 +440,10 @@ export async function fetchUserFavoritesFromCloud(userId: string): Promise<Favor
     if (docSnap.exists()) {
       const data = docSnap.data();
       if (data && Array.isArray(data.items)) {
+        const hydrated = hydrateFavorites(data.items);
         // Cache locally
-        saveUserFavorites(userId, data.items, false);
-        return data.items;
+        saveUserFavorites(userId, hydrated, false);
+        return hydrated;
       }
     }
   } catch (e) {
@@ -456,10 +458,11 @@ export function saveUserFavorites(
   syncToCloud = true
 ): void {
   if (!userId) return;
+  const hydrated = hydrateFavorites(favorites);
 
   // 1. Save locally
   try {
-    localStorage.setItem(FAVORITES_PREFIX + userId, JSON.stringify(favorites));
+    localStorage.setItem(FAVORITES_PREFIX + userId, JSON.stringify(hydrated));
   } catch (e) {
     console.error('Error saving favorites for user ' + userId, e);
   }
@@ -471,7 +474,7 @@ export function saveUserFavorites(
         doc(db, 'user_favorites', userId),
         {
           userId,
-          items: favorites,
+          items: hydrated,
           updatedAt: Date.now(),
         },
         { merge: true }

@@ -192,8 +192,8 @@ export function parsePlayersFromCSV(csvText: string): Player[] {
   return players;
 }
 
-const STORAGE_KEY_PLAYERS = 'el_gran_asistente_sheet_players_v1';
-const STORAGE_KEY_TIMESTAMP = 'el_gran_asistente_sheet_last_sync';
+const STORAGE_KEY_PLAYERS = 'el_gran_asistente_sheet_players_v3';
+const STORAGE_KEY_TIMESTAMP = 'el_gran_asistente_sheet_last_sync_v3';
 
 export interface SheetSyncResult {
   players: Player[];
@@ -272,7 +272,10 @@ export function getCachedSheetPlayers(): Player[] {
     if (cached) {
       const list = JSON.parse(cached);
       if (Array.isArray(list) && list.length > 0) {
-        return list as Player[];
+        const first = list[0];
+        if (first && typeof first.promedio === 'number' && first.fechasPuntajes) {
+          return list as Player[];
+        }
       }
     }
   } catch {
