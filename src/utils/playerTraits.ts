@@ -67,8 +67,8 @@ export function getPlayerTraits(player: Player): PlayerTrait[] {
 
   // 2. Cualquier jugador: En racha
   // Condición:
-  // - Al menos 1 gol en 2 de los últimos 3 partidos del torneo
-  // - O BIEN al menos 15 puntos en cada uno de los 2 últimos partidos (>= 15 pts en F_n y >= 15 pts en F_n-1)
+  // - Convirtió al menos 1 gol por partido en al menos 2 de los últimos 3 partidos disputados (goles en 2 fechas distintas, no 2 goles en un solo partido)
+  // - O BIEN 15 o más puntos en cada uno de los últimos 2 partidos (>= 15 pts en F_n y >= 15 pts en F_n-1)
   const scoresObj = player.fechasPuntajes || {};
   const playedFixtures = Object.entries(scoresObj)
     .filter(([_, val]) => val !== '' && val !== 's/c' && !isNaN(Number(val)))
@@ -78,26 +78,29 @@ export function getPlayerTraits(player: Player): PlayerTrait[] {
   const last2 = playedFixtures.slice(-2);
   const last3 = playedFixtures.slice(-3);
 
-  // Condición A: 15 puntos o más en cada uno de los 2 últimos partidos
-  const has15PtsInLast2 =
+  // Situación A: 15 puntos o más en cada uno de los 2 últimos partidos
+  const has15PtsInEachLast2 =
     last2.length === 2 && last2[0].pts >= 15 && last2[1].pts >= 15;
 
-  // Condición B: Al menos 1 gol en 2 de los últimos 3 partidos
-  // Requiere al menos 2 goles en el torneo y que al menos 2 de los últimos 3 partidos tengan puntaje con gol (>= 8 pts)
-  const matchesWithGoalInLast3 = last3.filter(f => f.pts >= 8).length;
-  const hasGoalIn2OfLast3 =
+  // Situación B: Convirtió 1 gol en al menos 2 de los últimos 3 partidos distintos
+  // Umbral de puntaje por partido que refleja haber convertido al menos 1 gol según posición:
+  // DEL: base + 4 pts (>= 8 pts) | VOL: base + 5 pts (>= 9 pts) | DEF/ARQ: base + 6 pts (>= 10 pts)
+  const minPtsForGoal = pos === 'DEL' ? 8 : pos === 'VOL' ? 9 : 10;
+  const distinctMatchesWithGoal = last3.filter(f => f.pts >= minPtsForGoal).length;
+
+  const hasGoalInAtLeast2OfLast3 =
     (player.goles || 0) >= 2 &&
     last3.length >= 2 &&
-    matchesWithGoalInLast3 >= 2;
+    distinctMatchesWithGoal >= 2;
 
-  if (has15PtsInLast2 || hasGoalIn2OfLast3) {
+  if (has15PtsInEachLast2 || hasGoalInAtLeast2OfLast3) {
     let streakDesc = '';
-    if (has15PtsInLast2 && hasGoalIn2OfLast3) {
-      streakDesc = `Gol en 2 de los últimos 3 partidos y 15+ pts en los últimos 2 (${last2[0].pts} y ${last2[1].pts} pts)`;
-    } else if (has15PtsInLast2) {
-      streakDesc = `15 o más puntos en cada uno de los 2 últimos partidos (${last2[0].pts} pts y ${last2[1].pts} pts)`;
+    if (has15PtsInEachLast2 && hasGoalInAtLeast2OfLast3) {
+      streakDesc = `Gol en 2 de los últimos 3 partidos y 15+ pts en cada uno de los últimos 2 (${last2[0].pts} y ${last2[1].pts} pts)`;
+    } else if (has15PtsInEachLast2) {
+      streakDesc = `15 o más puntos en cada uno de los últimos 2 partidos (${last2[0].pts} pts y ${last2[1].pts} pts)`;
     } else {
-      streakDesc = `Gol en 2 de los últimos 3 partidos disputados (${matchesWithGoalInLast3} partidos con gol)`;
+      streakDesc = `Gol convertido en 2 de los últimos 3 partidos disputados (${distinctMatchesWithGoal} partidos distintos con gol)`;
     }
 
     traits.push({
