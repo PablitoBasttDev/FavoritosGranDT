@@ -15,6 +15,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { FavoritePlayer, UserProfile } from '../types';
+import { ALL_PLAYERS } from '../data/players';
 
 interface NavbarProps {
   activeTab: 'favorites' | 'players' | 'clubs' | 'stats';
@@ -49,7 +50,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     },
     {
       id: 'players' as const,
-      label: 'Base de Jugadores (991)',
+      label: `Base de Jugadores (${ALL_PLAYERS.length})`,
     },
     {
       id: 'clubs' as const,

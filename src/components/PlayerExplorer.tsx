@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Player, Position } from '../types';
 import { TEAMS_DATA } from '../data/teams';
 import { playerMatchesQuery } from '../utils/textUtils';
+import { ALL_TRAIT_DEFINITIONS, playerHasTrait } from '../utils/playerTraits';
 import { PlayerCard } from './PlayerCard';
 import { PlayerTable } from './PlayerTable';
 import {
@@ -13,6 +14,8 @@ import {
   ChevronRight,
   TrendingUp,
   BookmarkCheck,
+  Sparkles,
+  Filter,
 } from 'lucide-react';
 
 interface PlayerExplorerProps {
@@ -40,6 +43,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<string>(selectedClubFilter || 'ALL');
   const [selectedPosition, setSelectedPosition] = useState<string>(targetPositionFilter || 'ALL');
+  const [selectedTrait, setSelectedTrait] = useState<string>('ALL');
   const [maxPrice, setMaxPrice] = useState<number>(7500000);
   const [sortBy, setSortBy] = useState<'precio' | 'promedio' | 'nombre' | 'equipo' | 'posicion'>('promedio');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -62,6 +66,22 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
   // Positions list
   const positions: (Position | 'ALL')[] = ['ALL', 'ARQ', 'DEF', 'VOL', 'DEL'];
 
+  // Count players per trait for quick filter pills
+  const traitCounts = useMemo(() => {
+    const counts: Record<string, number> = { ALL: players.length };
+    ALL_TRAIT_DEFINITIONS.forEach(def => {
+      counts[def.id] = 0;
+    });
+    players.forEach(p => {
+      ALL_TRAIT_DEFINITIONS.forEach(def => {
+        if (playerHasTrait(p, def.id)) {
+          counts[def.id] = (counts[def.id] || 0) + 1;
+        }
+      });
+    });
+    return counts;
+  }, [players]);
+
   // Filter and sort logic
   const filteredPlayers = useMemo(() => {
     return players
@@ -79,6 +99,13 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
         // Position filter
         if (selectedPosition !== 'ALL' && player.posicion !== selectedPosition) {
           return false;
+        }
+
+        // Characteristic / Trait filter
+        if (selectedTrait !== 'ALL') {
+          if (!playerHasTrait(player, selectedTrait)) {
+            return false;
+          }
         }
 
         // Max price filter
@@ -105,12 +132,12 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
         }
         return sortOrder === 'asc' ? comparison : -comparison;
       });
-  }, [players, searchTerm, selectedTeam, selectedPosition, maxPrice, sortBy, sortOrder]);
+  }, [players, searchTerm, selectedTeam, selectedPosition, selectedTrait, maxPrice, sortBy, sortOrder]);
 
   // Reset page when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedTeam, selectedPosition, maxPrice, sortBy, sortOrder]);
+  }, [searchTerm, selectedTeam, selectedPosition, selectedTrait, maxPrice, sortBy, sortOrder]);
 
   // Pagination
   const totalPages = Math.ceil(filteredPlayers.length / itemsPerPage) || 1;
@@ -132,6 +159,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
     setSearchTerm('');
     setSelectedTeam('ALL');
     setSelectedPosition('ALL');
+    setSelectedTrait('ALL');
     setMaxPrice(7500000);
     setSortBy('promedio');
     setSortOrder('desc');
@@ -143,6 +171,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
     searchTerm !== '' ||
     selectedTeam !== 'ALL' ||
     selectedPosition !== 'ALL' ||
+    selectedTrait !== 'ALL' ||
     maxPrice < 7500000;
 
   return (
@@ -249,7 +278,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
           </div>
         </div>
 
-        {/* Secondary Filter Row: Club dropdown, Price Slider & Sort selector */}
+        {/* Secondary Filter Row: Club dropdown, Price Slider, Characteristics Dropdown & Sort selector */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200 dark:border-slate-800 text-xs">
           {/* Club Dropdown */}
           <div className="flex items-center gap-2">
@@ -257,7 +286,7 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
             <select
               value={selectedTeam}
               onChange={e => setSelectedTeam(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-900 dark:text-slate-200 outline-none cursor-pointer max-w-[200px] truncate hover:border-slate-400"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-900 dark:text-slate-200 outline-none cursor-pointer max-w-[180px] truncate hover:border-slate-400"
             >
               <option value="ALL">Todos los 30 clubes</option>
               {Object.keys(TEAMS_DATA)
@@ -267,6 +296,31 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
                     {team}
                   </option>
                 ))}
+            </select>
+          </div>
+
+          {/* Trait Dropdown */}
+          <div className="flex items-center gap-2">
+            <span className="text-slate-600 font-extrabold uppercase text-[10px] flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-amber-500" />
+              <span>Rasgo:</span>
+            </span>
+            <select
+              id="trait-filter-dropdown"
+              value={selectedTrait}
+              onChange={e => setSelectedTrait(e.target.value)}
+              className={`border rounded-lg px-2.5 py-1 text-xs font-bold outline-none cursor-pointer hover:border-slate-400 ${
+                selectedTrait !== 'ALL'
+                  ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border-amber-300 dark:border-amber-700 ring-1 ring-amber-400/40'
+                  : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200'
+              }`}
+            >
+              <option value="ALL">Todas las características ({players.length})</option>
+              {ALL_TRAIT_DEFINITIONS.map(def => (
+                <option key={def.id} value={def.id}>
+                  {def.emoji} {def.label} ({traitCounts[def.id] || 0})
+                </option>
+              ))}
             </select>
           </div>
 
@@ -324,6 +378,56 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
               </button>
             )}
           </div>
+        </div>
+
+        {/* Third Row: Quick Trait Badge Chips */}
+        <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0 flex items-center gap-1 pr-1">
+            <Sparkles className="w-3 h-3 text-amber-500" />
+            <span>Filtro rápido:</span>
+          </span>
+
+          <button
+            onClick={() => setSelectedTrait('ALL')}
+            className={`px-2 py-0.5 rounded-md text-[11px] font-black shrink-0 transition flex items-center gap-1 border ${
+              selectedTrait === 'ALL'
+                ? 'bg-[#1b55e2] text-white border-[#1b55e2] shadow-2xs'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
+            }`}
+          >
+            <span>Todos</span>
+            <span className="text-[9.5px] opacity-75 font-normal">({players.length})</span>
+          </button>
+
+          {ALL_TRAIT_DEFINITIONS.map(def => {
+            const isSelected = selectedTrait === def.id;
+            const count = traitCounts[def.id] || 0;
+            return (
+              <button
+                key={def.id}
+                id={`filter-trait-chip-${def.id}`}
+                onClick={() => setSelectedTrait(isSelected ? 'ALL' : def.id)}
+                className={`px-2 py-0.5 rounded-md text-[11px] font-bold shrink-0 transition flex items-center gap-1 border ${
+                  isSelected
+                    ? `${def.bgClass} ${def.colorClass} ${def.borderClass} ring-2 ring-blue-500/40 shadow-xs font-black`
+                    : 'bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700/80 hover:border-slate-400'
+                }`}
+                title={`Filtrar por ${def.label} (${count} jugadores)`}
+              >
+                <span>{def.emoji}</span>
+                <span>{def.label}</span>
+                <span
+                  className={`text-[9.5px] px-1 py-0.1 rounded font-bold ${
+                    isSelected
+                      ? 'bg-black/10 dark:bg-white/10'
+                      : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 

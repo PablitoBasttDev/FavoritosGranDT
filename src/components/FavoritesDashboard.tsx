@@ -117,7 +117,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
 
   const favoriteIds = useMemo(() => new Set(favorites.map(f => f.id)), [favorites]);
 
-  // Full candidate match list from 991 players without artificial slicing limits
+  // Full candidate match list from all players without artificial slicing limits
   const allCandidateMatches = useMemo(() => {
     if (!selectorSearch.trim() && selectorTeam === 'ALL' && selectorPos === 'ALL') {
       return [];
@@ -695,7 +695,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
               onClick={() => onNavigateToDatabase()}
               className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition"
             >
-              Explorar 991 Jugadores
+              Explorar los {ALL_PLAYERS.length} Jugadores
             </button>
           </div>
         </div>
