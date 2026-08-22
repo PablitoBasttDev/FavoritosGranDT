@@ -112,7 +112,8 @@ export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favori
             <div
               key={team.name}
               id={`club-card-${team.shortName.toLowerCase().replace(/\s+/g, '-')}`}
-              className="relative bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-slate-400 dark:hover:border-[#1b55e2]/50 transition flex flex-col justify-between overflow-hidden group"
+              className="relative rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-slate-400 dark:hover:border-[#1b55e2]/50 transition flex flex-col justify-between overflow-hidden group"
+              style={{ backgroundColor: team.primaryColor ? `${team.primaryColor}2e` : undefined }}
             >
               {/* Top Accent Color Bar */}
               <div
@@ -134,7 +135,7 @@ export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favori
                 />
               </div>
 
-              <div className="p-3.5 space-y-2.5 relative z-10">
+              <div className="p-3.5 space-y-2.5 relative z-10 bg-white dark:bg-slate-900 border-b border-slate-200/60 dark:border-slate-800">
                 {/* Shield and Title */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5 min-w-0">

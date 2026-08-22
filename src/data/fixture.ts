@@ -129,7 +129,52 @@ export const FIXTURES_DATA: MatchFixture[] = [
     displayTime: 'Sábado 22/08 • 16:00 hs',
     stadium: 'Juan Carmelo Zerillo (La Plata)',
     isInterzonal: true,
-    status: 'SCHEDULED',
+    status: 'FINISHED',
+    homeScore: 2,
+    awayScore: 3,
+    liveMinute: 'Finalizado',
+    events: [
+      {
+        id: 'ev-6-3-1',
+        minute: 12,
+        type: 'goal',
+        team: 'away',
+        playerName: 'Agustín Módica',
+        detail: 'Gol de Gimnasia de Mendoza',
+      },
+      {
+        id: 'ev-6-3-2',
+        minute: 25,
+        type: 'goal',
+        team: 'home',
+        playerName: 'Rodrigo Castillo',
+        detail: 'Empate parcial del Lobo platense',
+      },
+      {
+        id: 'ev-6-3-3',
+        minute: 45,
+        type: 'goal',
+        team: 'away',
+        playerName: 'Agustín Módica',
+        detail: 'Doblete para la visita',
+      },
+      {
+        id: 'ev-6-3-4',
+        minute: 68,
+        type: 'goal',
+        team: 'home',
+        playerName: 'Benjamín Domínguez',
+        detail: 'Nuevo empate en La Plata',
+      },
+      {
+        id: 'ev-6-3-5',
+        minute: 78,
+        type: 'goal',
+        team: 'away',
+        playerName: 'Agustín Módica',
+        detail: 'Hat-trick y agónico triunfo mendocino',
+      },
+    ],
   },
   {
     id: 'f6-4',
@@ -141,7 +186,11 @@ export const FIXTURES_DATA: MatchFixture[] = [
     displayTime: 'Sábado 22/08 • 16:00 hs',
     stadium: 'Monumental José Fierro (Tucumán)',
     isInterzonal: true,
-    status: 'SCHEDULED',
+    status: 'FINISHED',
+    homeScore: 0,
+    awayScore: 0,
+    liveMinute: 'Finalizado',
+    events: [],
   },
   {
     id: 'f6-5',
@@ -154,6 +203,7 @@ export const FIXTURES_DATA: MatchFixture[] = [
     stadium: 'Libertadores de América - Ricardo Bochini',
     isInterzonal: true,
     status: 'SCHEDULED',
+    events: [],
   },
   {
     id: 'f6-6',
@@ -166,6 +216,7 @@ export const FIXTURES_DATA: MatchFixture[] = [
     stadium: 'Marcelo Bielsa (Rosario)',
     isInterzonal: true,
     status: 'SCHEDULED',
+    events: [],
   },
   {
     id: 'f6-7',
@@ -178,6 +229,7 @@ export const FIXTURES_DATA: MatchFixture[] = [
     stadium: 'Tomás Adolfo Ducó (Parque Patricios)',
     isInterzonal: true,
     status: 'SCHEDULED',
+    events: [],
   },
   {
     id: 'f6-8',
@@ -190,6 +242,7 @@ export const FIXTURES_DATA: MatchFixture[] = [
     stadium: 'Eva Perón (Junín)',
     isInterzonal: true,
     status: 'SCHEDULED',
+    events: [],
   },
   {
     id: 'f6-9',
@@ -202,6 +255,7 @@ export const FIXTURES_DATA: MatchFixture[] = [
     stadium: 'Claudio Chiqui Tapia (Barracas)',
     isInterzonal: true,
     status: 'SCHEDULED',
+    events: [],
   },
   {
     id: 'f6-10',
@@ -214,6 +268,7 @@ export const FIXTURES_DATA: MatchFixture[] = [
     stadium: 'Julio César Villagra (Córdoba)',
     isInterzonal: true,
     status: 'SCHEDULED',
+    events: [],
   },
   {
     id: 'f6-11',
@@ -226,6 +281,7 @@ export const FIXTURES_DATA: MatchFixture[] = [
     stadium: 'Más Monumental (Núñez)',
     isInterzonal: true,
     status: 'SCHEDULED',
+    events: [],
   },
   {
     id: 'f6-12',
@@ -238,6 +294,7 @@ export const FIXTURES_DATA: MatchFixture[] = [
     stadium: 'Presidente Perón (Avellaneda)',
     isInterzonal: true,
     status: 'SCHEDULED',
+    events: [],
   },
   {
     id: 'f6-13',
@@ -250,6 +307,7 @@ export const FIXTURES_DATA: MatchFixture[] = [
     stadium: 'José Dellagiovanna (Victoria)',
     isInterzonal: true,
     status: 'SCHEDULED',
+    events: [],
   },
   {
     id: 'f6-14',
@@ -262,6 +320,7 @@ export const FIXTURES_DATA: MatchFixture[] = [
     stadium: 'Ciudad de Lanús - Néstor Díaz Pérez',
     isInterzonal: true,
     status: 'SCHEDULED',
+    events: [],
   },
   {
     id: 'f6-15',
@@ -274,6 +333,7 @@ export const FIXTURES_DATA: MatchFixture[] = [
     stadium: 'Mario Alberto Kempes (Córdoba)',
     isInterzonal: true,
     status: 'SCHEDULED',
+    events: [],
   },
 
   // ========================== FECHA 7 ==========================
@@ -458,23 +518,8 @@ export function getDynamicMatchState(match: MatchFixture, currentDate: Date = ne
   const kickoffMs = new Date(match.kickoff).getTime();
   const finishMs = kickoffMs + MATCH_DURATION_MS;
 
-  // Si tiene un estado explícito forzado en la data histórica (ej. partido ya jugado en fecha previa)
-  if (match.status === 'FINISHED' && nowMs >= finishMs) {
-    return {
-      fixture: match,
-      status: 'FINISHED',
-      homeScore: match.homeScore ?? 0,
-      awayScore: match.awayScore ?? 0,
-      liveMinute: match.liveMinute || 'Finalizado',
-      isLive: false,
-      isFinished: true,
-      isScheduled: false,
-      visibleEvents: match.events || [],
-    };
-  }
-
   // 1. Partido PROGRAMADO (Aún no empezó)
-  if (nowMs < kickoffMs) {
+  if (nowMs < kickoffMs && match.status !== 'FINISHED') {
     return {
       fixture: match,
       status: 'SCHEDULED',
@@ -488,8 +533,8 @@ export function getDynamicMatchState(match: MatchFixture, currentDate: Date = ne
     };
   }
 
-  // 2. Partido EN VIVO (En juego ahora mismo)
-  if (nowMs >= kickoffMs && nowMs < finishMs) {
+  // 2. Partido EN VIVO (nowMs >= kickoffMs && nowMs < finishMs y no finalizado)
+  if (nowMs >= kickoffMs && nowMs < finishMs && match.status !== 'FINISHED') {
     const elapsedMinutes = Math.floor((nowMs - kickoffMs) / 60000);
     let liveMinuteStr = '';
 
@@ -504,24 +549,17 @@ export function getDynamicMatchState(match: MatchFixture, currentDate: Date = ne
       liveMinuteStr = `ST 90+${extra}'`;
     }
 
-    // Filtrar eventos ocurridos hasta este minuto
     const effectiveMin = elapsedMinutes <= 45 ? elapsedMinutes : (elapsedMinutes > 60 ? elapsedMinutes - 15 : 45);
     const visibleEvents = (match.events || []).filter(e => e.minute <= effectiveMin);
 
-    // Calcular marcador en vivo según eventos si los hay, o valor predefinido
     let hScore = 0;
     let aScore = 0;
-    if (visibleEvents.length > 0) {
-      visibleEvents.forEach(e => {
-        if (e.type === 'goal' || e.type === 'penalty_goal') {
-          if (e.team === 'home') hScore++;
-          if (e.team === 'away') aScore++;
-        }
-      });
-    } else if (match.homeScore !== undefined && match.awayScore !== undefined) {
-      hScore = match.homeScore;
-      aScore = match.awayScore;
-    }
+    visibleEvents.forEach(e => {
+      if (e.type === 'goal' || e.type === 'penalty_goal') {
+        if (e.team === 'home') hScore++;
+        if (e.team === 'away') aScore++;
+      }
+    });
 
     return {
       fixture: match,
@@ -537,13 +575,28 @@ export function getDynamicMatchState(match: MatchFixture, currentDate: Date = ne
     };
   }
 
-  // 3. Partido FINALIZADO (Terminó el tiempo reglamentario)
+  // 3. Partido FINALIZADO (nowMs >= finishMs o match.status === 'FINISHED')
+  let finalHomeScore = match.homeScore;
+  let finalAwayScore = match.awayScore;
+  if ((finalHomeScore === undefined || finalAwayScore === undefined) && match.events && match.events.length > 0) {
+    let hs = 0;
+    let as = 0;
+    match.events.forEach(e => {
+      if (e.type === 'goal' || e.type === 'penalty_goal') {
+        if (e.team === 'home') hs++;
+        if (e.team === 'away') as++;
+      }
+    });
+    finalHomeScore = finalHomeScore ?? hs;
+    finalAwayScore = finalAwayScore ?? as;
+  }
+
   return {
     fixture: match,
     status: 'FINISHED',
-    homeScore: match.homeScore ?? 0,
-    awayScore: match.awayScore ?? 0,
-    liveMinute: 'Finalizado',
+    homeScore: finalHomeScore ?? 0,
+    awayScore: finalAwayScore ?? 0,
+    liveMinute: match.liveMinute || 'Finalizado',
     isLive: false,
     isFinished: true,
     isScheduled: false,

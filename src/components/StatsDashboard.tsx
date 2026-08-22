@@ -242,7 +242,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       </div>
 
       {/* Top 4 Metrics Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 min-w-0">
         <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300/90 dark:border-slate-800 shadow-xs">
           <span className="text-slate-600 dark:text-slate-400 text-[10px] font-black uppercase block tracking-wider">
             Goles en la Fecha 6
@@ -370,16 +370,16 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                   <th className="py-2.5 px-2 text-center w-16 min-w-[64px]">Pos</th>
                   <th className="py-2.5 px-3 min-w-[160px]">Club</th>
                   {standingsZone === 'GENERAL' && <th className="py-2.5 px-2 text-center w-16">Zona</th>}
-                  <th className="py-2.5 px-2 text-center w-36 min-w-[130px]">Estado F6</th>
+                  <th className="py-2.5 px-2 text-center w-36 min-w-[130px] hidden sm:table-cell">Estado F6</th>
                   <th className="py-2.5 px-2 text-center w-18 min-w-[68px] font-black text-slate-900 dark:text-slate-100 bg-blue-100/60 dark:bg-blue-900/30">
                     PTS
                   </th>
-                  <th className="py-2.5 px-1.5 text-center w-10">PJ</th>
-                  <th className="py-2.5 px-1.5 text-center w-10">PG</th>
-                  <th className="py-2.5 px-1.5 text-center w-10">PE</th>
-                  <th className="py-2.5 px-1.5 text-center w-10">PP</th>
-                  <th className="py-2.5 px-1.5 text-center w-10">GF</th>
-                  <th className="py-2.5 px-1.5 text-center w-10">GC</th>
+                  <th className="py-2.5 px-1.5 text-center w-10 hidden sm:table-cell">PJ</th>
+                  <th className="py-2.5 px-1.5 text-center w-10 hidden sm:table-cell">PG</th>
+                  <th className="py-2.5 px-1.5 text-center w-10 hidden md:table-cell">PE</th>
+                  <th className="py-2.5 px-1.5 text-center w-10 hidden md:table-cell">PP</th>
+                  <th className="py-2.5 px-1.5 text-center w-10 hidden lg:table-cell">GF</th>
+                  <th className="py-2.5 px-1.5 text-center w-10 hidden lg:table-cell">GC</th>
                   <th className="py-2.5 px-2 text-center w-12 font-black">DIF</th>
                 </tr>
               </thead>
@@ -467,22 +467,22 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                       )}
 
                       {/* Match Status in Round */}
-                      <td className="py-2 px-2 text-center">
+                      <td className="py-2 px-2 text-center whitespace-nowrap hidden sm:table-cell">
                         {team.isLiveMatch ? (
-                          <span className="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-200 dark:border-rose-900 animate-pulse">
-                            <Radio className="w-2.5 h-2.5" />
+                          <span className="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-200 dark:border-rose-900 animate-pulse whitespace-nowrap">
+                            <Radio className="w-2.5 h-2.5 shrink-0" />
                             <span>{team.liveMinute || 'En Vivo'}</span>
                             <span className="font-mono ml-0.5">({team.matchScoreInfo})</span>
                           </span>
                         ) : team.roundMatchStatus === 'FINISHED' ? (
-                          <span className="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                          <span className="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 whitespace-nowrap">
                             <span>Fin</span>
                             <span className="font-mono text-[10px] font-semibold text-slate-500">
                               {team.matchScoreInfo}
                             </span>
                           </span>
                         ) : (
-                          <span className="text-[10px] text-slate-400 font-semibold">
+                          <span className="text-[10px] text-slate-400 font-semibold whitespace-nowrap">
                             Por jugar
                           </span>
                         )}
@@ -502,12 +502,12 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                         </div>
                       </td>
 
-                      <td className="py-2 px-1.5 text-center font-mono font-semibold text-slate-700 dark:text-slate-300">{team.played}</td>
-                      <td className="py-2 px-1.5 text-center font-mono font-semibold text-slate-700 dark:text-slate-300">{team.won}</td>
-                      <td className="py-2 px-1.5 text-center font-mono font-semibold text-slate-700 dark:text-slate-300">{team.drawn}</td>
-                      <td className="py-2 px-1.5 text-center font-mono font-semibold text-slate-700 dark:text-slate-300">{team.lost}</td>
-                      <td className="py-2 px-1.5 text-center font-mono font-semibold text-slate-700 dark:text-slate-300">{team.goalsFor}</td>
-                      <td className="py-2 px-1.5 text-center font-mono font-semibold text-slate-700 dark:text-slate-300">{team.goalsAgainst}</td>
+                      <td className="py-2 px-1.5 text-center font-mono font-semibold text-slate-700 dark:text-slate-300 hidden sm:table-cell">{team.played}</td>
+                      <td className="py-2 px-1.5 text-center font-mono font-semibold text-slate-700 dark:text-slate-300 hidden sm:table-cell">{team.won}</td>
+                      <td className="py-2 px-1.5 text-center font-mono font-semibold text-slate-700 dark:text-slate-300 hidden md:table-cell">{team.drawn}</td>
+                      <td className="py-2 px-1.5 text-center font-mono font-semibold text-slate-700 dark:text-slate-300 hidden md:table-cell">{team.lost}</td>
+                      <td className="py-2 px-1.5 text-center font-mono font-semibold text-slate-700 dark:text-slate-300 hidden lg:table-cell">{team.goalsFor}</td>
+                      <td className="py-2 px-1.5 text-center font-mono font-semibold text-slate-700 dark:text-slate-300 hidden lg:table-cell">{team.goalsAgainst}</td>
                       <td
                         className={`py-2 px-2 text-center font-mono font-black ${
                           team.goalDiff > 0
@@ -554,7 +554,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 min-w-0">
             {/* Main Top Scorers Table */}
             <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs p-4 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-slate-200 dark:border-slate-800">

@@ -69,30 +69,14 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
   const [dropdownPosFilter, setDropdownPosFilter] = useState<string>('ALL');
   const [showCloudSyncModal, setShowCloudSyncModal] = useState(false);
 
-  // View mode: 'all_30_clubs' by default if no favorites, otherwise 'with_favorites'
-  const [viewMode, setViewMode] = useState<'all_30_clubs' | 'with_favorites'>(() =>
-    favorites.length === 0 ? 'all_30_clubs' : 'with_favorites'
-  );
+  // View mode: 'all_30_clubs' by default so all club cards are visible immediately
+  const [viewMode, setViewMode] = useState<'all_30_clubs' | 'with_favorites'>('all_30_clubs');
 
   // Filters & Sorting for Club Cards
   const [cardRoleFilter, setCardRoleFilter] = useState<'ALL' | 'LOCAL' | 'VISITANTE'>('ALL');
   const [cardDayFilter, setCardDayFilter] = useState<'ALL' | 'Viernes' | 'Sábado' | 'Domingo' | 'Lunes'>('ALL');
   const [cardZoneFilter, setCardZoneFilter] = useState<'ALL' | 'Zona A' | 'Zona B'>('ALL');
   const [cardSortBy, setCardSortBy] = useState<'table-pos' | 'name-asc' | 'name-desc' | 'points-desc'>('table-pos');
-
-  // Reference to track favorite additions for automatic switching
-  const prevFavCountRef = useRef(favorites.length);
-
-  useEffect(() => {
-    // When transitioning from 0 to 1+ favorites, switch to 'with_favorites' ("Solo mis clubes")
-    if (prevFavCountRef.current === 0 && favorites.length > 0) {
-      setViewMode('with_favorites');
-    } else if (favorites.length === 0) {
-      // If list was cleared and is now 0, show all 30 clubs
-      setViewMode('all_30_clubs');
-    }
-    prevFavCountRef.current = favorites.length;
-  }, [favorites.length]);
 
   // Modal / Quick picker for adding a player directly to a specific club
   const [clubPickerModal, setClubPickerModal] = useState<string | null>(null);
@@ -228,8 +212,14 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
       });
     }
 
-    // 5. Sorting
+    // 5. Sorting (Prioritize teams with favorites at the top)
     return list.sort((a, b) => {
+      const countA = (groupedFavorites[a] || []).length > 0 ? 1 : 0;
+      const countB = (groupedFavorites[b] || []).length > 0 ? 1 : 0;
+      if (countA !== countB) {
+        return countB - countA; // Teams with favorites first
+      }
+
       const standingA = getTeamStanding(a);
       const standingB = getTeamStanding(b);
 
@@ -325,12 +315,12 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
       <CountdownBanner onSelectClub={onNavigateToDatabase} />
 
       {/* 2. PURE WHITE SEARCH & CONTROL PANEL (Clean Gran DT Aesthetic) */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xs border border-slate-300/90 dark:border-slate-800 p-2.5 sm:p-3 transition">
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xs border border-slate-300/90 dark:border-slate-800 p-1.5 sm:p-3 transition">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-1.5 sm:gap-2.5">
           {/* Autocomplete Input */}
           <div className="relative flex-1" ref={dropdownRef}>
-            <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:ring-2 focus-within:ring-[#1b55e2] dark:focus-within:ring-cyan-500 focus-within:border-transparent transition">
-              <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
+            <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 sm:px-2.5 sm:py-1.5 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:ring-2 focus-within:ring-[#1b55e2] dark:focus-within:ring-cyan-500 focus-within:border-transparent transition">
+              <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 dark:text-slate-500 shrink-0" />
               <input
                 type="text"
                 value={selectorSearch}
@@ -340,8 +330,8 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                   setDropdownPosFilter('ALL');
                 }}
                 onFocus={() => setIsDropdownOpen(true)}
-                placeholder="Buscar jugador o club (ej. Sarmiento, Di María, Paredes, River)..."
-                className="w-full bg-transparent text-xs sm:text-sm text-slate-950 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none font-medium"
+                placeholder="Buscar jugador o club (ej. Sarmiento, Di María, Paredes)..."
+                className="w-full bg-transparent text-[11px] sm:text-sm text-slate-950 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none font-medium"
               />
 
               {/* Club selector shortcut */}
@@ -799,7 +789,8 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
               <div
                 key={teamName}
                 id={`team-card-${teamName.replace(/\s+/g, '-').toLowerCase()}`}
-                className={`relative bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-slate-400 dark:hover:border-slate-700 transition-all duration-200 flex flex-col justify-between overflow-hidden group h-full ${spanClass}`}
+                className={`relative rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:border-slate-400 dark:hover:border-slate-700 transition-all duration-200 flex flex-col justify-between overflow-hidden group h-full ${spanClass}`}
+                style={{ backgroundColor: primaryColor ? `${primaryColor}2e` : undefined }}
               >
                 {/* Top Club Color Accent Bar */}
                 <div
