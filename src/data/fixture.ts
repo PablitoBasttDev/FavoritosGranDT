@@ -390,6 +390,17 @@ export const FIXTURES_DATA: MatchFixture[] = [
   {
     id: 'f7-11',
     fecha: 7,
+    homeTeam: 'Racing Club',
+    awayTeam: 'Independiente Rivadavia',
+    dateStr: 'Domingo 30 de Agosto de 2026',
+    kickoff: '2026-08-30T21:30:00-03:00',
+    displayTime: 'Domingo 30/08 • 21:30 hs',
+    stadium: 'Presidente Perón - Cilindro de Avellaneda',
+    status: 'SCHEDULED',
+  },
+  {
+    id: 'f7-12',
+    fecha: 7,
     homeTeam: 'Defensa y Justicia',
     awayTeam: 'Platense',
     dateStr: 'Lunes 31 de Agosto de 2026',
@@ -399,7 +410,7 @@ export const FIXTURES_DATA: MatchFixture[] = [
     status: 'SCHEDULED',
   },
   {
-    id: 'f7-12',
+    id: 'f7-13',
     fecha: 7,
     homeTeam: 'Estudiantes de La Plata',
     awayTeam: 'Newell\'s Old Boys',
@@ -410,7 +421,7 @@ export const FIXTURES_DATA: MatchFixture[] = [
     status: 'SCHEDULED',
   },
   {
-    id: 'f7-13',
+    id: 'f7-14',
     fecha: 7,
     homeTeam: 'Tigre',
     awayTeam: 'Barracas Central',
@@ -421,7 +432,7 @@ export const FIXTURES_DATA: MatchFixture[] = [
     status: 'SCHEDULED',
   },
   {
-    id: 'f7-14',
+    id: 'f7-15',
     fecha: 7,
     homeTeam: 'Instituto de Córdoba',
     awayTeam: 'San Lorenzo de Almagro',
@@ -429,17 +440,6 @@ export const FIXTURES_DATA: MatchFixture[] = [
     kickoff: '2026-08-31T21:15:00-03:00',
     displayTime: 'Lunes 31/08 • 21:15 hs',
     stadium: 'Juan Domingo Perón (Alta Córdoba)',
-    status: 'SCHEDULED',
-  },
-  {
-    id: 'f7-15',
-    fecha: 7,
-    homeTeam: 'Racing Club',
-    awayTeam: 'Independiente Rivadavia',
-    dateStr: 'Lunes 31 de Agosto de 2026',
-    kickoff: '2026-08-31T21:15:00-03:00',
-    displayTime: 'Lunes 31/08 • 21:15 hs',
-    stadium: 'Presidente Perón - Cilindro de Avellaneda',
     status: 'SCHEDULED',
   },
 ];
