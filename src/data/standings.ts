@@ -1,4 +1,4 @@
-import { FIXTURES_DATA, MatchFixture } from './fixture';
+import { FIXTURES_DATA, MatchFixture, getDynamicMatchState } from './fixture';
 import { getTeamData } from './teams';
 
 export interface TeamStanding {
@@ -14,6 +14,18 @@ export interface TeamStanding {
   goalsFor: number;
   goalsAgainst: number;
   goalDiff: number;
+
+  // Propiedades dinámicas de seguimiento en vivo
+  initialPositionZone?: number;
+  initialPositionGeneral?: number;
+  initialPoints?: number;
+  positionChangeZone?: number; // >0 subió puestos, <0 bajó, 0 igual
+  positionChangeGeneral?: number;
+  pointsGainedInRound?: number;
+  isLiveMatch?: boolean;
+  roundMatchStatus?: 'SCHEDULED' | 'LIVE' | 'FINISHED';
+  liveMinute?: string;
+  matchScoreInfo?: string; // ej. "1 - 3 vs Aldosivi"
 }
 
 export interface TeamMatchInfo {
@@ -60,7 +72,7 @@ export const RAW_STANDINGS_DATA: Record<string, Omit<TeamStanding, 'positionGene
   "Independiente": {
     teamName: "Independiente",
     zone: "Zona A",
-    positionZone: 3,
+    positionZone: 4,
     points: 9,
     played: 5,
     won: 3,
@@ -73,7 +85,7 @@ export const RAW_STANDINGS_DATA: Record<string, Omit<TeamStanding, 'positionGene
   "Gimnasia y Esgrima de Mendoza": {
     teamName: "Gimnasia y Esgrima de Mendoza",
     zone: "Zona A",
-    positionZone: 4,
+    positionZone: 3,
     points: 9,
     played: 5,
     won: 3,
@@ -425,27 +437,195 @@ export const RAW_STANDINGS_DATA: Record<string, Omit<TeamStanding, 'positionGene
   },
 };
 
-// Calculate General Overall Table (1º a 30º) based on: points desc, goalDiff desc, goalsFor desc, name asc
-const sortedGeneralTeams = Object.values(RAW_STANDINGS_DATA).sort((a, b) => {
+/**
+ * Comparador oficial de desempate en la tabla de posiciones AFA
+ */
+export function compareStandingsTeams(
+  a: { points: number; goalDiff: number; goalsFor: number; teamName: string },
+  b: { points: number; goalDiff: number; goalsFor: number; teamName: string }
+): number {
   if (b.points !== a.points) return b.points - a.points;
   if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
   if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
   return a.teamName.localeCompare(b.teamName);
-});
+}
 
-export const STANDINGS_DATA: Record<string, TeamStanding> = {};
+/**
+ * Calcula las posiciones y estadísticas de la tabla en tiempo real acumulando
+ * los datos base con los partidos ya disputados o en juego del torneo.
+ */
+export function calculateDynamicStandings(
+  currentDate: Date = new Date(),
+  fixtures: MatchFixture[] = FIXTURES_DATA
+): Record<string, TeamStanding> {
+  // 1. Inicializar con los datos base pre-fecha
+  const updated: Record<string, TeamStanding> = {};
 
-sortedGeneralTeams.forEach((team, index) => {
-  STANDINGS_DATA[team.teamName] = {
-    ...team,
-    positionGeneral: index + 1,
-  };
-});
+  // Calcular posiciones iniciales pre-fecha de forma idéntica y consistente
+  const initialZoneA = Object.values(RAW_STANDINGS_DATA)
+    .filter(t => t.zone === 'Zona A')
+    .sort(compareStandingsTeams);
+  const initialZoneAMap: Record<string, number> = {};
+  initialZoneA.forEach((team, idx) => {
+    initialZoneAMap[team.teamName] = idx + 1;
+  });
+
+  const initialZoneB = Object.values(RAW_STANDINGS_DATA)
+    .filter(t => t.zone === 'Zona B')
+    .sort(compareStandingsTeams);
+  const initialZoneBMap: Record<string, number> = {};
+  initialZoneB.forEach((team, idx) => {
+    initialZoneBMap[team.teamName] = idx + 1;
+  });
+
+  const initialGeneral = Object.values(RAW_STANDINGS_DATA).sort(compareStandingsTeams);
+  const initialGeneralMap: Record<string, number> = {};
+  initialGeneral.forEach((team, idx) => {
+    initialGeneralMap[team.teamName] = idx + 1;
+  });
+
+  Object.values(RAW_STANDINGS_DATA).forEach(team => {
+    const initZonePos =
+      team.zone === 'Zona A' ? initialZoneAMap[team.teamName] : initialZoneBMap[team.teamName];
+    const initGenPos = initialGeneralMap[team.teamName] || 15;
+
+    updated[team.teamName] = {
+      ...team,
+      positionZone: initZonePos,
+      positionGeneral: initGenPos,
+      initialPositionZone: initZonePos,
+      initialPositionGeneral: initGenPos,
+      initialPoints: team.points,
+      positionChangeZone: 0,
+      positionChangeGeneral: 0,
+      pointsGainedInRound: 0,
+      isLiveMatch: false,
+      roundMatchStatus: 'SCHEDULED',
+      liveMinute: undefined,
+      matchScoreInfo: undefined,
+    };
+  });
+
+  // 2. Procesar todos los partidos de la fecha en curso o finalizados
+  fixtures.forEach(match => {
+    const dynamicState = getDynamicMatchState(match, currentDate);
+    const homeName = match.homeTeam;
+    const awayName = match.awayTeam;
+
+    const homeTeam = updated[homeName];
+    const awayTeam = updated[awayName];
+
+    if (!homeTeam || !awayTeam) return;
+
+    if (dynamicState.status === 'FINISHED' || dynamicState.status === 'LIVE') {
+      const hScore = dynamicState.homeScore ?? 0;
+      const aScore = dynamicState.awayScore ?? 0;
+      const isLive = dynamicState.status === 'LIVE';
+
+      // Datos Local
+      homeTeam.played += 1;
+      homeTeam.goalsFor += hScore;
+      homeTeam.goalsAgainst += aScore;
+      homeTeam.goalDiff = homeTeam.goalsFor - homeTeam.goalsAgainst;
+      homeTeam.roundMatchStatus = dynamicState.status;
+      homeTeam.isLiveMatch = isLive;
+      homeTeam.liveMinute = dynamicState.liveMinute;
+
+      const awayShort = getTeamData(awayName)?.shortName || awayName.slice(0, 3).toUpperCase();
+      homeTeam.matchScoreInfo = `${hScore} - ${aScore} vs ${awayShort}`;
+
+      // Datos Visitante
+      awayTeam.played += 1;
+      awayTeam.goalsFor += aScore;
+      awayTeam.goalsAgainst += hScore;
+      awayTeam.goalDiff = awayTeam.goalsFor - awayTeam.goalsAgainst;
+      awayTeam.roundMatchStatus = dynamicState.status;
+      awayTeam.isLiveMatch = isLive;
+      awayTeam.liveMinute = dynamicState.liveMinute;
+
+      const homeShort = getTeamData(homeName)?.shortName || homeName.slice(0, 3).toUpperCase();
+      awayTeam.matchScoreInfo = `${aScore} - ${hScore} vs ${homeShort}`;
+
+      if (hScore > aScore) {
+        homeTeam.points += 3;
+        homeTeam.won += 1;
+        homeTeam.pointsGainedInRound = (homeTeam.pointsGainedInRound || 0) + 3;
+
+        awayTeam.lost += 1;
+        awayTeam.pointsGainedInRound = (awayTeam.pointsGainedInRound || 0) + 0;
+      } else if (hScore === aScore) {
+        homeTeam.points += 1;
+        homeTeam.drawn += 1;
+        homeTeam.pointsGainedInRound = (homeTeam.pointsGainedInRound || 0) + 1;
+
+        awayTeam.points += 1;
+        awayTeam.drawn += 1;
+        awayTeam.pointsGainedInRound = (awayTeam.pointsGainedInRound || 0) + 1;
+      } else {
+        awayTeam.points += 3;
+        awayTeam.won += 1;
+        awayTeam.pointsGainedInRound = (awayTeam.pointsGainedInRound || 0) + 3;
+
+        homeTeam.lost += 1;
+        homeTeam.pointsGainedInRound = (homeTeam.pointsGainedInRound || 0) + 0;
+      }
+    }
+  });
+
+  // 3. Ordenar Zona A
+  const sortedZoneA = Object.values(updated)
+    .filter(t => t.zone === 'Zona A')
+    .sort(compareStandingsTeams);
+
+  sortedZoneA.forEach((t, idx) => {
+    const newPos = idx + 1;
+    t.positionZone = newPos;
+    if (t.initialPositionZone !== undefined) {
+      t.positionChangeZone = t.initialPositionZone - newPos; // Si estaba 4º y ahora 2º => +2 (subió)
+    }
+  });
+
+  // 4. Ordenar Zona B
+  const sortedZoneB = Object.values(updated)
+    .filter(t => t.zone === 'Zona B')
+    .sort(compareStandingsTeams);
+
+  sortedZoneB.forEach((t, idx) => {
+    const newPos = idx + 1;
+    t.positionZone = newPos;
+    if (t.initialPositionZone !== undefined) {
+      t.positionChangeZone = t.initialPositionZone - newPos;
+    }
+  });
+
+  // 5. Ordenar Tabla General (30 Equipos)
+  const sortedGeneral = Object.values(updated).sort(compareStandingsTeams);
+
+  sortedGeneral.forEach((t, idx) => {
+    const newPos = idx + 1;
+    t.positionGeneral = newPos;
+    if (t.initialPositionGeneral !== undefined) {
+      t.positionChangeGeneral = t.initialPositionGeneral - newPos;
+    }
+  });
+
+  return updated;
+}
+
+// Instancia global inicial
+export const STANDINGS_DATA: Record<string, TeamStanding> = calculateDynamicStandings(new Date());
+
+/**
+ * Obtiene la tabla completa de posiciones recalculada al instante
+ */
+export function getDynamicStandings(currentDate: Date = new Date()): Record<string, TeamStanding> {
+  return calculateDynamicStandings(currentDate);
+}
 
 /**
  * Obtiene la información del próximo partido de un equipo en la Fecha 6
  */
-export function getTeamMatchInfo(teamName: string): TeamMatchInfo | undefined {
+export function getTeamMatchInfo(teamName: string, currentDate: Date = new Date()): TeamMatchInfo | undefined {
   const nextMatch = FIXTURES_DATA.find(
     m => m.fecha === 6 && (m.homeTeam === teamName || m.awayTeam === teamName)
   );
@@ -479,8 +659,9 @@ export function getTeamMatchInfo(teamName: string): TeamMatchInfo | undefined {
 }
 
 /**
- * Obtiene la posición, puntos y zona de un equipo
+ * Obtiene la posición, puntos y zona de un equipo en tiempo real
  */
-export function getTeamStanding(teamName: string): TeamStanding | undefined {
-  return STANDINGS_DATA[teamName];
+export function getTeamStanding(teamName: string, currentDate?: Date): TeamStanding | undefined {
+  const map = currentDate ? getDynamicStandings(currentDate) : STANDINGS_DATA;
+  return map[teamName] || STANDINGS_DATA[teamName];
 }

@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { TEAMS_DATA, getTeamFallbackBadge } from '../data/teams';
-import { getTeamStanding, getTeamMatchInfo } from '../data/standings';
+import { getDynamicStandings, getTeamMatchInfo } from '../data/standings';
 import { normalizeText } from '../utils/textUtils';
 import { TeamBadge } from './TeamBadge';
 import { ALL_PLAYERS } from '../data/players';
-import { Shield, Search, ChevronRight, BookmarkCheck, Users, Trophy } from 'lucide-react';
+import { Shield, Search, ChevronRight, BookmarkCheck, Users, Trophy, Radio, ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import { FavoritePlayer } from '../types';
 
 interface ClubExplorerProps {
@@ -14,6 +14,16 @@ interface ClubExplorerProps {
 
 export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favorites }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [now, setNow] = useState<Date>(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 2000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const dynamicStandings = useMemo(() => getDynamicStandings(now), [now]);
 
   const teamsList = Object.values(TEAMS_DATA);
 
@@ -64,15 +74,16 @@ export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favori
               <span className="bg-cyan-400 text-slate-950 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider">
                 AFA 2026
               </span>
-              <span className="text-xs text-blue-200 font-bold uppercase tracking-wide">
-                Directorio Oficial
+              <span className="text-xs text-blue-200 font-bold uppercase tracking-wide flex items-center gap-1">
+                <Radio className="w-3 h-3 text-cyan-400 animate-pulse" />
+                Tabla & Puntos en Vivo
               </span>
             </div>
             <h2 className="text-lg sm:text-xl font-black tracking-tight text-white">
               Los 30 Clubes de Primera División
             </h2>
             <p className="text-blue-100/80 text-xs max-w-xl mt-0.5">
-              Explorá planteles completos, posiciones de tabla, puntos y zonas del Torneo Clausura 2026.
+              Planteles completos, posiciones en tiempo real, puntos y zonas actualizadas automáticamente a medida que transcurre la fecha.
             </p>
           </div>
 
@@ -94,8 +105,8 @@ export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favori
         {filteredTeams.map(team => {
           const stats = getTeamStats(team.name);
           const badgeSrc = team.escudoUrl || getTeamFallbackBadge(team.name);
-          const standing = getTeamStanding(team.name);
-          const matchInfo = getTeamMatchInfo(team.name);
+          const standing = dynamicStandings[team.name];
+          const matchInfo = getTeamMatchInfo(team.name, now);
 
           return (
             <div
@@ -109,7 +120,7 @@ export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favori
                 style={{ backgroundColor: team.primaryColor || '#1b55e2' }}
               />
 
-              {/* Watermark Shield in Background (tilted ~12deg, bottom-right corner, 50% opacity) */}
+              {/* Watermark Shield in Background */}
               <div
                 className="absolute -bottom-5 -right-5 w-40 h-40 sm:w-48 sm:h-48 pointer-events-none select-none z-0 overflow-hidden flex items-end justify-end"
                 aria-hidden="true"
@@ -129,7 +140,7 @@ export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favori
                   <div className="flex items-center gap-2.5 min-w-0">
                     <TeamBadge teamName={team.name} size="md" />
                     <div className="min-w-0">
-                      <h3 className="font-black text-sm text-slate-950 dark:text-slate-100 truncate">
+                      <h3 className="font-black text-sm text-slate-950 dark:text-slate-100 truncate group-hover:text-[#1b55e2] dark:group-hover:text-cyan-300 transition">
                         {team.name}
                       </h3>
                       <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
@@ -145,7 +156,7 @@ export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favori
                   )}
                 </div>
 
-                {/* Standings Badge Row (Zona, Posición, Puntos) */}
+                {/* Standings Badge Row (Zona, Posición, Puntos, Estado Fecha) */}
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
                     standing?.zone === 'Zona A'
@@ -155,15 +166,35 @@ export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favori
                     {standing?.zone || 'AFA'}
                   </span>
 
-                  <span className="px-2 py-0.5 rounded text-[10px] font-black bg-slate-200/90 dark:bg-slate-800 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700">
-                    #{standing?.positionGeneral || '-'}º en tabla
+                  <span className="px-2 py-0.5 rounded text-[10px] font-black bg-slate-200/90 dark:bg-slate-800 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 flex items-center gap-0.5">
+                    <span>#{standing?.positionZone || standing?.positionGeneral || '-'}º en zona</span>
+                    {standing?.positionChangeZone && standing.positionChangeZone > 0 ? (
+                      <span className="text-emerald-600 dark:text-emerald-400 flex items-center">
+                        <ArrowUp className="w-2.5 h-2.5" />
+                        <span className="text-[9px]">{standing.positionChangeZone}</span>
+                      </span>
+                    ) : standing?.positionChangeZone && standing.positionChangeZone < 0 ? (
+                      <span className="text-rose-600 dark:text-rose-400 flex items-center">
+                        <ArrowDown className="w-2.5 h-2.5" />
+                        <span className="text-[9px]">{Math.abs(standing.positionChangeZone)}</span>
+                      </span>
+                    ) : null}
                   </span>
 
                   <span className="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-300 font-mono border border-emerald-300/80 dark:border-emerald-800/60">
                     {standing?.points ?? '-'} pts
                   </span>
 
-                  {matchInfo && (
+                  {standing?.isLiveMatch ? (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-black bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-900 flex items-center gap-1 animate-pulse">
+                      <Radio className="w-2.5 h-2.5" />
+                      <span>{standing.liveMinute || 'En Vivo'}</span>
+                    </span>
+                  ) : standing?.roundMatchStatus === 'FINISHED' ? (
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700" title={standing.matchScoreInfo}>
+                      {standing.matchScoreInfo || 'Jugó F6'}
+                    </span>
+                  ) : matchInfo ? (
                     <span
                       className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border border-amber-200/60 dark:border-amber-800/60 flex items-center gap-1"
                       title={`Fecha 6: ${matchInfo.role} vs ${matchInfo.rival} (${matchInfo.displayTime})`}
@@ -171,7 +202,7 @@ export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favori
                       <span>{matchInfo.isHome ? '🏠 Local' : '✈️ Visitante'}</span>
                       <span className="font-mono font-black uppercase">vs {matchInfo.rivalShort}</span>
                     </span>
-                  )}
+                  ) : null}
                 </div>
 
                 {/* Key Metrics */}
@@ -195,7 +226,7 @@ export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favori
               {/* Card Footer Button */}
               <button
                 onClick={() => onSelectClub(team.name)}
-                className="relative z-10 w-full py-2 bg-slate-50/90 dark:bg-slate-800/90 hover:bg-blue-50 dark:hover:bg-blue-950 text-[#1b55e2] dark:text-cyan-300 font-extrabold text-xs border-t border-slate-100 dark:border-slate-800 flex items-center justify-center gap-1 transition"
+                className="relative z-10 w-full py-2 bg-slate-50/90 dark:bg-slate-800/90 hover:bg-blue-50 dark:hover:bg-blue-950 text-[#1b55e2] dark:text-cyan-300 font-extrabold text-xs border-t border-slate-100 dark:border-slate-800 flex items-center justify-center gap-1 transition cursor-pointer"
               >
                 <span>Ver todos los jugadores</span>
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -207,4 +238,5 @@ export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favori
     </div>
   );
 };
+
 

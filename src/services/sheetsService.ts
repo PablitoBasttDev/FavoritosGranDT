@@ -1,8 +1,85 @@
 import { Player, Position } from '../types';
 import defaultPlayersSnapshot from '../data/liveSheetSnapshot.json';
 
-export const GOOGLE_SHEETS_CSV_URL =
+export const DEFAULT_GOOGLE_SHEETS_CSV_URL =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vTSCtCdSe6xW7FVnObApbhqwfLF6sOhNkVxG4yr_k3ry8Jn6yUBOisyM_mVNakwPePQFU2pUuyza4Zn/pub?output=csv';
+
+const STORAGE_KEY_ACTIVE_URL = 'gran_dt_active_sheet_url_v1';
+const STORAGE_KEY_ACTIVE_ROUND = 'gran_dt_active_sheet_round_v1';
+
+/**
+ * Convierte cualquier formato de URL de Google Sheets (Web, Compartido, PubHTML o Edit)
+ * al enlace directo de descarga CSV publicado.
+ */
+export function formatGoogleSheetCsvUrl(url: string): string {
+  if (!url || !url.trim()) return DEFAULT_GOOGLE_SHEETS_CSV_URL;
+  let clean = url.trim();
+
+  // Si ya es un pub CSV
+  if (clean.includes('pub?output=csv') || clean.includes('export?format=csv')) {
+    return clean;
+  }
+
+  // Si termina en pubhtml o contiene /pubhtml
+  if (clean.includes('/pubhtml')) {
+    return clean.replace(/\/pubhtml(\?.*)?$/, '/pub?output=csv');
+  }
+
+  // Si termina en /pub sin query
+  if (clean.includes('/pub') && !clean.includes('output=')) {
+    return clean.replace(/\/pub(\?.*)?$/, '/pub?output=csv');
+  }
+
+  // Si es un link de Google Sheet estándar /d/{ID}/edit...
+  const docMatch = clean.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (docMatch && docMatch[1]) {
+    const sheetId = docMatch[1];
+    // Si contiene pub o 2PACX (publicado en la web)
+    if (clean.includes('/e/')) {
+      return `https://docs.google.com/spreadsheets/d/e/${sheetId}/pub?output=csv`;
+    }
+    return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+  }
+
+  return clean;
+}
+
+export function getActiveGoogleSheetUrl(): string {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem(STORAGE_KEY_ACTIVE_URL);
+    if (saved && saved.trim().length > 10) {
+      return saved;
+    }
+  }
+  return DEFAULT_GOOGLE_SHEETS_CSV_URL;
+}
+
+export function setActiveGoogleSheetUrl(rawUrl: string, roundLabel?: string): string {
+  const formatted = formatGoogleSheetCsvUrl(rawUrl);
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEY_ACTIVE_URL, formatted);
+    if (roundLabel) {
+      localStorage.setItem(STORAGE_KEY_ACTIVE_ROUND, roundLabel);
+    }
+  }
+  return formatted;
+}
+
+export function getActiveRoundLabel(): string {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem(STORAGE_KEY_ACTIVE_ROUND);
+    if (saved) return saved;
+  }
+  return 'Fecha 5 (Oficial Planeta Gran DT)';
+}
+
+export function resetToDefaultSheetUrl(): string {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(STORAGE_KEY_ACTIVE_URL);
+    localStorage.removeItem(STORAGE_KEY_ACTIVE_ROUND);
+  }
+  return DEFAULT_GOOGLE_SHEETS_CSV_URL;
+}
 
 export const SHEET_TEAM_MAP: Record<string, string> = {
   'Aldosivi': 'Aldosivi',
@@ -199,12 +276,100 @@ export interface SheetSyncResult {
   players: Player[];
   lastUpdated: number;
   isLive: boolean;
+  detectedRound?: string;
   error?: string;
 }
 
-export async function fetchLiveSheetPlayers(): Promise<SheetSyncResult> {
+/**
+ * Inicia el motor de sincronización automática en segundo plano.
+ * Consulta la hoja de Google Sheets de Planeta Gran DT al cargar y periódicamente cada 45 segundos,
+ * o cuando la ventana vuelve a tener foco (tab activo).
+ */
+export function initBackgroundAutoSync(onUpdate?: (result: SheetSyncResult) => void): () => void {
+  let isChecking = false;
+
+  const runSync = async () => {
+    if (isChecking) return;
+    isChecking = true;
+    try {
+      const res = await fetchLiveSheetPlayers();
+      if (onUpdate) onUpdate(res);
+    } catch (e) {
+      console.warn('Auto-sync en segundo plano:', e);
+    } finally {
+      isChecking = false;
+    }
+  };
+
+  // 1. Ejecutar inmediatamente al inicio
+  runSync();
+
+  // 2. Intervalo periódico en segundo plano (cada 45 segundos)
+  const intervalId = setInterval(runSync, 45000);
+
+  // 3. Ejecutar cuando el usuario vuelve a la pestaña
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible') {
+      runSync();
+    }
+  };
+  window.addEventListener('visibilitychange', handleVisibilityChange);
+  window.addEventListener('focus', runSync);
+
+  return () => {
+    clearInterval(intervalId);
+    window.removeEventListener('visibilitychange', handleVisibilityChange);
+    window.removeEventListener('focus', runSync);
+  };
+}
+
+
+export function detectRoundFromPlayers(players: Player[]): string {
+  if (!players || players.length === 0) return 'Fecha 5 (Oficial Planeta Gran DT)';
+
+  // Contar cuántos jugadores tienen puntajes numéricos válidos en cada fecha
+  for (let f = 18; f >= 1; f--) {
+    const key = `F${f}`;
+    const playersWithScores = players.filter(p => {
+      const val = p.fechasPuntajes?.[key];
+      if (val === undefined || val === null || val === '' || val === '-') return false;
+      const num = Number(val);
+      return !isNaN(num) && num > 0;
+    });
+
+    // Si al menos 40 futbolistas tienen puntaje en la fecha, esa fecha ya está cerrada/publicada
+    if (playersWithScores.length >= 40) {
+      return `Fecha ${f} (Oficial Planeta Gran DT)`;
+    }
+  }
+
+  return 'Fecha 5 (Oficial Planeta Gran DT)';
+}
+
+type SheetUpdateListener = (result: SheetSyncResult) => void;
+const listeners = new Set<SheetUpdateListener>();
+
+export function subscribeToLiveSheet(listener: SheetUpdateListener): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function notifyListeners(result: SheetSyncResult) {
+  listeners.forEach(fn => {
+    try {
+      fn(result);
+    } catch (e) {
+      console.error('Error en listener de hoja en vivo:', e);
+    }
+  });
+}
+
+export async function fetchLiveSheetPlayers(customUrl?: string): Promise<SheetSyncResult> {
+  const targetUrl = formatGoogleSheetCsvUrl(customUrl || getActiveGoogleSheetUrl());
   try {
-    const response = await fetch(GOOGLE_SHEETS_CSV_URL, {
+    const response = await fetch(targetUrl, {
       method: 'GET',
       headers: {
         'Accept': 'text/csv, text/plain, */*',
@@ -221,19 +386,26 @@ export async function fetchLiveSheetPlayers(): Promise<SheetSyncResult> {
 
     if (parsedPlayers.length >= 200) {
       const now = Date.now();
+      const detectedRound = detectRoundFromPlayers(parsedPlayers);
       try {
         localStorage.setItem(STORAGE_KEY_PLAYERS, JSON.stringify(parsedPlayers));
         localStorage.setItem(STORAGE_KEY_TIMESTAMP, now.toString());
+        localStorage.setItem(STORAGE_KEY_ACTIVE_ROUND, detectedRound);
       } catch {
         // Ignore quota limits
       }
-      return {
+
+      const result: SheetSyncResult = {
         players: parsedPlayers,
         lastUpdated: now,
         isLive: true,
+        detectedRound,
       };
+
+      notifyListeners(result);
+      return result;
     } else {
-      throw new Error('Formato de datos incompleto en Google Sheet');
+      throw new Error('Formato de datos incompleto o columnas no coincidentes en Google Sheet');
     }
   } catch (err: any) {
     console.warn('Fallback a snapshot local de Google Sheets:', err);
@@ -244,12 +416,15 @@ export async function fetchLiveSheetPlayers(): Promise<SheetSyncResult> {
       if (cached) {
         const list = JSON.parse(cached);
         if (Array.isArray(list) && list.length > 0) {
-          return {
+          const detectedRound = detectRoundFromPlayers(list as Player[]);
+          const result: SheetSyncResult = {
             players: list as Player[],
             lastUpdated: timestamp ? parseInt(timestamp, 10) : Date.now(),
             isLive: false,
+            detectedRound,
             error: err.message,
           };
+          return result;
         }
       }
     } catch {
@@ -257,14 +432,19 @@ export async function fetchLiveSheetPlayers(): Promise<SheetSyncResult> {
     }
 
     // Default snapshot
-    return {
-      players: defaultPlayersSnapshot as unknown as Player[],
+    const defPlayers = defaultPlayersSnapshot as unknown as Player[];
+    const detectedRound = detectRoundFromPlayers(defPlayers);
+    const result: SheetSyncResult = {
+      players: defPlayers,
       lastUpdated: Date.now(),
       isLive: false,
+      detectedRound,
       error: err.message,
     };
+    return result;
   }
 }
+
 
 export function getCachedSheetPlayers(): Player[] {
   try {

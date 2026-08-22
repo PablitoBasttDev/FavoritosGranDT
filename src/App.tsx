@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ALL_PLAYERS } from './data/players';
+import { ALL_PLAYERS, updateAllPlayers } from './data/players';
 import { Player, FavoritePlayer, UserProfile } from './types';
 import { Navbar } from './components/Navbar';
 import { FavoritesDashboard } from './components/FavoritesDashboard';
@@ -8,6 +8,11 @@ import { ClubExplorer } from './components/ClubExplorer';
 import { StatsDashboard } from './components/StatsDashboard';
 import { UserAuthModal } from './components/UserAuthModal';
 import { AuthScreen } from './components/AuthScreen';
+import {
+  getCachedSheetPlayers,
+  initBackgroundAutoSync,
+  SheetSyncResult,
+} from './services/sheetsService';
 import {
   getActiveUser,
   getStoredUsers,
@@ -28,6 +33,9 @@ export default function App() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
 
+  // Dynamic Live Players state automatically synced with Google Sheets
+  const [livePlayers, setLivePlayers] = useState<Player[]>(() => getCachedSheetPlayers());
+
   // Authenticated Active User State (null = not logged in / locked)
   const [activeUser, setActiveUserState] = useState<UserProfile | null>(() => getActiveUser());
   const [usersList, setUsersList] = useState<UserProfile[]>(() => getStoredUsers());
@@ -40,6 +48,17 @@ export default function App() {
 
   // Track hydration state so empty initial state on new devices NEVER overwrites Firestore cloud favorites
   const isHydratedRef = React.useRef<boolean>(false);
+
+  // Auto-sync Google Sheet in background on mount and continuously
+  useEffect(() => {
+    const unsubscribe = initBackgroundAutoSync((result: SheetSyncResult) => {
+      if (result.players && result.players.length > 0) {
+        setLivePlayers(result.players);
+        updateAllPlayers(result.players);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Sync users and active favorites with Firestore cloud on startup
   useEffect(() => {
@@ -56,6 +75,7 @@ export default function App() {
       }
     });
   }, []);
+
 
   // Save favorites to isolated user storage whenever favorites change (ONLY when hydrated)
   useEffect(() => {
@@ -281,7 +301,7 @@ export default function App() {
 
         {activeTab === 'players' && (
           <PlayerExplorer
-            players={ALL_PLAYERS}
+            players={livePlayers}
             favoriteIds={favoriteIds}
             onToggleFavorite={handleToggleFavorite}
             selectedClubFilter={selectedClubFilter}
@@ -300,7 +320,10 @@ export default function App() {
         )}
 
         {activeTab === 'stats' && (
-          <StatsDashboard onSelectClub={handleNavigateToDatabase} />
+          <StatsDashboard
+            players={livePlayers}
+            onSelectClub={handleNavigateToDatabase}
+          />
         )}
       </main>
     </div>
