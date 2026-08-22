@@ -431,6 +431,17 @@ export const FIXTURES_DATA: MatchFixture[] = [
     stadium: 'Juan Domingo Perón (Alta Córdoba)',
     status: 'SCHEDULED',
   },
+  {
+    id: 'f7-15',
+    fecha: 7,
+    homeTeam: 'Racing Club',
+    awayTeam: 'Independiente Rivadavia',
+    dateStr: 'Lunes 31 de Agosto de 2026',
+    kickoff: '2026-08-31T21:15:00-03:00',
+    displayTime: 'Lunes 31/08 • 21:15 hs',
+    stadium: 'Presidente Perón - Cilindro de Avellaneda',
+    status: 'SCHEDULED',
+  },
 ];
 
 // Duración estimada de un partido (115 minutos con tiempo añadido)
