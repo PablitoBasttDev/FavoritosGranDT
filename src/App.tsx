@@ -312,13 +312,6 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'clubs' && (
-          <ClubExplorer
-            onSelectClub={handleNavigateToDatabase}
-            favorites={favorites}
-          />
-        )}
-
         {activeTab === 'stats' && (
           <StatsDashboard
             players={livePlayers}

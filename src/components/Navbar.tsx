@@ -53,10 +53,6 @@ export const Navbar: React.FC<NavbarProps> = ({
       label: `Base de Jugadores (${ALL_PLAYERS.length})`,
     },
     {
-      id: 'clubs' as const,
-      label: 'Los 30 Clubes',
-    },
-    {
       id: 'stats' as const,
       label: 'Estadísticas y Valores',
     },
