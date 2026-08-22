@@ -587,24 +587,25 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 <table className="w-full text-left text-xs border-collapse">
                   <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 z-10">
                     <tr className="border-b border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-400 text-[10px] uppercase font-black">
-                      <th className="py-2 px-2 text-center w-8">#</th>
-                      <th className="py-2 px-2">Jugador</th>
-                      <th className="py-2 px-2">Club</th>
-                      <th className="py-2 px-2 text-center">Goles F6</th>
-                      <th className="py-2 px-2 text-center font-black text-slate-900 dark:text-slate-200">
+                      <th className="py-2.5 px-3 text-center w-8">#</th>
+                      <th className="py-2.5 px-3">Jugador</th>
+                      <th className="py-2.5 px-3 text-center">Posición</th>
+                      <th className="py-2.5 px-3">Club</th>
+                      <th className="py-2.5 px-3 text-center">Goles F6</th>
+                      <th className="py-2.5 px-3 text-center font-black text-slate-900 dark:text-slate-200">
                         Goles Totales
                       </th>
-                      <th className="py-2 px-2 text-center">Penales</th>
-                      <th className="py-2 px-2 text-center bg-blue-50/60 dark:bg-blue-950/40 text-[#1b55e2] dark:text-cyan-300">
+                      <th className="py-2.5 px-3 text-center">Penales</th>
+                      <th className="py-2.5 px-3 text-center bg-blue-50/60 dark:bg-blue-950/40 text-[#1b55e2] dark:text-cyan-300">
                         Pts Gran DT (Hasta F5)
                       </th>
-                      <th className="py-2 px-2 text-right">Cotización</th>
+                      <th className="py-2.5 px-3 text-right">Cotización</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {filteredScorers.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-8 text-center text-slate-400 text-xs">
+                        <td colSpan={9} className="py-8 text-center text-slate-400 text-xs">
                           No se encontraron goleadores que coincidan con "{scorerSearch}".
                         </td>
                       </tr>
@@ -616,42 +617,42 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                           onClick={() => scorer.playerObj && onSelectPlayer?.(scorer.playerObj)}
                           title={`Ver estadísticas de ${scorer.playerName}`}
                         >
-                          <td className="py-2 px-2 text-center font-mono font-bold text-slate-500">
+                          <td className="py-2.5 px-3 text-center font-mono font-bold text-slate-500">
                             {idx + 1}
                           </td>
-                          <td className="py-2 px-2 font-bold text-slate-900 dark:text-slate-100">
-                            <div className="flex items-center gap-1.5">
-                              <PositionBadge position={scorer.posicion} size="xs" />
-                              <span className="group-hover:text-[#1b55e2] dark:group-hover:text-cyan-300 transition">
-                                {scorer.playerName}
-                              </span>
-                            </div>
+                          <td className="py-2.5 px-3 font-black text-slate-900 dark:text-slate-100">
+                            <span className="group-hover:text-[#1b55e2] dark:group-hover:text-cyan-300 transition">
+                              {scorer.playerName}
+                            </span>
                           </td>
-                          <td className="py-2 px-2 text-slate-600 dark:text-slate-300">
+                          <td className="py-2.5 px-3 text-center">
+                            <PositionBadge position={scorer.posicion} size="sm" />
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">
                             <div className="flex items-center gap-1.5">
                               <TeamBadge teamName={scorer.team} size="xs" showName={false} />
-                              <span className="truncate max-w-[130px]">{scorer.team}</span>
+                              <span className="truncate max-w-[130px] font-bold">{scorer.team}</span>
                             </div>
                           </td>
-                          <td className="py-2 px-2 text-center">
+                          <td className="py-2.5 px-3 text-center">
                             {scorer.roundGoals > 0 ? (
                               <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300 font-mono font-black text-[10px] border border-amber-300 dark:border-amber-800">
                                 +{scorer.roundGoals}
                               </span>
                             ) : (
-                              <span className="text-slate-400">-</span>
+                              <span className="text-slate-400 font-mono">-</span>
                             )}
                           </td>
-                          <td className="py-2 px-2 text-center font-mono font-black text-amber-600 dark:text-amber-400 text-sm bg-amber-50/50 dark:bg-amber-950/20">
+                          <td className="py-2.5 px-3 text-center font-mono font-black text-amber-600 dark:text-amber-400 text-sm bg-amber-50/50 dark:bg-amber-950/20">
                             {scorer.totalGoals}
                           </td>
-                          <td className="py-2 px-2 text-center font-mono text-slate-500">
+                          <td className="py-2.5 px-3 text-center font-mono text-slate-500">
                             {scorer.penalties > 0 ? scorer.penalties : '-'}
                           </td>
-                          <td className="py-2 px-2 text-center font-mono font-black text-[#1b55e2] dark:text-cyan-400 bg-blue-50/30 dark:bg-blue-950/20">
+                          <td className="py-2.5 px-3 text-center font-mono font-black text-[#1b55e2] dark:text-cyan-400 bg-blue-50/30 dark:bg-blue-950/20">
                             {scorer.puntosTotales} pts
                           </td>
-                          <td className="py-2 px-2 text-right font-mono font-black text-emerald-700 dark:text-emerald-400">
+                          <td className="py-2.5 px-3 text-right font-mono font-black text-emerald-700 dark:text-emerald-400">
                             {scorer.precio}
                           </td>
                         </tr>
@@ -897,19 +898,20 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-400 text-[10px] uppercase font-black bg-slate-100 dark:bg-slate-800/40">
-                      <th className="py-2 px-2 text-center w-10">#</th>
-                      <th className="py-2 px-2">Arquero</th>
-                      <th className="py-2 px-2">Club</th>
-                      <th className="py-2 px-2 text-center font-black bg-emerald-100/60 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border-x border-emerald-300 dark:border-emerald-800">
+                      <th className="py-2.5 px-3 text-center w-10">#</th>
+                      <th className="py-2.5 px-3">Arquero</th>
+                      <th className="py-2.5 px-3 text-center">Posición</th>
+                      <th className="py-2.5 px-3">Club</th>
+                      <th className="py-2.5 px-3 text-center font-black bg-emerald-100/60 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border-x border-emerald-300 dark:border-emerald-800">
                         Fechas sin Recibir Goles
                       </th>
-                      <th className="py-2 px-2 text-center">% Arco en Cero</th>
-                      <th className="py-2 px-2 text-center">Partidos Jugados (PJ)</th>
-                      <th className="py-2 px-2 text-center bg-blue-50/60 dark:bg-blue-950/40 text-[#1b55e2] dark:text-cyan-300">
+                      <th className="py-2.5 px-3 text-center">% Arco en Cero</th>
+                      <th className="py-2.5 px-3 text-center">Partidos Jugados (PJ)</th>
+                      <th className="py-2.5 px-3 text-center bg-blue-50/60 dark:bg-blue-950/40 text-[#1b55e2] dark:text-cyan-300">
                         Pts Gran DT (Hasta F5)
                       </th>
-                      <th className="py-2 px-2 text-center">Promedio Calificación</th>
-                      <th className="py-2 px-2 text-right">Cotización</th>
+                      <th className="py-2.5 px-3 text-center">Promedio Calificación</th>
+                      <th className="py-2.5 px-3 text-right">Cotización</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -920,26 +922,26 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                         onClick={() => arq.playerObj && onSelectPlayer?.(arq.playerObj)}
                         title={`Ver estadísticas de ${arq.nombre}`}
                       >
-                        <td className="py-2 px-2 text-center font-mono font-bold text-slate-500">
+                        <td className="py-2.5 px-3 text-center font-mono font-bold text-slate-500">
                           {idx + 1}
                         </td>
-                        <td className="py-2 px-2 font-bold text-slate-900 dark:text-slate-100">
-                          <div className="flex items-center gap-1.5">
-                            <PositionBadge position="ARQ" size="xs" />
-                            <span className="group-hover:text-[#1b55e2] dark:group-hover:text-cyan-300 transition">
-                              {arq.nombre}
-                            </span>
-                          </div>
+                        <td className="py-2.5 px-3 font-black text-slate-900 dark:text-slate-100">
+                          <span className="group-hover:text-[#1b55e2] dark:group-hover:text-cyan-300 transition">
+                            {arq.nombre}
+                          </span>
                         </td>
-                        <td className="py-2 px-2 text-slate-600 dark:text-slate-300">
+                        <td className="py-2.5 px-3 text-center">
+                          <PositionBadge position="ARQ" size="sm" />
+                        </td>
+                        <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">
                           <div className="flex items-center gap-1.5">
                             <TeamBadge teamName={arq.equipo} size="xs" showName={false} />
-                            <span className="truncate">{arq.equipo}</span>
+                            <span className="truncate font-bold">{arq.equipo}</span>
                           </div>
                         </td>
 
                         {/* Vallas Invictas Arquero - Estadística Principal */}
-                        <td className="py-2 px-2 text-center font-mono font-black text-emerald-800 dark:text-emerald-300 bg-emerald-50/80 dark:bg-emerald-950/40 border-x border-emerald-200 dark:border-emerald-900/60">
+                        <td className="py-2.5 px-3 text-center font-mono font-black text-emerald-800 dark:text-emerald-300 bg-emerald-50/80 dark:bg-emerald-950/40 border-x border-emerald-200 dark:border-emerald-900/60">
                           <div className="flex items-center justify-center gap-1">
                             <span className="text-sm font-black">{arq.vallaInvictaTotal}</span>
                             <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
@@ -953,21 +955,21 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                           </div>
                         </td>
 
-                        <td className="py-2 px-2 text-center font-mono font-bold text-slate-800 dark:text-slate-200">
+                        <td className="py-2.5 px-3 text-center font-mono font-bold text-slate-800 dark:text-slate-200">
                           <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800">
                             {arq.cleanSheetRate}%
                           </span>
                         </td>
-                        <td className="py-2 px-2 text-center font-mono text-slate-600 dark:text-slate-400">
+                        <td className="py-2.5 px-3 text-center font-mono text-slate-600 dark:text-slate-400">
                           {arq.partidosJugados}
                         </td>
-                        <td className="py-2 px-2 text-center font-mono font-black text-[#1b55e2] dark:text-cyan-400 bg-blue-50/30 dark:bg-blue-950/20">
+                        <td className="py-2.5 px-3 text-center font-mono font-black text-[#1b55e2] dark:text-cyan-400 bg-blue-50/30 dark:bg-blue-950/20">
                           {arq.puntosTotales} pts
                         </td>
-                        <td className="py-2 px-2 text-center font-mono text-slate-600 dark:text-slate-400">
+                        <td className="py-2.5 px-3 text-center font-mono text-slate-600 dark:text-slate-400">
                           {arq.promedio > 0 ? arq.promedio.toFixed(2) : '-'}
                         </td>
-                        <td className="py-2 px-2 text-right font-mono font-black text-emerald-700 dark:text-emerald-400">
+                        <td className="py-2.5 px-3 text-right font-mono font-black text-emerald-700 dark:text-emerald-400">
                           {arq.precio}
                         </td>
                       </tr>

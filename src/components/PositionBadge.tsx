@@ -3,7 +3,7 @@ import { Position } from '../types';
 
 interface PositionBadgeProps {
   position: Position | string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   className?: string;
   showFullText?: boolean;
 }
@@ -51,7 +51,8 @@ export const PositionBadge: React.FC<PositionBadgeProps> = ({
 
   const current = getStyle();
 
-  const sizeClasses = {
+  const sizeClasses: Record<string, string> = {
+    xs: 'text-[9.5px] px-1.5 py-0.5 font-black tracking-wider rounded',
     sm: 'text-[10px] px-2 py-0.5 font-black tracking-wider rounded-md',
     md: 'text-xs px-2.5 py-1 font-black tracking-wider rounded-lg',
     lg: 'text-sm px-3.5 py-1.5 font-black tracking-widest rounded-xl',
@@ -59,7 +60,7 @@ export const PositionBadge: React.FC<PositionBadgeProps> = ({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 border uppercase font-mono ${current.bg} ${sizeClasses[size]} ${className}`}
+      className={`inline-flex items-center gap-1.5 border uppercase font-mono ${current.bg} ${sizeClasses[size] || sizeClasses.md} ${className}`}
     >
       <span className={`w-1.5 h-1.5 rounded-full ${current.dot} shrink-0 opacity-80`}></span>
       <span>{showFullText ? current.label : position}</span>

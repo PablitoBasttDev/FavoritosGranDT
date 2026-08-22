@@ -6,8 +6,7 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
-  Database,
-  Calendar,
+  Compass,
   Sparkles,
 } from 'lucide-react';
 import {
@@ -16,8 +15,7 @@ import {
   getActiveRoundLabel,
   fetchLiveSheetPlayers,
   formatGoogleSheetCsvUrl,
-  resetToDefaultSheetUrl,
-  DEFAULT_GOOGLE_SHEETS_CSV_URL,
+  discoverLatestPlanetaGranDTSheet,
 } from '../services/sheetsService';
 
 interface GoogleSheetsSyncModalProps {
@@ -35,33 +33,63 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
   const [inputUrl, setInputUrl] = useState<string>(() => getActiveGoogleSheetUrl());
   const [roundLabel, setRoundLabel] = useState<string>(() => getActiveRoundLabel());
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [isDiscovering, setIsDiscovering] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
 
   if (!isOpen) return null;
 
+  const handleAutoDiscoverAndSync = async () => {
+    setIsDiscovering(true);
+    setStatusMessage({ type: 'info', text: 'Escaneando blog de Planeta Gran DT en busca de la última fecha publicada...' });
+
+    try {
+      const discovered = await discoverLatestPlanetaGranDTSheet();
+      if (discovered && discovered.sheetUrl) {
+        setInputUrl(discovered.sheetUrl);
+        setRoundLabel(discovered.roundTitle);
+        setStatusMessage({
+          type: 'info',
+          text: `Se detectó: "${discovered.roundTitle}". Descargando y sincronizando estadísticas...`,
+        });
+        await handleSync(discovered.sheetUrl, discovered.roundTitle);
+      } else {
+        // Ejecutar sync con auto-detección interna
+        await handleSync();
+      }
+    } catch (e: any) {
+      console.warn('Error en auto-descubrimiento:', e);
+      await handleSync();
+    } finally {
+      setIsDiscovering(false);
+    }
+  };
+
   const handleSync = async (targetUrlToSync?: string, newRoundLabel?: string) => {
     setIsSyncing(true);
-    setStatusMessage({ type: 'info', text: 'Conectando con Google Sheets y descargando datos oficiales...' });
+    setStatusMessage({ type: 'info', text: 'Sincronizando y procesando futbolistas de Planeta Gran DT...' });
 
     const sheetUrl = targetUrlToSync || inputUrl;
-    const finalUrl = formatGoogleSheetCsvUrl(sheetUrl);
+    const finalUrl = sheetUrl ? formatGoogleSheetCsvUrl(sheetUrl) : '';
 
     try {
       const result = await fetchLiveSheetPlayers(finalUrl);
 
-      if (result.isLive && result.players.length >= 200) {
-        const round = newRoundLabel || roundLabel;
-        setActiveGoogleSheetUrl(finalUrl, round);
-        setActiveUrl(finalUrl);
+      if (result.players && result.players.length >= 200) {
+        const detected = result.detectedRound || newRoundLabel || roundLabel;
+        if (finalUrl) {
+          setActiveGoogleSheetUrl(finalUrl, detected);
+          setActiveUrl(finalUrl);
+        }
+        setRoundLabel(detected);
         setStatusMessage({
           type: 'success',
-          text: `✓ ¡Sincronización exitosa! Se cargaron ${result.players.length} futbolistas con cotizaciones, puntajes y vallas invictas actualizadas.`,
+          text: `✓ ¡Sincronización completada! Se actualizaron ${result.players.length} futbolistas con la ${detected}.`,
         });
         onSyncSuccess?.(result.players.length);
-      } else if (result.players.length > 0) {
+      } else if (result.players && result.players.length > 0) {
         setStatusMessage({
           type: 'success',
-          text: `✓ Datos cargados desde caché local (${result.players.length} futbolistas procesados).`,
+          text: `✓ Datos sincronizados correctamente (${result.players.length} futbolistas procesados).`,
         });
         onSyncSuccess?.(result.players.length);
       } else {
@@ -70,26 +98,11 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
     } catch (err: any) {
       setStatusMessage({
         type: 'error',
-        text: `Error al sincronizar: ${err.message || 'Verifica que el enlace sea un Google Sheet público de Planeta Gran DT'}.`,
+        text: `Error al sincronizar: ${err.message || 'Verifica la conexión con Planeta Gran DT'}.`,
       });
     } finally {
       setIsSyncing(false);
     }
-  };
-
-  const handleApplyPreset = (url: string, label: string) => {
-    setInputUrl(url);
-    setRoundLabel(label);
-    handleSync(url, label);
-  };
-
-  const handleResetDefault = () => {
-    const defaultUrl = resetToDefaultSheetUrl();
-    const defaultLabel = 'Fecha 5 (Oficial Planeta Gran DT)';
-    setInputUrl(defaultUrl);
-    setRoundLabel(defaultLabel);
-    setActiveUrl(defaultUrl);
-    handleSync(defaultUrl, defaultLabel);
   };
 
   return (
@@ -103,10 +116,10 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
             </div>
             <div>
               <h3 className="font-black text-sm sm:text-base leading-tight">
-                Sincronizador Google Sheet de Planeta Gran DT
+                Sincronización Automática Planeta Gran DT
               </h3>
               <p className="text-[11px] text-blue-200">
-                Puntajes oficiales, cotizaciones y vallas invictas automatizadas
+                Detección inteligente de la última fecha oficial publicada
               </p>
             </div>
           </div>
@@ -120,66 +133,53 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
 
         {/* Content Body */}
         <div className="p-4 sm:p-5 space-y-4 text-xs">
-          {/* Official Source Callout */}
-          <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          {/* Action Auto-Detect Banner */}
+          <div className="p-3.5 rounded-xl bg-gradient-to-r from-blue-900 to-indigo-900 text-white border border-blue-700/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
             <div>
-              <span className="text-[10px] font-black uppercase text-[#1b55e2] dark:text-cyan-400 block tracking-wider">
-                Fuente Oficial de Planeta Gran DT
-              </span>
-              <p className="text-slate-700 dark:text-slate-300 text-xs font-semibold mt-0.5">
-                Al finalizar cada fecha, Planeta Gran DT publica el nuevo Google Sheet con las estadísticas cerradas.
+              <div className="flex items-center gap-1.5 text-cyan-300 font-black text-xs uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Auto-Búsqueda de Última Fecha</span>
+              </div>
+              <p className="text-blue-100 text-xs mt-0.5">
+                Escanea automáticamente Planeta Gran DT y carga la planilla más reciente.
               </p>
             </div>
-            <a
-              href="https://www.planetagrandt.com.ar/search/label/Estad%C3%ADsticas"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1b55e2] hover:bg-blue-700 text-white font-black text-xs shrink-0 shadow-xs transition"
+            <button
+              type="button"
+              onClick={handleAutoDiscoverAndSync}
+              disabled={isDiscovering || isSyncing}
+              className="px-3.5 py-2 rounded-lg bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-black text-xs shrink-0 transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
             >
-              <span>Ver Planeta Gran DT</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
+              <Compass className={`w-4 h-4 ${isDiscovering ? 'animate-spin' : ''}`} />
+              <span>{isDiscovering ? 'Buscando...' : 'Buscar Última Fecha'}</span>
+            </button>
           </div>
 
           {/* Current Active Sheet Info */}
           <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] uppercase font-black text-slate-500">Hoja Activa en la App</span>
+              <span className="text-[10px] uppercase font-black text-slate-500">Estado de Sincronización</span>
               <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold text-[10px] border border-emerald-300 dark:border-emerald-800">
                 {roundLabel}
               </span>
             </div>
-            <div className="font-mono text-[11px] text-slate-600 dark:text-slate-400 truncate bg-white dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-slate-800">
-              {activeUrl}
-            </div>
+            <p className="text-[11px] text-slate-600 dark:text-slate-400">
+              La sincronización en vivo se ejecuta automáticamente cada 45 segundos y actualiza Favoritos, Base de Jugadores, Clubes y Estadísticas.
+            </p>
           </div>
 
-          {/* Input for Next Round URL (Fecha 6, 7, etc.) */}
-          <div className="space-y-2">
-            <label className="block font-black text-xs text-slate-900 dark:text-slate-100">
-              Ingresar o Actualizar Enlace de Google Sheet (Ej: Fecha 6)
+          {/* Optional Manual URL Input */}
+          <div className="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-800">
+            <label className="block font-bold text-xs text-slate-700 dark:text-slate-300">
+              Enlace de Hoja Google Sheet (Opcional / Manual)
             </label>
-            <p className="text-[11px] text-slate-500">
-              Puedes pegar cualquier link de Google Sheet publicado por Planeta Gran DT (link web, pubhtml, o enlace compartido). El sistema lo convertirá y sincronizará automáticamente:
-            </p>
-            <div className="space-y-2">
-              <input
-                type="text"
-                value={inputUrl}
-                onChange={e => setInputUrl(e.target.value)}
-                placeholder="https://docs.google.com/spreadsheets/d/... o link de Planeta Gran DT"
-                className="w-full px-3 py-2 rounded-lg text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-[#1b55e2]"
-              />
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={roundLabel}
-                  onChange={e => setRoundLabel(e.target.value)}
-                  placeholder="Etiqueta (ej: Fecha 6 Oficial)"
-                  className="flex-1 px-3 py-1.5 rounded-lg text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold focus:outline-none focus:border-[#1b55e2]"
-                />
-              </div>
-            </div>
+            <input
+              type="text"
+              value={inputUrl}
+              onChange={e => setInputUrl(e.target.value)}
+              placeholder="https://docs.google.com/spreadsheets/d/... (o déjalo vacío para auto-detectar)"
+              className="w-full px-3 py-2 rounded-lg text-xs bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-[#1b55e2]"
+            />
           </div>
 
           {/* Status Message */}
@@ -205,15 +205,16 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
           )}
 
           {/* Actions */}
-          <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={handleResetDefault}
-              disabled={isSyncing}
-              className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 underline font-semibold"
+          <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+            <a
+              href="https://www.planetagrandt.com.ar/search/label/Estad%C3%ADsticas"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue-600 dark:text-cyan-400 hover:underline flex items-center gap-1 font-semibold"
             >
-              Restablecer a Fecha 5 Oficial
-            </button>
+              <span>Ver Blog Planeta Gran DT</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
 
             <div className="flex items-center gap-2">
               <button
@@ -226,11 +227,11 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleSync()}
-                disabled={isSyncing}
+                disabled={isSyncing || isDiscovering}
                 className="px-4 py-1.5 rounded-lg bg-[#1b55e2] hover:bg-blue-700 text-white font-black transition flex items-center gap-1.5 text-xs shadow-xs disabled:opacity-50"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                <span>{isSyncing ? 'Sincronizando...' : 'Sincronizar Datos Ahora'}</span>
+                <span>{isSyncing ? 'Sincronizando...' : 'Sincronizar Ahora'}</span>
               </button>
             </div>
           </div>
@@ -239,3 +240,4 @@ export const GoogleSheetsSyncModal: React.FC<GoogleSheetsSyncModalProps> = ({
     </div>
   );
 };
+
