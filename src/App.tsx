@@ -38,52 +38,58 @@ export default function App() {
     return user ? getUserFavorites(user.id) : [];
   });
 
+  // Track hydration state so empty initial state on new devices NEVER overwrites Firestore cloud favorites
+  const isHydratedRef = React.useRef<boolean>(false);
+
   // Sync users and active favorites with Firestore cloud on startup
   useEffect(() => {
-    syncUsersWithCloud().then(synced => {
+    syncUsersWithCloud().then(async synced => {
       setUsersList(synced);
       const current = getActiveUser();
       if (current) {
         setActiveUserState(current);
-        fetchUserFavoritesFromCloud(current.id).then(cloudFavs => {
-          if (cloudFavs && cloudFavs.length > 0) {
-            setFavorites(cloudFavs);
-          }
-        });
+        const cloudFavs = await fetchUserFavoritesFromCloud(current.id, current.username);
+        if (cloudFavs && cloudFavs.length > 0) {
+          setFavorites(cloudFavs);
+        }
+        isHydratedRef.current = true;
       }
     });
   }, []);
 
-  // Save favorites to isolated user storage whenever favorites change
+  // Save favorites to isolated user storage whenever favorites change (ONLY when hydrated)
   useEffect(() => {
-    if (activeUser?.id) {
-      saveUserFavorites(activeUser.id, favorites);
+    if (activeUser?.id && isHydratedRef.current) {
+      saveUserFavorites(activeUser.id, favorites, true, activeUser.username);
     }
   }, [favorites, activeUser?.id]);
 
   // Handle successful login or registration
   const handleLoginSuccess = async (user: UserProfile) => {
+    isHydratedRef.current = false;
     setActiveUserState(user);
     const updatedUsers = getStoredUsers();
     setUsersList(updatedUsers);
     
-    // Load favorites from cloud or local
-    const localFavs = getUserFavorites(user.id);
-    setFavorites(localFavs);
-    
-    const cloudFavs = await fetchUserFavoritesFromCloud(user.id);
+    // Fetch from cloud first to ensure cross-device synchronization
+    const cloudFavs = await fetchUserFavoritesFromCloud(user.id, user.username);
     if (cloudFavs && cloudFavs.length > 0) {
       setFavorites(cloudFavs);
+    } else {
+      const localFavs = getUserFavorites(user.id);
+      setFavorites(localFavs);
     }
+    isHydratedRef.current = true;
     
     showToast(`✓ Bienvenido, ${user.name} (@${user.username})`);
   };
 
   // Handle user logout (Locks access)
   const handleLogout = () => {
-    if (activeUser?.id) {
-      saveUserFavorites(activeUser.id, favorites);
+    if (activeUser?.id && isHydratedRef.current) {
+      saveUserFavorites(activeUser.id, favorites, true, activeUser.username);
     }
+    isHydratedRef.current = false;
     logoutUser();
     setActiveUserState(null);
     setFavorites([]);
@@ -93,19 +99,22 @@ export default function App() {
 
   // Handle switching to a different user account after password verification
   const handleSelectUser = async (user: UserProfile) => {
-    if (activeUser?.id) {
-      saveUserFavorites(activeUser.id, favorites);
+    if (activeUser?.id && isHydratedRef.current) {
+      saveUserFavorites(activeUser.id, favorites, true, activeUser.username);
     }
+    isHydratedRef.current = false;
     setActiveUserState(user);
     const updatedUsers = getStoredUsers();
     setUsersList(updatedUsers);
-    const loadedFavs = getUserFavorites(user.id);
-    setFavorites(loadedFavs);
     
-    const cloudFavs = await fetchUserFavoritesFromCloud(user.id);
+    const cloudFavs = await fetchUserFavoritesFromCloud(user.id, user.username);
     if (cloudFavs && cloudFavs.length > 0) {
       setFavorites(cloudFavs);
+    } else {
+      const localFavs = getUserFavorites(user.id);
+      setFavorites(localFavs);
     }
+    isHydratedRef.current = true;
   };
 
   const refreshUserList = () => {
@@ -264,6 +273,9 @@ export default function App() {
             onUpdateNotes={handleUpdateNotes}
             onClearAll={handleClearAll}
             onNavigateToDatabase={handleNavigateToDatabase}
+            activeUser={activeUser}
+            onFavoritesUpdated={setFavorites}
+            showToast={showToast}
           />
         )}
 

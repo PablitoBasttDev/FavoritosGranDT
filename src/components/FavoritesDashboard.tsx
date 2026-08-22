@@ -32,7 +32,10 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
+  Cloud,
 } from 'lucide-react';
+import { UserProfile } from '../types';
+import { CloudSyncModal } from './CloudSyncModal';
 
 interface FavoritesDashboardProps {
   favorites: FavoritePlayer[];
@@ -41,6 +44,9 @@ interface FavoritesDashboardProps {
   onUpdateNotes: (playerId: number, notes: string) => void;
   onClearAll: () => void;
   onNavigateToDatabase: (clubName?: string) => void;
+  activeUser?: UserProfile | null;
+  onFavoritesUpdated?: (newFavorites: FavoritePlayer[]) => void;
+  showToast?: (msg: string) => void;
 }
 
 export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
@@ -50,6 +56,9 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
   onUpdateNotes,
   onClearAll,
   onNavigateToDatabase,
+  activeUser = null,
+  onFavoritesUpdated,
+  showToast = () => {},
 }) => {
   // Search & Selector State
   const [selectorSearch, setSelectorSearch] = useState('');
@@ -58,6 +67,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
   const [candidateNote, setCandidateNote] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [dropdownPosFilter, setDropdownPosFilter] = useState<string>('ALL');
+  const [showCloudSyncModal, setShowCloudSyncModal] = useState(false);
 
   // View mode: 'all_30_clubs' by default if no favorites, otherwise 'with_favorites'
   const [viewMode, setViewMode] = useState<'all_30_clubs' | 'with_favorites'>(() =>
@@ -513,16 +523,26 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
               </button>
             </div>
 
-            {/* Copy & Clear Actions */}
+            {/* Copy, Cloud & Clear Actions */}
             <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setShowCloudSyncModal(true)}
+                id="btn-cloud-sync-modal"
+                className="px-2.5 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-[#1b55e2] dark:text-cyan-300 font-black text-xs flex items-center gap-1.5 transition border border-blue-200/80 dark:border-blue-900/80 shadow-2xs cursor-pointer"
+                title="Sincronizar con Firestore, exportar JSON o restaurar listas guardadas"
+              >
+                <Cloud className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
+                <span className="hidden sm:inline">Nube & Respaldos</span>
+              </button>
+
               <button
                 onClick={handleCopyList}
                 disabled={favorites.length === 0}
-                className="px-3 py-1.5 rounded-lg bg-[#1b55e2] hover:bg-[#1444b8] disabled:opacity-40 text-white font-black text-xs flex items-center gap-1.5 transition shadow-xs"
+                className="px-3 py-1.5 rounded-lg bg-[#1b55e2] hover:bg-[#1444b8] disabled:opacity-40 text-white font-black text-xs flex items-center gap-1.5 transition shadow-xs cursor-pointer"
                 title="Copiar lista estructurada al portapapeles"
               >
                 {copied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
-                <span className="hidden sm:inline">{copied ? '¡Copiado!' : 'Copiar Lista'}</span>
+                <span className="hidden sm:inline">{copied ? '¡Copiado!' : 'Copiar'}</span>
               </button>
 
               <button
@@ -565,6 +585,25 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
             </span>
           </div>
         </div>
+
+        {/* Cloud Recovery Suggestion Bar when 0 favorites */}
+        {favorites.length === 0 && (
+          <div className="mt-2.5 p-2.5 rounded-xl bg-blue-50/90 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 flex items-center justify-between flex-wrap gap-2 text-xs">
+            <div className="flex items-center gap-2 text-blue-900 dark:text-cyan-200">
+              <Cloud className="w-4 h-4 text-blue-600 dark:text-cyan-400 shrink-0" />
+              <span>
+                <strong>¿Ingresaste desde otro dispositivo?</strong> Si tenías un plantel guardado en la nube, podés inspeccionar y restaurar tus listas de Firestore.
+              </span>
+            </div>
+            <button
+              onClick={() => setShowCloudSyncModal(true)}
+              className="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black text-[11px] transition shadow-xs flex items-center gap-1.5 cursor-pointer ml-auto"
+            >
+              <Cloud className="w-3.5 h-3.5" />
+              <span>Ver Listas en la Nube</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 2.5 CARD FILTERS & SORTING TOOLBAR (Local/Visitante, Día, Posición en Tabla, Nombre) */}
@@ -1383,6 +1422,20 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
           </div>
         </div>
       )}
+
+      {/* 7. MODAL: CLOUD SYNC & BACKUP RESTORATION */}
+      <CloudSyncModal
+        isOpen={showCloudSyncModal}
+        onClose={() => setShowCloudSyncModal(false)}
+        favorites={favorites}
+        activeUser={activeUser}
+        onFavoritesUpdated={newFavs => {
+          if (onFavoritesUpdated) {
+            onFavoritesUpdated(newFavs);
+          }
+        }}
+        showToast={showToast}
+      />
     </div>
   );
 };
