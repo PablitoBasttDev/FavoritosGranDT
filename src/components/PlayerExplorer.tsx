@@ -177,22 +177,22 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
   return (
     <div className="space-y-3 pb-8">
       {/* Official Gran DT Blue Header Banner */}
-      <div className="bg-gradient-to-r from-[#07245c] via-[#0e3f9a] to-[#082b6c] text-white rounded-xl shadow-xs p-4 sm:p-5 border border-blue-900/50">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="bg-gradient-to-r from-[#07245c] via-[#0e3f9a] to-[#082b6c] text-white rounded-xl shadow-xs p-2.5 sm:p-4 border border-blue-900/50">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="bg-cyan-400 text-slate-950 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider">
+            <div className="flex items-center gap-1.5 mb-0.5 sm:mb-1">
+              <span className="bg-cyan-400 text-slate-950 px-1.5 py-0.2 rounded text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider">
                 {players.length} Futbolistas
               </span>
-              <span className="text-xs text-blue-200 font-bold uppercase tracking-wide flex items-center gap-1">
-                <TrendingUp className="w-3.5 h-3.5 text-amber-300" />
-                Base en Vivo de Google Sheet
+              <span className="text-[10px] sm:text-xs text-blue-200 font-bold uppercase tracking-wide flex items-center gap-1">
+                <TrendingUp className="w-3 h-3 text-amber-300" />
+                Base en Vivo
               </span>
             </div>
-            <h2 className="text-lg sm:text-xl font-black tracking-tight text-white">
-              Base de Datos, Cotizaciones y Puntos Promedio AFA 2026
+            <h2 className="text-sm sm:text-lg font-black tracking-tight text-white">
+              Base de Datos, Cotizaciones y Promedios AFA 2026
             </h2>
-            <p className="text-blue-100/80 text-xs max-w-xl mt-0.5">
+            <p className="text-blue-100/80 text-[10px] sm:text-xs max-w-xl hidden sm:block mt-0.5">
               Consultá el valor de mercado y el promedio de rendimiento de cada jugador actualizado fecha a fecha.
             </p>
           </div>
@@ -200,9 +200,9 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
           {onNavigateToFavorites && (
             <button
               onClick={onNavigateToFavorites}
-              className="px-4 py-2 rounded-lg text-xs font-black bg-cyan-400 hover:bg-cyan-300 text-slate-950 shadow-sm transition flex items-center gap-1.5 self-start md:self-auto shrink-0"
+              className="px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-lg text-[11px] sm:text-xs font-black bg-cyan-400 hover:bg-cyan-300 text-slate-950 shadow-xs transition flex items-center gap-1.5 self-start sm:self-auto shrink-0"
             >
-              <BookmarkCheck className="w-4 h-4" />
+              <BookmarkCheck className="w-3.5 h-3.5" />
               <span>Ver mis {favoriteIds.size} Jugadores</span>
             </button>
           )}
@@ -210,83 +210,85 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
       </div>
 
       {/* Crisp White Gran DT Filter Toolbar */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs p-3 space-y-3">
-        <div className="flex flex-col md:flex-row gap-2.5 items-stretch md:items-center justify-between">
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs p-2 sm:p-3 space-y-2">
+        <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-2.5 items-stretch sm:items-center justify-between">
           {/* Search Input */}
           <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
             <input
               id="player-search-input"
               type="text"
               placeholder="Buscar por nombre o club (ej: Paredes, River, Acosta)..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-8 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs sm:text-sm text-slate-950 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-[#1b55e2] dark:focus:ring-cyan-500 focus:bg-white dark:focus:bg-slate-800 transition outline-none font-medium"
+              className="w-full pl-8 pr-7 py-1 sm:py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs sm:text-sm text-slate-950 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-[#1b55e2] dark:focus:ring-cyan-500 focus:bg-white dark:focus:bg-slate-800 transition outline-none font-medium"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold"
               >
                 ✕
               </button>
             )}
           </div>
 
-          {/* Position Selector Tabs */}
-          <div className="flex bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg gap-1 shrink-0 overflow-x-auto border border-slate-300 dark:border-slate-700">
-            {positions.map(pos => (
-              <button
-                key={pos}
-                id={`filter-pos-${pos.toLowerCase()}`}
-                onClick={() => setSelectedPosition(pos)}
-                className={`px-3 py-1 rounded-md text-xs font-bold transition whitespace-nowrap ${
-                  selectedPosition === pos
-                    ? 'bg-[#1b55e2] text-white shadow-xs'
-                    : 'text-slate-700 dark:text-slate-400 hover:text-slate-950'
-                }`}
-              >
-                {pos === 'ALL' ? 'Todas' : pos}
-              </button>
-            ))}
-          </div>
+          {/* Position Selector Tabs & View Switcher */}
+          <div className="flex items-center gap-1.5 justify-between sm:justify-start">
+            <div className="flex bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg gap-0.5 shrink-0 overflow-x-auto border border-slate-300 dark:border-slate-700">
+              {positions.map(pos => (
+                <button
+                  key={pos}
+                  id={`filter-pos-${pos.toLowerCase()}`}
+                  onClick={() => setSelectedPosition(pos)}
+                  className={`px-2 py-0.5 sm:px-3 sm:py-1 rounded-md text-[11px] sm:text-xs font-bold transition whitespace-nowrap ${
+                    selectedPosition === pos
+                      ? 'bg-[#1b55e2] text-white shadow-xs'
+                      : 'text-slate-700 dark:text-slate-400 hover:text-slate-950'
+                  }`}
+                >
+                  {pos === 'ALL' ? 'Todas' : pos}
+                </button>
+              ))}
+            </div>
 
-          {/* View Switcher: Grid vs Table */}
-          <div className="flex bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg gap-0.5 shrink-0 self-end md:self-auto border border-slate-300 dark:border-slate-700">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded-md transition ${
-                viewMode === 'grid'
-                  ? 'bg-white dark:bg-slate-700 text-[#1b55e2] dark:text-cyan-300 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-              title="Vista en tarjetas"
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('table')}
-              className={`p-1.5 rounded-md transition ${
-                viewMode === 'table'
-                  ? 'bg-white dark:bg-slate-700 text-[#1b55e2] dark:text-cyan-300 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-              title="Vista en tabla"
-            >
-              <List className="w-4 h-4" />
-            </button>
+            {/* View Switcher: Grid vs Table */}
+            <div className="flex bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg gap-0.5 shrink-0 border border-slate-300 dark:border-slate-700">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-1 sm:p-1.5 rounded-md transition ${
+                  viewMode === 'grid'
+                    ? 'bg-white dark:bg-slate-700 text-[#1b55e2] dark:text-cyan-300 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+                title="Vista en tarjetas"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`p-1 sm:p-1.5 rounded-md transition ${
+                  viewMode === 'table'
+                    ? 'bg-white dark:bg-slate-700 text-[#1b55e2] dark:text-cyan-300 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+                title="Vista en tabla"
+              >
+                <List className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Secondary Filter Row: Club dropdown, Price Slider, Characteristics Dropdown & Sort selector */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200 dark:border-slate-800 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2.5 pt-1.5 border-t border-slate-200 dark:border-slate-800 text-[11px] sm:text-xs">
           {/* Club Dropdown */}
-          <div className="flex items-center gap-2">
-            <span className="text-slate-600 font-extrabold uppercase text-[10px]">Club:</span>
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            <span className="text-slate-600 font-extrabold uppercase text-[9px] sm:text-[10px]">Club:</span>
             <select
               value={selectedTeam}
               onChange={e => setSelectedTeam(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-900 dark:text-slate-200 outline-none cursor-pointer max-w-[180px] truncate hover:border-slate-400"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md sm:rounded-lg px-1.5 sm:px-2 py-0.5 sm:py-1 text-[11px] sm:text-xs font-bold text-slate-900 dark:text-slate-200 outline-none cursor-pointer max-w-[130px] sm:max-w-[180px] truncate hover:border-slate-400"
             >
               <option value="ALL">Todos los 30 clubes</option>
               {Object.keys(TEAMS_DATA)
@@ -300,22 +302,22 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
           </div>
 
           {/* Trait Dropdown */}
-          <div className="flex items-center gap-2">
-            <span className="text-slate-600 font-extrabold uppercase text-[10px] flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-amber-500" />
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            <span className="text-slate-600 font-extrabold uppercase text-[9px] sm:text-[10px] flex items-center gap-0.5">
+              <Sparkles className="w-2.5 h-2.5 text-amber-500" />
               <span>Rasgo:</span>
             </span>
             <select
               id="trait-filter-dropdown"
               value={selectedTrait}
               onChange={e => setSelectedTrait(e.target.value)}
-              className={`border rounded-lg px-2.5 py-1 text-xs font-bold outline-none cursor-pointer hover:border-slate-400 ${
+              className={`border rounded-md sm:rounded-lg px-1.5 sm:px-2 py-0.5 sm:py-1 text-[11px] sm:text-xs font-bold outline-none cursor-pointer hover:border-slate-400 max-w-[130px] sm:max-w-[200px] truncate ${
                 selectedTrait !== 'ALL'
                   ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border-amber-300 dark:border-amber-700 ring-1 ring-amber-400/40'
                   : 'bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200'
               }`}
             >
-              <option value="ALL">Todas las características ({players.length})</option>
+              <option value="ALL">Todas las características</option>
               {ALL_TRAIT_DEFINITIONS.map(def => (
                 <option key={def.id} value={def.id}>
                   {def.emoji} {def.label} ({traitCounts[def.id] || 0})
@@ -325,8 +327,8 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
           </div>
 
           {/* Sort By selector */}
-          <div className="flex items-center gap-2">
-            <span className="text-slate-600 font-extrabold uppercase text-[10px]">Ordenar por:</span>
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            <span className="text-slate-600 font-extrabold uppercase text-[9px] sm:text-[10px]">Orden:</span>
             <select
               value={`${sortBy}-${sortOrder}`}
               onChange={e => {
@@ -334,10 +336,10 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
                 setSortBy(f);
                 setSortOrder(o);
               }}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-900 dark:text-slate-200 outline-none cursor-pointer hover:border-slate-400"
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md sm:rounded-lg px-1.5 sm:px-2 py-0.5 sm:py-1 text-[11px] sm:text-xs font-bold text-slate-900 dark:text-slate-200 outline-none cursor-pointer hover:border-slate-400"
             >
-              <option value="promedio-desc">⭐ Mayor Promedio Pts</option>
-              <option value="promedio-asc">Menor Promedio Pts</option>
+              <option value="promedio-desc">⭐ Mayor Promedio</option>
+              <option value="promedio-asc">Menor Promedio</option>
               <option value="precio-desc">💰 Mayor Cotización</option>
               <option value="precio-asc">💵 Menor Cotización</option>
               <option value="nombre-asc">🔤 Nombre A-Z</option>
@@ -346,8 +348,8 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
           </div>
 
           {/* Max Price Slider */}
-          <div className="flex items-center gap-2">
-            <span className="text-slate-600 font-extrabold uppercase text-[10px]">Precio máx:</span>
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            <span className="text-slate-600 font-extrabold uppercase text-[9px] sm:text-[10px]">Precio máx:</span>
             <input
               type="range"
               min="300000"
@@ -355,23 +357,23 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
               step="100000"
               value={maxPrice}
               onChange={e => setMaxPrice(Number(e.target.value))}
-              className="w-24 sm:w-28 accent-[#1b55e2] cursor-pointer"
+              className="w-16 sm:w-24 accent-[#1b55e2] cursor-pointer"
             />
-            <span className="font-mono font-black text-emerald-800 dark:text-emerald-400">
+            <span className="font-mono font-black text-emerald-800 dark:text-emerald-400 text-[11px]">
               ${(maxPrice / 1000000).toFixed(1)}M
             </span>
           </div>
 
           {/* Active Filter Indicators & Reset */}
-          <div className="flex items-center gap-2 ml-auto">
-            <span className="text-slate-600 font-bold">
-              Mostrando <strong>{filteredPlayers.length}</strong> de {players.length}
+          <div className="flex items-center gap-1.5 ml-auto">
+            <span className="text-slate-600 font-bold text-[10px] sm:text-xs">
+              <strong>{filteredPlayers.length}</strong> / {players.length}
             </span>
 
             {isFiltering && (
               <button
                 onClick={clearAllFilters}
-                className="px-2 py-0.5 rounded bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 font-bold text-[11px] hover:bg-rose-100 flex items-center gap-1 border border-rose-200 dark:border-rose-800"
+                className="px-1.5 py-0.2 rounded bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 font-bold text-[10px] hover:bg-rose-100 flex items-center gap-0.5 border border-rose-200 dark:border-rose-800"
               >
                 <X className="w-3 h-3" />
                 <span>Restablecer</span>

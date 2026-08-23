@@ -8,6 +8,10 @@ import {
   MatchFixture,
   MatchEvent,
 } from '../data/fixture';
+import {
+  usePromiedosLiveFixture,
+  mergeWithPromiedosMatches,
+} from '../services/promiedosService';
 import { TeamBadge } from './TeamBadge';
 import {
   Calendar,
@@ -19,6 +23,9 @@ import {
   Flame,
   Search,
   CheckCircle2,
+  RefreshCw,
+  Radio,
+  Zap,
 } from 'lucide-react';
 
 interface CountdownBannerProps {
@@ -32,7 +39,10 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({ onSelectClub }
   const [fixtureStatusFilter, setFixtureStatusFilter] = useState<'ALL' | 'LIVE' | 'FINISHED' | 'SCHEDULED'>('ALL');
   const [fixtureSearchQuery, setFixtureSearchQuery] = useState('');
 
-  // Actualización en tiempo real segundo a segundo
+  // Hook de sincronización en tiempo real con Promiedos cada 45 segundos en segundo plano
+  const { promiedosMatches } = usePromiedosLiveFixture(selectedFechaTab);
+
+  // Actualización en tiempo real segundo a segundo del reloj
   useEffect(() => {
     const timer = setInterval(() => {
       setNow(new Date());
@@ -59,13 +69,15 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({ onSelectClub }
 
   const pad = (n: number) => n.toString().padStart(2, '0');
 
-  // Obtener partidos de la fecha seleccionada con sus estados calculados en tiempo real
+  // Obtener partidos de la fecha seleccionada y fusionar con datos en vivo de Promiedos
   const currentRoundFixturesWithState = useMemo(() => {
-    return FIXTURES_DATA.filter(f => f.fecha === selectedFechaTab).map(f => ({
+    const baseFixtures = FIXTURES_DATA.filter(f => f.fecha === selectedFechaTab);
+    const mergedFixtures = mergeWithPromiedosMatches(baseFixtures, promiedosMatches);
+    return mergedFixtures.map(f => ({
       fixture: f,
       dynamic: getDynamicMatchState(f, now),
     }));
-  }, [selectedFechaTab, now]);
+  }, [selectedFechaTab, promiedosMatches, now]);
 
   // Filtrado de partidos
   const filteredFixtures = useMemo(() => {
@@ -118,18 +130,18 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({ onSelectClub }
     <div className="w-full">
       {/* 1. BANNER PRINCIPAL GRAN DT / LPF */}
       <div
-        className={`w-full text-white rounded-xl shadow-sm px-3 sm:px-5 py-2.5 flex flex-col lg:flex-row items-center justify-between gap-3 border transition ${
+        className={`w-full text-white rounded-lg sm:rounded-xl shadow-xs px-2.5 sm:px-5 py-1.5 sm:py-2.5 flex flex-col sm:flex-row items-center justify-between gap-1.5 sm:gap-3 border transition ${
           roundStatus.isRoundInPlay
             ? 'bg-gradient-to-r from-[#061b47] via-[#0b337c] to-[#082255] border-cyan-500/40 shadow-cyan-950/20'
             : 'bg-gradient-to-r from-[#07245c] via-[#0e3f9a] to-[#082b6c] border-blue-900/50'
         }`}
       >
         {/* Lado Izquierdo: Estado de Fecha / Cuenta Regresiva Automática */}
-        <div className="flex items-center gap-2.5 sm:gap-3.5 flex-wrap justify-center sm:justify-start text-center sm:text-left">
+        <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap justify-center sm:justify-start text-center sm:text-left w-full sm:w-auto">
           {/* Badge de Número de Fecha */}
-          <div className="flex items-center gap-1.5 bg-blue-950/90 dark:bg-slate-950/90 px-2.5 py-1 rounded-lg border border-cyan-500/40 shadow-xs">
-            <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="text-[11px] font-black uppercase tracking-wider text-cyan-300">
+          <div className="flex items-center gap-1 bg-blue-950/90 dark:bg-slate-950/90 px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-md sm:rounded-lg border border-cyan-500/40 shadow-xs">
+            <Trophy className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400 shrink-0" />
+            <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-cyan-300">
               FECHA {roundStatus.roundNumber}
             </span>
           </div>
@@ -137,84 +149,89 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({ onSelectClub }
           {/* ESTADO PRINCIPAL: "FECHA EN JUEGO" O CRONÓMETRO AL 1ER PARTIDO */}
           {roundStatus.isRoundInPlay ? (
             /* ================= ESTADO A: FECHA EN JUEGO ================= */
-            <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-center sm:justify-start">
               {/* Badge Pulsante En Vivo */}
-              <div className="flex items-center gap-1.5 bg-emerald-500/20 text-emerald-300 px-2.5 py-1 rounded-lg border border-emerald-400/40 animate-pulse">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block shadow-xs shadow-emerald-400" />
-                <span className="text-xs font-black uppercase tracking-wider text-emerald-300">
-                  FECHA EN JUEGO
+              <div className="flex items-center gap-1 bg-emerald-500/20 text-emerald-300 px-1.5 sm:px-2 py-0.5 rounded border border-emerald-400/40 animate-pulse">
+                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 inline-block shadow-xs shadow-emerald-400" />
+                <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-emerald-300">
+                  EN JUEGO
                 </span>
               </div>
 
               {/* Contadores dinámicos de partidos */}
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-blue-100 bg-blue-950/60 px-2.5 py-0.5 rounded border border-blue-800/60">
+              <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold text-blue-100 bg-blue-950/70 px-2 sm:px-2.5 py-0.5 rounded-md border border-blue-800/70 flex-wrap justify-center">
                 {roundStatus.liveMatchesCount > 0 && (
                   <>
-                    <span className="text-amber-400 font-black animate-pulse">
-                      {roundStatus.liveMatchesCount} en vivo
+                    <span className="text-amber-400 font-black animate-pulse flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping inline-block" />
+                      <span>{roundStatus.liveMatchesCount} en vivo</span>
                     </span>
                     <span className="text-blue-400">•</span>
                   </>
                 )}
-                <span className="text-emerald-400 font-black">{roundStatus.finishedMatchesCount}</span>
-                <span className="text-blue-300">finalizados</span>
+                <span className="text-emerald-300 font-black">
+                  {roundStatus.finishedMatchesCount} jugados
+                </span>
                 <span className="text-blue-400">•</span>
-                <span className="text-cyan-300 font-black">{roundStatus.scheduledMatchesCount}</span>
-                <span className="text-blue-300">por jugar</span>
+                <span className="text-cyan-300 font-black">
+                  {roundStatus.scheduledMatchesCount} por jugar
+                </span>
               </div>
             </div>
           ) : (
             /* ================= ESTADO B: CUENTA REGRESIVA AL 1ER PARTIDO ================= */
-            <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
-              <span className="text-xs text-blue-100 font-extrabold uppercase tracking-tight">
-                FALTA PARA EL PRIMER PARTIDO:
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-center sm:justify-start">
+              <span className="text-[10px] sm:text-xs text-blue-100 font-extrabold uppercase tracking-tight hidden xs:inline">
+                FALTA:
               </span>
 
               {/* Reloj Digital con Segundero en Vivo */}
-              <div className="flex items-center gap-1 font-mono font-black text-sm sm:text-base text-cyan-300 bg-blue-950/90 dark:bg-slate-950/90 px-2.5 py-0.5 rounded-lg border border-cyan-400/50 shadow-inner">
+              <div className="flex items-center gap-1 font-mono font-black text-xs sm:text-base text-cyan-300 bg-blue-950/90 dark:bg-slate-950/90 px-2 py-0.5 rounded border border-cyan-400/50 shadow-inner">
                 <div className="flex flex-col items-center">
                   <span>{pad(days)}</span>
-                  <span className="text-[8px] font-sans font-bold text-blue-200 leading-none">DÍAS</span>
+                  <span className="text-[7px] sm:text-[8px] font-sans font-bold text-blue-200 leading-none">D</span>
                 </div>
-                <span className="text-cyan-400 font-bold mb-1">:</span>
+                <span className="text-cyan-400 font-bold">:</span>
                 <div className="flex flex-col items-center">
                   <span>{pad(hours)}</span>
-                  <span className="text-[8px] font-sans font-bold text-blue-200 leading-none">HS</span>
+                  <span className="text-[7px] sm:text-[8px] font-sans font-bold text-blue-200 leading-none">H</span>
                 </div>
-                <span className="text-cyan-400 font-bold mb-1">:</span>
+                <span className="text-cyan-400 font-bold">:</span>
                 <div className="flex flex-col items-center">
                   <span>{pad(minutes)}</span>
-                  <span className="text-[8px] font-sans font-bold text-blue-200 leading-none">MIN</span>
+                  <span className="text-[7px] sm:text-[8px] font-sans font-bold text-blue-200 leading-none">M</span>
                 </div>
-                <span className="text-cyan-400 font-bold mb-1">:</span>
+                <span className="text-cyan-400 font-bold">:</span>
                 <div className="flex flex-col items-center">
                   <span className="text-amber-300">{pad(seconds)}</span>
-                  <span className="text-[8px] font-sans font-bold text-amber-200 leading-none">SEG</span>
+                  <span className="text-[7px] sm:text-[8px] font-sans font-bold text-amber-200 leading-none">S</span>
                 </div>
               </div>
+
+              {/* Conteo de partidos por jugar */}
+              <span className="text-[9.5px] sm:text-[10.5px] text-blue-200 font-bold bg-blue-950/60 px-1.5 sm:px-2 py-0.5 rounded border border-blue-800/60 hidden sm:inline">
+                {roundStatus.scheduledMatchesCount} partidos por jugar
+              </span>
             </div>
           )}
         </div>
 
         {/* Lado Derecho: Próximo Partido y Botón de Apertura del Fixture */}
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-center">
+        <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap justify-center w-full sm:w-auto">
           {roundStatus.nextUpcomingMatch && (
-            <div className="flex items-center gap-1.5 sm:gap-2 bg-blue-900/60 dark:bg-slate-900/80 hover:bg-blue-900/80 dark:hover:bg-slate-900 px-2.5 py-1 rounded-lg border border-blue-700/50 dark:border-slate-700 text-xs">
-              <span className="text-[10px] text-cyan-300 font-bold uppercase hidden sm:inline">
-                {roundStatus.isRoundInPlay ? 'Próximo:' : 'Abre fecha:'}
+            <div className="hidden sm:flex items-center gap-1.5 sm:gap-2 bg-blue-900/60 dark:bg-slate-900/80 px-2 py-0.5 rounded-lg border border-blue-700/50 text-xs">
+              <span className="text-[10px] text-cyan-300 font-bold uppercase hidden md:inline">
+                {roundStatus.isRoundInPlay ? 'Próximo:' : 'Abre:'}
               </span>
               <TeamBadge teamName={roundStatus.nextUpcomingMatch.homeTeam} size="xs" />
-              <span className="font-bold text-white text-[11px] truncate max-w-[90px] sm:max-w-[120px]">
+              <span className="font-bold text-white text-[10px] sm:text-[11px] truncate max-w-[80px] sm:max-w-[120px]">
                 {roundStatus.nextUpcomingMatch.homeTeam}
               </span>
-              <span className="text-cyan-300 font-black text-[10px]">vs</span>
-              <span className="font-bold text-white text-[11px] truncate max-w-[90px] sm:max-w-[120px]">
+              <span className="text-cyan-300 font-black text-[9px]">vs</span>
+              <span className="font-bold text-white text-[10px] sm:text-[11px] truncate max-w-[80px] sm:max-w-[120px]">
                 {roundStatus.nextUpcomingMatch.awayTeam}
               </span>
               <TeamBadge teamName={roundStatus.nextUpcomingMatch.awayTeam} size="xs" />
-              <span className="text-[10px] text-blue-200 font-medium ml-1 hidden xl:inline">
-                ({roundStatus.nextUpcomingMatch.displayTime})
-              </span>
             </div>
           )}
 
@@ -222,11 +239,11 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({ onSelectClub }
           <button
             onClick={() => setShowScheduleModal(!showScheduleModal)}
             id="btn-toggle-fixture-modal"
-            className="bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-[#0d3b8c] dark:text-cyan-300 font-black text-xs px-3 py-1.5 rounded-lg shadow-sm transition active:scale-95 flex items-center gap-1.5 whitespace-nowrap border border-transparent dark:border-slate-700 cursor-pointer"
+            className="bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-[#0d3b8c] dark:text-cyan-300 font-black text-[10px] sm:text-xs px-2.5 py-1 rounded-md sm:rounded-lg shadow-xs transition active:scale-95 flex items-center gap-1 whitespace-nowrap border border-transparent dark:border-slate-700 cursor-pointer"
           >
-            <Calendar className="w-3.5 h-3.5" />
-            <span>Resultados y Fixture</span>
-            {showScheduleModal ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            <span>Resultados & Fixture</span>
+            {showScheduleModal ? <ChevronUp className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> : <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
           </button>
         </div>
       </div>
@@ -241,7 +258,7 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({ onSelectClub }
                 <Calendar className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="font-black text-xs sm:text-sm text-slate-950 dark:text-white flex items-center gap-2">
+                <h3 className="font-black text-xs sm:text-sm text-slate-950 dark:text-white flex items-center gap-2 flex-wrap">
                   <span>Fixture Oficial y Resultados Gran DT</span>
                   {selectedFechaTab === roundStatus.roundNumber && roundStatus.isRoundInPlay && (
                     <span className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2 py-0.2 rounded-full text-[10px] font-black uppercase flex items-center gap-1">
@@ -344,7 +361,7 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({ onSelectClub }
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
                   }`}
                 >
-                  Finalizados ({roundSummaryStats.finishedCount})
+                  Jugados ({roundSummaryStats.finishedCount})
                 </button>
                 <button
                   onClick={() => setFixtureStatusFilter('SCHEDULED')}

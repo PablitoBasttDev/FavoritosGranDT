@@ -39,6 +39,7 @@ import { CloudSyncModal } from './CloudSyncModal';
 
 interface FavoritesDashboardProps {
   favorites: FavoritePlayer[];
+  players?: Player[];
   onAddFavorite: (player: Player, notes?: string) => void;
   onRemoveFavorite: (playerId: number) => void;
   onUpdateNotes: (playerId: number, notes: string) => void;
@@ -51,6 +52,7 @@ interface FavoritesDashboardProps {
 
 export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
   favorites,
+  players,
   onAddFavorite,
   onRemoveFavorite,
   onUpdateNotes,
@@ -60,6 +62,10 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
   onFavoritesUpdated,
   showToast = () => {},
 }) => {
+  const activePlayers = useMemo(() => {
+    return players && players.length > 0 ? players : ALL_PLAYERS;
+  }, [players]);
+
   // Search & Selector State
   const [selectorSearch, setSelectorSearch] = useState('');
   const [selectorTeam, setSelectorTeam] = useState<string>('ALL');
@@ -117,7 +123,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
       return [];
     }
 
-    return ALL_PLAYERS.filter(player => {
+    return activePlayers.filter(player => {
       if (selectorSearch.trim() && !playerMatchesQuery(player, selectorSearch)) {
         return false;
       }
@@ -132,7 +138,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
 
       return true;
     });
-  }, [selectorSearch, selectorTeam, selectorPos]);
+  }, [selectorSearch, selectorTeam, selectorPos, activePlayers]);
 
   // Breakdown counts by position for search results
   const candidateCounts = useMemo(() => {
@@ -289,7 +295,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
   // Filter players for specific club in quick picker modal
   const clubModalPlayers = useMemo(() => {
     if (!clubPickerModal) return [];
-    return ALL_PLAYERS.filter(p => {
+    return activePlayers.filter(p => {
       if (p.equipo !== clubPickerModal) return false;
       if (clubPickerPos !== 'ALL' && p.posicion !== clubPickerPos) return false;
       if (clubPickerSearch.trim()) {
@@ -297,7 +303,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
       }
       return true;
     });
-  }, [clubPickerModal, clubPickerPos, clubPickerSearch]);
+  }, [clubPickerModal, clubPickerPos, clubPickerSearch, activePlayers]);
 
   const totalFavoritesCount = favorites.length;
   const uniqueClubsCount = new Set(favorites.map(p => p.equipo)).size;
@@ -315,12 +321,12 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
       <CountdownBanner onSelectClub={onNavigateToDatabase} />
 
       {/* 2. PURE WHITE SEARCH & CONTROL PANEL (Clean Gran DT Aesthetic) */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xs border border-slate-300/90 dark:border-slate-800 p-1.5 sm:p-3 transition">
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-1.5 sm:gap-2.5">
+      <div className="bg-white dark:bg-slate-900 rounded-lg sm:rounded-xl shadow-xs border border-slate-300/90 dark:border-slate-800 p-1 sm:p-2.5 transition">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-1 sm:gap-2">
           {/* Autocomplete Input */}
           <div className="relative flex-1" ref={dropdownRef}>
-            <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 sm:px-2.5 sm:py-1.5 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:ring-2 focus-within:ring-[#1b55e2] dark:focus-within:ring-cyan-500 focus-within:border-transparent transition">
-              <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 dark:text-slate-500 shrink-0" />
+            <div className="flex items-center gap-1 sm:gap-2 bg-slate-50 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-0.5 sm:py-1 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:ring-1 focus-within:ring-[#1b55e2] dark:focus-within:ring-cyan-500 focus-within:border-transparent transition">
+              <Search className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
               <input
                 type="text"
                 value={selectorSearch}
@@ -330,8 +336,8 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                   setDropdownPosFilter('ALL');
                 }}
                 onFocus={() => setIsDropdownOpen(true)}
-                placeholder="Buscar jugador o club (ej. Sarmiento, Di María, Paredes)..."
-                className="w-full bg-transparent text-[11px] sm:text-sm text-slate-950 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none font-medium"
+                placeholder="Buscar jugador o club (ej. Paredes, River)..."
+                className="w-full bg-transparent text-[11px] sm:text-xs text-slate-950 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none font-medium"
               />
 
               {/* Club selector shortcut */}
@@ -341,9 +347,9 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                   setSelectorTeam(e.target.value);
                   setIsDropdownOpen(true);
                 }}
-                className="hidden sm:block text-[11px] font-bold bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded px-2 py-0.5 outline-none cursor-pointer max-w-[140px] truncate hover:border-slate-400"
+                className="hidden sm:block text-[10px] sm:text-[11px] font-bold bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded px-1.5 py-0.5 outline-none cursor-pointer max-w-[130px] truncate"
               >
-                <option value="ALL">Todos los Clubes</option>
+                <option value="ALL">Clubes</option>
                 {Object.keys(TEAMS_DATA)
                   .sort()
                   .map(t => (
@@ -360,9 +366,9 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                   setSelectorPos(e.target.value);
                   setIsDropdownOpen(true);
                 }}
-                className="hidden sm:block text-[11px] font-bold bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded px-1.5 py-0.5 outline-none cursor-pointer hover:border-slate-400"
+                className="hidden sm:block text-[10px] sm:text-[11px] font-bold bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded px-1 py-0.5 outline-none cursor-pointer"
               >
-                <option value="ALL">Posición</option>
+                <option value="ALL">Pos</option>
                 <option value="ARQ">ARQ</option>
                 <option value="DEF">DEF</option>
                 <option value="VOL">VOL</option>
@@ -386,9 +392,9 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
             {isDropdownOpen && allCandidateMatches.length > 0 && (
               <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-50 max-h-96 flex flex-col overflow-hidden">
                 {/* Header with Position Chips */}
-                <div className="p-2 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-1.5 text-xs">
-                  <span className="font-extrabold text-slate-700 dark:text-slate-200 text-[11px]">
-                    {allCandidateMatches.length} futbolistas encontrados
+                <div className="p-1.5 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-1 text-xs">
+                  <span className="font-extrabold text-slate-700 dark:text-slate-200 text-[10px]">
+                    {allCandidateMatches.length} futbolistas
                   </span>
 
                   {/* Position Filter Chips inside dropdown */}
@@ -402,7 +408,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                           key={p}
                           type="button"
                           onClick={() => setDropdownPosFilter(p)}
-                          className={`px-1.5 py-0.5 rounded text-[10px] font-black transition ${
+                          className={`px-1.5 py-0.2 rounded text-[9.5px] font-black transition ${
                             isSelected
                               ? 'bg-[#1b55e2] text-white shadow-xs'
                               : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 border border-slate-200 dark:border-slate-600'
@@ -422,52 +428,58 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                     return (
                       <div
                         key={p.id}
-                        className="p-2 hover:bg-blue-50/70 dark:hover:bg-slate-800/80 rounded-lg transition flex items-center justify-between gap-2 text-xs"
+                        className="p-1.5 hover:bg-blue-50/70 dark:hover:bg-slate-800/80 rounded-lg transition flex items-center justify-between gap-1 sm:gap-2 text-xs"
                       >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <PositionBadge position={p.posicion} size="sm" />
-                          <TeamBadge teamName={p.equipo} size="sm" showName={false} />
-                          <div className="truncate">
-                            <span className="font-extrabold text-slate-900 dark:text-slate-100 block truncate">
+                        {/* Player details - Maximized space for player name */}
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1 pr-1">
+                          <PositionBadge position={p.posicion} size="xs" />
+                          <TeamBadge teamName={p.equipo} size="xs" showName={false} />
+                          <div className="min-w-0 flex-1">
+                            <span
+                              className="font-black text-slate-950 dark:text-slate-100 block truncate text-xs sm:text-[13px] leading-tight"
+                              title={p.nombre}
+                            >
                               {p.nombre}
                             </span>
-                            <span className="text-[10px] text-slate-500 truncate block">
+                            <span className="text-[9.5px] text-slate-500 dark:text-slate-400 truncate block leading-none mt-0.5">
                               {p.equipo}
                             </span>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
+                        {/* Metrics and Action Button */}
+                        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                           {typeof p.promedio === 'number' && p.promedio > 0 ? (
-                            <span className="font-mono text-[10px] font-black text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/70 px-1.5 py-0.5 rounded">
-                              {p.promedio.toFixed(2)} pts
+                            <span
+                              title={`Promedio: ${p.promedio.toFixed(2)} pts`}
+                              className="font-mono text-[9.5px] sm:text-[10px] font-black text-amber-900 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/70 px-1 sm:px-1.5 py-0.5 rounded leading-none whitespace-nowrap"
+                            >
+                              {p.promedio.toFixed(2)}
                             </span>
-                          ) : (
-                            <span className="font-mono text-[10px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                              -
-                            </span>
-                          )}
-                          <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
-                            {p.precio}
+                          ) : null}
+
+                          <span className="font-mono font-black text-emerald-800 dark:text-emerald-400 text-[10px] sm:text-[11px] whitespace-nowrap">
+                            <span className="hidden sm:inline">{p.precio}</span>
+                            <span className="sm:hidden">${(p.precioNum / 1000000).toFixed(1)}M</span>
                           </span>
 
                           <button
                             onClick={() => handleQuickAdd(p)}
-                            className={`px-2.5 py-1 rounded-md text-[11px] font-bold flex items-center gap-1 transition shadow-xs ${
+                            className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-[9.5px] sm:text-[10.5px] font-black flex items-center gap-0.5 transition shadow-2xs shrink-0 active:scale-95 ${
                               isAlreadyFav
-                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
                                 : 'bg-[#1b55e2] hover:bg-[#1444b8] text-white'
                             }`}
                           >
                             {isAlreadyFav ? (
                               <>
-                                <Check className="w-3 h-3" />
-                                <span>En lista</span>
+                                <Check className="w-3 h-3 text-emerald-700 dark:text-emerald-300" />
+                                <span className="hidden xs:inline">Listo</span>
                               </>
                             ) : (
                               <>
                                 <Plus className="w-3 h-3" />
-                                <span>+ Sumar</span>
+                                <span>Sumar</span>
                               </>
                             )}
                           </button>
@@ -481,13 +493,13 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
           </div>
 
           {/* Quick Metrics & View Mode Switchers */}
-          <div className="flex items-center flex-wrap gap-2 justify-between lg:justify-end shrink-0">
+          <div className="flex items-center flex-wrap gap-1 justify-between lg:justify-end shrink-0">
             {/* View Mode Toggle: All 30 vs Only with favorites */}
             <div className="flex items-center bg-[#f1f5f9] dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold">
               <button
                 onClick={() => setViewMode('all_30_clubs')}
                 id="tab-view-all-clubs"
-                className={`px-2.5 py-1 rounded-md transition flex items-center gap-1 text-[11px] ${
+                className={`px-2 py-0.5 rounded transition flex items-center gap-1 text-[10px] sm:text-[11px] ${
                   viewMode === 'all_30_clubs'
                     ? 'bg-white dark:bg-slate-700 text-[#1b55e2] dark:text-cyan-300 font-black shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -495,13 +507,13 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                 title="Ver todas las 30 tarjetas de clubes en pantalla"
               >
                 <LayoutGrid className="w-3 h-3" />
-                <span>Ver los 30 Clubes</span>
+                <span>30 Clubes</span>
               </button>
 
               <button
                 onClick={() => setViewMode('with_favorites')}
                 id="tab-view-my-clubs"
-                className={`px-2.5 py-1 rounded-md transition flex items-center gap-1 text-[11px] ${
+                className={`px-2 py-0.5 rounded transition flex items-center gap-1 text-[10px] sm:text-[11px] ${
                   viewMode === 'with_favorites'
                     ? 'bg-white dark:bg-slate-700 text-[#1b55e2] dark:text-cyan-300 font-black shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -509,68 +521,68 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                 title="Mostrar solo clubes donde guardaste jugadores"
               >
                 <Filter className="w-3 h-3" />
-                <span>Solo mis clubes ({uniqueClubsCount})</span>
+                <span>Mis clubes ({uniqueClubsCount})</span>
               </button>
             </div>
 
             {/* Copy, Cloud & Clear Actions */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1">
               <button
                 onClick={() => setShowCloudSyncModal(true)}
                 id="btn-cloud-sync-modal"
-                className="px-2.5 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-[#1b55e2] dark:text-cyan-300 font-black text-xs flex items-center gap-1.5 transition border border-blue-200/80 dark:border-blue-900/80 shadow-2xs cursor-pointer"
-                title="Sincronizar con Firestore, exportar JSON o restaurar listas guardadas"
+                className="px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-[#1b55e2] dark:text-cyan-300 font-bold text-[10px] sm:text-xs flex items-center gap-1 transition border border-blue-200/80 dark:border-blue-900/80 cursor-pointer"
+                title="Sincronizar con Firestore"
               >
-                <Cloud className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
-                <span className="hidden sm:inline">Nube & Respaldos</span>
+                <Cloud className="w-3 h-3 text-blue-600 dark:text-cyan-400" />
+                <span className="hidden sm:inline">Nube</span>
               </button>
 
               <button
                 onClick={handleCopyList}
                 disabled={favorites.length === 0}
-                className="px-3 py-1.5 rounded-lg bg-[#1b55e2] hover:bg-[#1444b8] disabled:opacity-40 text-white font-black text-xs flex items-center gap-1.5 transition shadow-xs cursor-pointer"
-                title="Copiar lista estructurada al portapapeles"
+                className="px-2.5 py-0.5 rounded-lg bg-[#1b55e2] hover:bg-[#1444b8] disabled:opacity-40 text-white font-bold text-[10px] sm:text-xs flex items-center gap-1 transition shadow-xs cursor-pointer"
+                title="Copiar lista estructurada"
               >
-                {copied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
-                <span className="hidden sm:inline">{copied ? '¡Copiado!' : 'Copiar'}</span>
+                {copied ? <Check className="w-3 h-3" /> : <Share2 className="w-3 h-3" />}
+                <span className="hidden sm:inline">{copied ? 'Copiado' : 'Copiar'}</span>
               </button>
 
               <button
                 onClick={() => setShowClearConfirmModal(true)}
                 disabled={favorites.length === 0}
-                className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/60 hover:text-rose-600 text-slate-500 disabled:opacity-40 transition cursor-pointer"
-                title="Limpiar todos los favoritos"
+                className="p-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 text-slate-500 hover:text-rose-600 disabled:opacity-40 transition cursor-pointer"
+                title="Limpiar"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Stats strip */}
-        <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-2 text-xs">
-          <div className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
+        {/* Stats strip - Compact */}
+        <div className="mt-1 pt-1 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-1 text-[10px] sm:text-xs">
+          <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium">
             <span>
-              <strong>{totalFavoritesCount}</strong> futbolistas seleccionados
+              <strong>{totalFavoritesCount}</strong> jugadores
             </span>
             <span className="text-slate-300 dark:text-slate-700">•</span>
             <span>
-              <strong>{uniqueClubsCount}</strong> de 30 clubes con favoritos
+              <strong>{uniqueClubsCount}</strong>/30 clubes
             </span>
           </div>
 
           {/* Position counter badges */}
-          <div className="flex items-center gap-1 font-mono text-[11px] font-bold">
-            <span className="px-1.5 py-0.5 rounded bg-[#facc15] text-[#713f12]">
+          <div className="flex items-center gap-1 font-mono text-[9.5px] sm:text-[10px] font-bold">
+            <span className="px-1 py-0.2 rounded bg-[#facc15] text-[#713f12]">
               ARQ: {posCounts.ARQ}
             </span>
-            <span className="px-1.5 py-0.5 rounded bg-[#2563eb] text-white">
+            <span className="px-1 py-0.2 rounded bg-[#2563eb] text-white">
               DEF: {posCounts.DEF}
             </span>
-            <span className="px-1.5 py-0.5 rounded bg-[#16a34a] text-white">
+            <span className="px-1 py-0.2 rounded bg-[#16a34a] text-white">
               VOL: {posCounts.VOL}
             </span>
-            <span className="px-1.5 py-0.5 rounded bg-[#dc2626] text-white">
+            <span className="px-1 py-0.2 rounded bg-[#dc2626] text-white">
               DEL: {posCounts.DEL}
             </span>
           </div>
@@ -597,14 +609,14 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
       </div>
 
       {/* 2.5 CARD FILTERS & SORTING TOOLBAR (Local/Visitante, Día, Posición en Tabla, Nombre) */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 p-2 sm:p-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-2 text-xs">
+      <div className="bg-white dark:bg-slate-900 rounded-lg sm:rounded-xl border border-slate-300/90 dark:border-slate-800 p-1.5 sm:p-2 shadow-2xs flex flex-wrap items-center justify-between gap-1 sm:gap-2 text-xs">
         {/* Left: Filter Controls */}
-        <div className="flex items-center flex-wrap gap-2">
+        <div className="flex items-center flex-wrap gap-1 sm:gap-1.5">
           {/* Local vs Visitante filter pills */}
           <div className="flex items-center bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-300 dark:border-slate-700">
             <button
               onClick={() => setCardRoleFilter('ALL')}
-              className={`px-2 py-1 rounded-md text-[11px] font-black transition ${
+              className={`px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-black transition ${
                 cardRoleFilter === 'ALL'
                   ? 'bg-white dark:bg-slate-700 text-[#1b55e2] dark:text-cyan-300 shadow-xs'
                   : 'text-slate-700 dark:text-slate-400 hover:text-slate-950'
@@ -614,87 +626,74 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
             </button>
             <button
               onClick={() => setCardRoleFilter('LOCAL')}
-              className={`px-2 py-1 rounded-md text-[11px] font-black transition flex items-center gap-1 ${
+              className={`px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-black transition flex items-center gap-0.5 ${
                 cardRoleFilter === 'LOCAL'
                   ? 'bg-white dark:bg-slate-700 text-amber-800 dark:text-amber-300 shadow-xs'
                   : 'text-slate-700 dark:text-slate-400 hover:text-slate-950'
               }`}
               title="Equipos que juegan de local en la fecha"
             >
-              <span>🏠</span>
               <span>Locales</span>
             </button>
             <button
               onClick={() => setCardRoleFilter('VISITANTE')}
-              className={`px-2 py-1 rounded-md text-[11px] font-black transition flex items-center gap-1 ${
+              className={`px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-black transition flex items-center gap-0.5 ${
                 cardRoleFilter === 'VISITANTE'
                   ? 'bg-white dark:bg-slate-700 text-purple-800 dark:text-purple-300 shadow-xs'
                   : 'text-slate-700 dark:text-slate-400 hover:text-slate-950'
               }`}
               title="Equipos que juegan de visitante en la fecha"
             >
-              <span>✈️</span>
               <span>Visitantes</span>
             </button>
           </div>
 
           {/* Day of Week Filter */}
-          <div className="flex items-center gap-1">
-            <span className="text-[11px] font-extrabold text-slate-600 dark:text-slate-400 hidden sm:inline">Día:</span>
-            <select
-              value={cardDayFilter}
-              onChange={e => setCardDayFilter(e.target.value as any)}
-              className="text-[11px] font-bold bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 outline-none cursor-pointer hover:border-blue-400 transition"
-            >
-              <option value="ALL">📅 Todos los días</option>
-              <option value="Viernes">Viernes (4 clubes)</option>
-              <option value="Sábado">Sábado (10 clubes)</option>
-              <option value="Domingo">Domingo (10 clubes)</option>
-              <option value="Lunes">Lunes (6 clubes)</option>
-            </select>
-          </div>
+          <select
+            value={cardDayFilter}
+            onChange={e => setCardDayFilter(e.target.value as any)}
+            className="text-[10px] sm:text-[11px] font-bold bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded px-1.5 py-0.5 outline-none cursor-pointer"
+          >
+            <option value="ALL">📅 Todos días</option>
+            <option value="Viernes">Viernes</option>
+            <option value="Sábado">Sábado</option>
+            <option value="Domingo">Domingo</option>
+            <option value="Lunes">Lunes</option>
+          </select>
 
           {/* Zone Filter */}
-          <div className="flex items-center gap-1">
-            <span className="text-[11px] font-extrabold text-slate-600 dark:text-slate-400 hidden md:inline">Zona:</span>
-            <select
-              value={cardZoneFilter}
-              onChange={e => setCardZoneFilter(e.target.value as any)}
-              className="text-[11px] font-bold bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 outline-none cursor-pointer hover:border-blue-400 transition"
-            >
-              <option value="ALL">Todas las Zonas</option>
-              <option value="Zona A">Zona A (15 clubes)</option>
-              <option value="Zona B">Zona B (15 clubes)</option>
-            </select>
-          </div>
+          <select
+            value={cardZoneFilter}
+            onChange={e => setCardZoneFilter(e.target.value as any)}
+            className="text-[10px] sm:text-[11px] font-bold bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded px-1.5 py-0.5 outline-none cursor-pointer"
+          >
+            <option value="ALL">Zonas A y B</option>
+            <option value="Zona A">Zona A</option>
+            <option value="Zona B">Zona B</option>
+          </select>
         </div>
 
         {/* Right: Sorting & Reset */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            <ArrowUpDown className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-            <span className="text-[11px] font-extrabold text-slate-600 dark:text-slate-400 hidden sm:inline">Ordenar:</span>
-            <select
-              value={cardSortBy}
-              onChange={e => setCardSortBy(e.target.value as any)}
-              className="text-[11px] font-bold bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 outline-none cursor-pointer hover:border-blue-400 transition"
-            >
-              <option value="table-pos">🏆 Posición en la Tabla (1º - 30º)</option>
-              <option value="name-asc">🔤 Nombre (A - Z)</option>
-              <option value="name-desc">🔤 Nombre (Z - A)</option>
-              <option value="points-desc">📈 Puntos (Mayor a menor)</option>
-            </select>
-          </div>
+        <div className="flex items-center gap-1 ml-auto">
+          <select
+            value={cardSortBy}
+            onChange={e => setCardSortBy(e.target.value as any)}
+            className="text-[10px] sm:text-[11px] font-bold bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-700 rounded px-1.5 py-0.5 outline-none cursor-pointer"
+          >
+            <option value="table-pos">🏆 Posición</option>
+            <option value="name-asc">🔤 Club A-Z</option>
+            <option value="name-desc">🔤 Club Z-A</option>
+            <option value="points-desc">📈 Puntos</option>
+          </select>
 
           {/* Reset Filters button */}
           {hasActiveCardFilters && (
             <button
               onClick={resetCardFilters}
-              className="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900 text-rose-700 dark:text-rose-300 text-[11px] font-bold flex items-center gap-1 transition"
-              title="Restablecer todos los filtros de tarjetas"
+              className="px-1.5 py-0.5 rounded bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900 text-rose-700 dark:text-rose-300 text-[10px] font-bold flex items-center gap-0.5 transition cursor-pointer"
+              title="Restablecer filtros"
             >
               <RotateCcw className="w-3 h-3" />
-              <span className="hidden sm:inline">Limpiar</span>
             </button>
           )}
         </div>
@@ -724,7 +723,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
               onClick={() => onNavigateToDatabase()}
               className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition"
             >
-              Explorar los {ALL_PLAYERS.length} Jugadores
+              Explorar los {activePlayers.length} Jugadores
             </button>
           </div>
         </div>
@@ -1212,27 +1211,31 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                     <div key={p.id} className="flex flex-col">
                       <div
                         onClick={() => setExpandedPlayerId(expandedPlayerId === p.id ? null : p.id)}
-                        className="py-1.5 px-2 hover:bg-blue-50/60 dark:hover:bg-slate-800/80 rounded-lg flex items-center justify-between gap-3 text-xs transition cursor-pointer select-none"
+                        className="py-1.5 px-2 hover:bg-blue-50/60 dark:hover:bg-slate-800/80 rounded-lg flex items-center justify-between gap-1.5 sm:gap-3 text-xs transition cursor-pointer select-none"
                       >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <PositionBadge position={p.posicion} size="sm" />
-                          <span className="font-extrabold text-slate-900 dark:text-slate-100 truncate">
+                        <div className="flex items-center gap-1.5 min-w-0 flex-1 pr-1">
+                          <PositionBadge position={p.posicion} size="xs" />
+                          <span
+                            className="font-black text-slate-900 dark:text-slate-100 text-xs sm:text-[13px] truncate"
+                            title={p.nombre}
+                          >
                             {p.nombre}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2.5">
+                        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                           <span
-                            className={`font-mono text-[10px] font-black px-1.5 py-0.5 rounded ${
+                            className={`font-mono text-[9.5px] sm:text-[10px] font-black px-1 sm:px-1.5 py-0.5 rounded leading-none ${
                               formattedPromedio !== '-'
-                                ? 'text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/70'
+                                ? 'text-amber-900 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/70'
                                 : 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800'
                             }`}
                           >
                             {formattedPromedio !== '-' ? `${formattedPromedio} pts` : '-'}
                           </span>
-                          <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">
-                            {p.precio}
+                          <span className="font-mono font-black text-emerald-800 dark:text-emerald-400 text-[10.5px] sm:text-xs whitespace-nowrap">
+                            <span className="hidden sm:inline">{p.precio}</span>
+                            <span className="sm:hidden">${(p.precioNum / 1000000).toFixed(1)}M</span>
                           </span>
 
                           <button
@@ -1244,9 +1247,9 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                                 onAddFavorite(p);
                               }
                             }}
-                            className={`px-2.5 py-1 rounded-md text-[11px] font-bold flex items-center gap-1 transition ${
+                            className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-[10px] sm:text-[11px] font-black flex items-center gap-0.5 transition shadow-2xs active:scale-95 shrink-0 ${
                               isFav
-                                ? 'bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200'
+                                ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
                                 : 'bg-[#1b55e2] hover:bg-[#1444b8] text-white shadow-xs'
                             }`}
                           >

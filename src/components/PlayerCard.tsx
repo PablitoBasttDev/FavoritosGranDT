@@ -46,18 +46,21 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
           onClick={() => setIsExpanded(!isExpanded)}
           className="flex items-center justify-between cursor-pointer select-none"
         >
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1 pr-1">
             <TeamBadge teamName={player.equipo} size="xs" />
-            <div className="min-w-0">
-              <p className="font-black text-xs text-slate-950 dark:text-slate-100 truncate">
+            <div className="min-w-0 flex-1">
+              <p
+                className="font-black text-xs sm:text-sm text-slate-950 dark:text-slate-100 truncate leading-tight"
+                title={player.nombre}
+              >
                 {player.nombre}
               </p>
-              <div className="flex items-center gap-2 text-[11px] mt-0.5 flex-wrap">
-                <PositionBadge position={player.posicion} size="sm" />
-                <span className="font-mono text-emerald-800 dark:text-emerald-400 font-black">
+              <div className="flex items-center gap-1.5 text-[10.5px] mt-0.5 flex-wrap">
+                <PositionBadge position={player.posicion} size="xs" />
+                <span className="font-mono text-emerald-800 dark:text-emerald-400 font-black text-[10.5px]">
                   {formattedPrice}
                 </span>
-                <span className="px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-black text-[10px] flex items-center gap-0.5">
+                <span className="px-1 py-0.2 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-black text-[9.5px] flex items-center gap-0.5 leading-none">
                   <TrendingUp className="w-2.5 h-2.5" />
                   {formattedPromedio} {formattedPromedio !== '-' ? 'pts' : ''}
                 </span>

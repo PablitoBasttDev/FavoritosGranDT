@@ -121,64 +121,21 @@ export function findPlayerByNameOrTeam(name: string, teamHint?: string): Player 
 
 /**
  * Obtiene la lista completa y precisa de todos los goleadores del Torneo Clausura 2026.
- * Extrae la base real de ALL_PLAYERS (Google Sheet snapshot) y le suma en vivo
- * los goles convertidos en los partidos que se están jugando o ya finalizaron en la fecha actual.
+ * Extrae la base oficial de Planeta Gran DT (Google Sheet de Estadísticas) correspondiente
+ * a la última fecha completa jugada.
  */
 export function getDynamicTopScorers(
   currentDate: Date = new Date(),
   playersList: Player[] = ALL_PLAYERS
 ): ScorerStat[] {
   const activeList = playersList && playersList.length > 0 ? playersList : ALL_PLAYERS;
-  // 1. Mapeo de goles de la fecha en juego
-  const roundGoalsByPlayerId: Record<number, { goals: number; penalties: number }> = {};
-  const roundGoalsByName: Record<string, { goals: number; penalties: number; team: string }> = {};
-
-  FIXTURES_DATA.forEach(match => {
-    const dynamic = getDynamicMatchState(match, currentDate);
-    const events = dynamic.visibleEvents || [];
-
-    events.forEach(ev => {
-      if (ev.type === 'goal' || ev.type === 'penalty_goal') {
-        const teamName = ev.team === 'home' ? match.homeTeam : match.awayTeam;
-        const matchedPlayer = findPlayerByNameOrTeam(ev.playerName, teamName);
-
-        if (matchedPlayer) {
-          if (!roundGoalsByPlayerId[matchedPlayer.id]) {
-            roundGoalsByPlayerId[matchedPlayer.id] = { goals: 0, penalties: 0 };
-          }
-          roundGoalsByPlayerId[matchedPlayer.id].goals += 1;
-          if (ev.type === 'penalty_goal') {
-            roundGoalsByPlayerId[matchedPlayer.id].penalties += 1;
-          }
-        } else {
-          // Si no está indexado en ALL_PLAYERS, guardar por nombre
-          const key = `${ev.playerName}__${teamName}`;
-          if (!roundGoalsByName[key]) {
-            roundGoalsByName[key] = { goals: 0, penalties: 0, team: teamName };
-          }
-          roundGoalsByName[key].goals += 1;
-          if (ev.type === 'penalty_goal') {
-            roundGoalsByName[key].penalties += 1;
-          }
-        }
-      }
-    });
-  });
-
   const results: ScorerStat[] = [];
-  const processedPlayerIds = new Set<number>();
 
-  // 2. Extraer todos los jugadores con goles base (>0) en activeList o con goles en la fecha
   activeList.forEach(player => {
-    const baseGoals = player.goles || 0;
-    const basePenalties = player.golesPenal || 0;
-    const roundInfo = roundGoalsByPlayerId[player.id];
-    const roundGoals = roundInfo?.goals || 0;
-    const roundPenalties = roundInfo?.penalties || 0;
+    const totalGoals = player.goles || 0;
+    const penalties = player.golesPenal || 0;
 
-    const totalGoals = baseGoals + roundGoals;
     if (totalGoals > 0) {
-      processedPlayerIds.add(player.id);
       results.push({
         id: String(player.id),
         playerId: player.id,
@@ -186,97 +143,55 @@ export function getDynamicTopScorers(
         team: player.equipo,
         posicion: player.posicion,
         precio: player.precio,
-        precioNum: player.precioNum,
+        precioNum: player.precioNum || 0,
         totalGoals,
-        baseGoals,
-        roundGoals,
-        penalties: basePenalties + roundPenalties,
+        baseGoals: totalGoals,
+        roundGoals: 0,
+        penalties,
         puntosTotales: player.puntosTotales || 0,
-        partidosJugados: (player.partidosJugados || 0) + (roundGoals > 0 ? 1 : 0),
+        partidosJugados: player.partidosJugados || 0,
         playerObj: player,
       });
     }
   });
 
-
-  // 3. Agregar jugadores no indexados que convirtieron en la fecha
-  Object.entries(roundGoalsByName).forEach(([key, info]) => {
-    const [name] = key.split('__');
-    results.push({
-      id: `unlisted-${key}`,
-      playerName: name,
-      team: info.team,
-      posicion: 'DEL',
-      precio: '$ 1.500.000',
-      precioNum: 1500000,
-      totalGoals: info.goals,
-      baseGoals: 0,
-      roundGoals: info.goals,
-      penalties: info.penalties,
-      puntosTotales: info.goals * 4,
-      partidosJugados: 1,
-    });
-  });
-
-  // Ordenar por goles totales DESC, goles de la fecha DESC, menos penales DESC, valor DESC
+  // Ordenar por goles totales DESC, puntos totales DESC, menos penales DESC, valor DESC
   return results.sort((a, b) => {
     if (b.totalGoals !== a.totalGoals) return b.totalGoals - a.totalGoals;
-    if (b.roundGoals !== a.roundGoals) return b.roundGoals - a.roundGoals;
     if (b.puntosTotales !== a.puntosTotales) return b.puntosTotales - a.puntosTotales;
+    if (a.penalties !== b.penalties) return a.penalties - b.penalties;
     return b.precioNum - a.precioNum;
   });
 }
 
 /**
- * Obtiene el ranking dinámico de arqueros con más Vallas Invictas del torneo
+ * Obtiene el ranking oficial de arqueros con más Vallas Invictas del torneo,
+ * derivado exclusivamente de la hoja oficial de Estadísticas de Planeta Gran DT.
  */
 export function getDynamicGoalkeeperDefenseStats(
   currentDate: Date = new Date(),
   playersList: Player[] = ALL_PLAYERS
 ): GoalkeeperDefenseStat[] {
   const activeList = playersList && playersList.length > 0 ? playersList : ALL_PLAYERS;
-  // Identificar qué equipos no recibieron goles en la fecha actual (terminaron o van en cero)
-  const cleanSheetTeamsInRound = new Set<string>();
-
-  FIXTURES_DATA.forEach(match => {
-    const dynamic = getDynamicMatchState(match, currentDate);
-    if (dynamic.isFinished || dynamic.isLive) {
-      if ((dynamic.awayScore ?? 0) === 0) {
-        cleanSheetTeamsInRound.add(match.homeTeam);
-      }
-      if ((dynamic.homeScore ?? 0) === 0) {
-        cleanSheetTeamsInRound.add(match.awayTeam);
-      }
-    }
-  });
-
-  // Filtrar arqueros de activeList
   const goalkeepers = activeList.filter(p => p.posicion === 'ARQ');
   const results: GoalkeeperDefenseStat[] = [];
 
   goalkeepers.forEach(arq => {
-    const baseValla = arq.vallaInvicta || 0;
-    const pj = arq.partidosJugados || 0;
-
-    // Si el arquero es titular o jugó partidos y su equipo mantuvo arco en cero en esta fecha
-    const teamKeptCleanSheet = cleanSheetTeamsInRound.has(arq.equipo);
-    const roundClean = teamKeptCleanSheet && pj > 0;
-    const totalValla = baseValla + (roundClean ? 1 : 0);
-    const totalPJ = pj + (roundClean ? 1 : 0);
-
+    const totalValla = arq.vallaInvicta || 0;
+    const totalPJ = arq.partidosJugados || 0;
     const rate = totalPJ > 0 ? Math.round((totalValla / totalPJ) * 100) : 0;
 
-    if (totalValla > 0 || totalPJ >= 3) {
+    if (totalValla > 0 || totalPJ >= 2) {
       results.push({
         id: arq.id,
         nombre: arq.nombre,
         equipo: arq.equipo,
         posicion: 'ARQ',
         precio: arq.precio,
-        precioNum: arq.precioNum,
+        precioNum: arq.precioNum || 0,
         vallaInvictaTotal: totalValla,
-        baseVallaInvicta: baseValla,
-        roundVallaInvicta: roundClean,
+        baseVallaInvicta: totalValla,
+        roundVallaInvicta: false,
         partidosJugados: totalPJ,
         puntosTotales: arq.puntosTotales || 0,
         promedio: arq.promedio || 0,
@@ -332,15 +247,19 @@ export function getDynamicRoundIncidents(currentDate: Date = new Date()): Incide
 }
 
 /**
- * Obtiene el ranking dinámico de Clubes con Vallas Menos Vencidas,
- * destacando las FECHAS SIN RECIBIR GOLES (Vallas Invictas) como métrica principal.
+ * Obtiene el ranking oficial de Clubes con Vallas Menos Vencidas,
+ * derivado exclusivamente de las estadísticas oficiales de los arqueros de Planeta Gran DT.
  */
-export function getDynamicClubDefenseStats(currentDate: Date = new Date()): ClubDefenseStat[] {
+export function getDynamicClubDefenseStats(
+  currentDate: Date = new Date(),
+  playersList: Player[] = ALL_PLAYERS
+): ClubDefenseStat[] {
+  const activeList = playersList && playersList.length > 0 ? playersList : ALL_PLAYERS;
   const standings = getDynamicStandings(currentDate);
   const list = Object.values(standings);
 
   // Mapear arqueros titulares por club para obtener base oficial de vallas invictas
-  const goalkeepers = ALL_PLAYERS.filter(p => p.posicion === 'ARQ');
+  const goalkeepers = activeList.filter(p => p.posicion === 'ARQ');
   const clubGoalkeeperMap: Record<string, { baseVI: number; arqName: string }> = {};
 
   goalkeepers.forEach(arq => {
@@ -353,26 +272,10 @@ export function getDynamicClubDefenseStats(currentDate: Date = new Date()): Club
     }
   });
 
-  // Equipos que mantuvieron el arco en cero en la Fecha 6
-  const cleanSheetTeamsInRound = new Set<string>();
-
-  FIXTURES_DATA.forEach(match => {
-    const dynamic = getDynamicMatchState(match, currentDate);
-    if (dynamic.isFinished || dynamic.isLive) {
-      if ((dynamic.awayScore ?? 0) === 0) {
-        cleanSheetTeamsInRound.add(match.homeTeam);
-      }
-      if ((dynamic.homeScore ?? 0) === 0) {
-        cleanSheetTeamsInRound.add(match.awayTeam);
-      }
-    }
-  });
-
   const results: ClubDefenseStat[] = list.map(team => {
     const arqInfo = clubGoalkeeperMap[team.teamName];
     const baseVI = arqInfo?.baseVI ?? (team.goalsAgainst <= 3 ? 3 : team.goalsAgainst <= 6 ? 2 : 1);
-    const roundClean = cleanSheetTeamsInRound.has(team.teamName);
-    const cleanSheetsTotal = baseVI + (roundClean ? 1 : 0);
+    const cleanSheetsTotal = baseVI;
     const played = team.played || 1;
     const cleanSheetRate = Math.round((cleanSheetsTotal / played) * 100);
     const averageGoalsAgainst = Number((team.goalsAgainst / played).toFixed(2));
@@ -382,7 +285,7 @@ export function getDynamicClubDefenseStats(currentDate: Date = new Date()): Club
       zone: team.zone,
       cleanSheetsTotal,
       baseCleanSheets: baseVI,
-      roundCleanSheet: roundClean,
+      roundCleanSheet: false,
       played,
       cleanSheetRate,
       goalsAgainst: team.goalsAgainst,

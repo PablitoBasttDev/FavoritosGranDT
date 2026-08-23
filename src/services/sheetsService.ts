@@ -6,9 +6,11 @@ const STORAGE_KEY_ACTIVE_ROUND = 'gran_dt_active_sheet_round_v2';
 const STORAGE_KEY_PLAYERS = 'el_gran_asistente_sheet_players_v3';
 const STORAGE_KEY_TIMESTAMP = 'el_gran_asistente_sheet_last_sync_v3';
 
-// Feeds oficiales y fuentes públicas de Planeta Gran DT para auto-descubrimiento
+// Feeds oficiales y fuentes de la sección "Estadísticas" de Planeta Gran DT
 export const PLANETA_GRANDT_FEEDS = [
   'https://www.planetagrandt.com.ar/feeds/posts/default/-/Estad%C3%ADsticas?alt=json',
+  'https://www.planetagrandt.com.ar/feeds/posts/default/-/Estadisticas?alt=json',
+  'https://www.planetagrandt.com.ar/feeds/pages/default?alt=json', // Incluye la página fija /p/estadisticas.html
   'https://www.planetagrandt.com.ar/feeds/posts/default?alt=json',
 ];
 
@@ -87,18 +89,14 @@ export function resetToDefaultSheetUrl(): void {
 }
 
 /**
- * Escanea y descubre automáticamente en Planeta Gran DT la URL del Google Sheet de la última fecha publicada.
+ * Escanea y descubre automáticamente en la pestaña "Estadísticas" de Planeta Gran DT
+ * la URL del archivo Google Sheet consolidado de la última fecha jugada y finalizada.
  */
 export async function discoverLatestPlanetaGranDTSheet(): Promise<{
   sheetUrl: string;
   roundTitle: string;
   postTitle?: string;
 } | null> {
-  const feedUrls = [
-    'https://www.planetagrandt.com.ar/feeds/posts/default/-/Estad%C3%ADsticas?alt=json',
-    'https://www.planetagrandt.com.ar/feeds/posts/default?alt=json',
-  ];
-
   // Proxies para resolver CORS en navegador si es necesario
   const fetchWithProxies = async (url: string): Promise<any> => {
     // 1. Intento directo
@@ -130,7 +128,17 @@ export async function discoverLatestPlanetaGranDTSheet(): Promise<{
     return null;
   };
 
-  for (const feedUrl of feedUrls) {
+  interface Candidate {
+    url: string;
+    roundNum: number;
+    title: string;
+    postTitle: string;
+    isClausura2026: boolean;
+  }
+
+  const candidates: Candidate[] = [];
+
+  for (const feedUrl of PLANETA_GRANDT_FEEDS) {
     try {
       const data = await fetchWithProxies(feedUrl);
       if (!data || !data.feed || !data.feed.entry) continue;
@@ -139,32 +147,56 @@ export async function discoverLatestPlanetaGranDTSheet(): Promise<{
       for (const entry of entries) {
         const title = entry.title?.$t || '';
         const content = entry.content?.$t || entry.summary?.$t || '';
+        const fullText = `${title} ${content}`;
 
-        // Buscar enlaces de Google Sheets en el contenido del post
+        // Buscar enlaces de Google Sheets en el contenido de la publicación de Estadísticas
         const sheetRegex = /https?:\/\/docs\.google\.com\/spreadsheets\/d\/(?:e\/)?[a-zA-Z0-9_\-]+[^\s"'>]*/gi;
-        const matches = content.match(sheetRegex);
+        const matches = fullText.match(sheetRegex);
 
         if (matches && matches.length > 0) {
-          const rawSheetUrl = matches[0];
-          const formattedUrl = formatGoogleSheetCsvUrl(rawSheetUrl);
+          for (const rawSheetUrl of matches) {
+            const formattedUrl = formatGoogleSheetCsvUrl(rawSheetUrl);
+            
+            // Detectar si pertenece al Torneo Clausura 2026
+            const isClausura2026 = /Clausura\s*2026|Clausura|2026/i.test(fullText);
 
-          // Extraer número de fecha del título
-          let roundTitle = 'Última Fecha Oficial';
-          const matchFecha = title.match(/Fecha\s+(\d+)/i) || content.match(/Fecha\s+(\d+)/i);
-          if (matchFecha && matchFecha[1]) {
-            roundTitle = `Fecha ${matchFecha[1]} (Oficial Planeta Gran DT)`;
+            // Extraer número de fecha del texto
+            let roundNum = 0;
+            const matchFecha = fullText.match(/Fecha\s+(\d+)/i) || title.match(/Fecha\s+(\d+)/i);
+            if (matchFecha && matchFecha[1]) {
+              roundNum = parseInt(matchFecha[1], 10);
+            }
+
+            candidates.push({
+              url: formattedUrl,
+              roundNum,
+              title: roundNum > 0 ? `Fecha ${roundNum} (Oficial Planeta Gran DT)` : 'Última Fecha Oficial',
+              postTitle: title,
+              isClausura2026,
+            });
           }
-
-          return {
-            sheetUrl: formattedUrl,
-            roundTitle,
-            postTitle: title,
-          };
         }
       }
     } catch (e) {
-      console.warn('Error escaneando feed de Planeta Gran DT:', e);
+      console.warn('Error escaneando feed de Estadísticas en Planeta Gran DT:', e);
     }
+  }
+
+  if (candidates.length > 0) {
+    // Priorizar los de Clausura 2026 con mayor número de fecha
+    candidates.sort((a, b) => {
+      if (a.isClausura2026 !== b.isClausura2026) {
+        return a.isClausura2026 ? -1 : 1;
+      }
+      return b.roundNum - a.roundNum;
+    });
+
+    const best = candidates[0];
+    return {
+      sheetUrl: best.url,
+      roundTitle: best.title,
+      postTitle: best.postTitle,
+    };
   }
 
   return null;

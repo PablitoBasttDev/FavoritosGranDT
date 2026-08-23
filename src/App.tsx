@@ -14,6 +14,10 @@ import {
   SheetSyncResult,
 } from './services/sheetsService';
 import {
+  usePromiedosLiveFixture,
+  subscribeToLivePlayerUpdates,
+} from './services/promiedosService';
+import {
   getActiveUser,
   getStoredUsers,
   logoutUser,
@@ -48,6 +52,19 @@ export default function App() {
 
   // Track hydration state so empty initial state on new devices NEVER overwrites Firestore cloud favorites
   const isHydratedRef = React.useRef<boolean>(false);
+
+  // Poll and sync Promiedos fixtures & live match stats every 45s across the whole application
+  usePromiedosLiveFixture();
+
+  // Subscribe to live enriched player updates from live match events
+  useEffect(() => {
+    const unsubscribe = subscribeToLivePlayerUpdates((updatedPlayers: Player[]) => {
+      if (updatedPlayers && updatedPlayers.length > 0) {
+        setLivePlayers(updatedPlayers);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Auto-sync Google Sheet in background on mount and continuously
   useEffect(() => {
@@ -167,6 +184,39 @@ export default function App() {
 
   const favoriteIds = useMemo(() => new Set(favorites.map(p => p.id)), [favorites]);
 
+  // Dynamically enrich user favorites with the latest prices, averages and scores from the live Google Sheet / Planeta Gran DT
+  const enrichedFavorites = useMemo(() => {
+    if (!livePlayers || livePlayers.length === 0) return favorites;
+    const playerMap = new Map<number, Player>();
+    livePlayers.forEach(p => playerMap.set(p.id, p));
+
+    return favorites.map(fav => {
+      const live = playerMap.get(fav.id);
+      if (!live) return fav;
+      return {
+        ...fav,
+        nombre: live.nombre || fav.nombre,
+        equipo: live.equipo || fav.equipo,
+        posicion: live.posicion || fav.posicion,
+        precio: live.precio || fav.precio,
+        precioNum: live.precioNum ?? fav.precioNum,
+        promedio: live.promedio ?? fav.promedio,
+        promedioGranDT: live.promedioGranDT ?? fav.promedioGranDT,
+        puntosTotales: live.puntosTotales ?? fav.puntosTotales,
+        partidosJugados: live.partidosJugados ?? fav.partidosJugados,
+        goles: live.goles ?? fav.goles,
+        figura: live.figura ?? fav.figura,
+        vallaInvicta: live.vallaInvicta ?? fav.vallaInvicta,
+        amarillas: live.amarillas ?? fav.amarillas,
+        rojas: live.rojas ?? fav.rojas,
+        penalesErrados: live.penalesErrados ?? fav.penalesErrados,
+        penalesAtajados: live.penalesAtajados ?? fav.penalesAtajados,
+        golesPenal: live.golesPenal ?? fav.golesPenal,
+        fechasPuntajes: live.fechasPuntajes || fav.fechasPuntajes,
+      };
+    });
+  }, [favorites, livePlayers]);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => {
@@ -273,7 +323,8 @@ export default function App() {
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        favorites={favorites}
+        favorites={enrichedFavorites}
+        playersCount={livePlayers.length}
         darkMode={isDark}
         setDarkMode={setIsDark}
         isDrawerOpen={isDrawerOpen}
@@ -287,7 +338,8 @@ export default function App() {
       <main className="flex-1 w-full max-w-[1920px] mx-auto px-2 sm:px-4 lg:px-5 py-2.5 sm:py-3">
         {activeTab === 'favorites' && (
           <FavoritesDashboard
-            favorites={favorites}
+            favorites={enrichedFavorites}
+            players={livePlayers}
             onAddFavorite={handleAddFavorite}
             onRemoveFavorite={handleRemoveFavorite}
             onUpdateNotes={handleUpdateNotes}

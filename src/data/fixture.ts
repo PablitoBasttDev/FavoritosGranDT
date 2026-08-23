@@ -754,3 +754,88 @@ export function getNextUpcomingMatch(currentDate: Date = new Date()): {
     timeRemainingMs: info.timeRemainingMs,
   };
 }
+
+// ============================================================================
+// LIVE FIXTURE SYNCHRONIZATION & EVENT EMITTER
+// ============================================================================
+
+type FixtureUpdateListener = (fixtures: MatchFixture[]) => void;
+const fixtureListeners: Set<FixtureUpdateListener> = new Set();
+
+export function subscribeToFixturesUpdate(listener: FixtureUpdateListener): () => void {
+  fixtureListeners.add(listener);
+  return () => {
+    fixtureListeners.delete(listener);
+  };
+}
+
+function notifyFixtureListeners() {
+  fixtureListeners.forEach(listener => {
+    try {
+      listener(FIXTURES_DATA);
+    } catch (e) {
+      console.warn('Error in fixture listener:', e);
+    }
+  });
+}
+
+/**
+ * Actualiza los partidos en memoria en tiempo real con la data recibida de Promiedos
+ */
+export function updateFixturesFromPromiedos(
+  promiedosMatches: Array<{
+    homeTeam: string;
+    awayTeam: string;
+    homeScore?: number;
+    awayScore?: number;
+    status: 'SCHEDULED' | 'LIVE' | 'FINISHED';
+    liveMinute: string;
+    displayTime?: string;
+    events?: MatchEvent[];
+  }>
+): boolean {
+  if (!promiedosMatches || promiedosMatches.length === 0) return false;
+
+  let hasChanges = false;
+
+  promiedosMatches.forEach(pm => {
+    const match = FIXTURES_DATA.find(base => {
+      const homeMatch =
+        pm.homeTeam.toLowerCase() === base.homeTeam.toLowerCase() ||
+        pm.homeTeam.toLowerCase().includes(base.homeTeam.toLowerCase()) ||
+        base.homeTeam.toLowerCase().includes(pm.homeTeam.toLowerCase());
+
+      const awayMatch =
+        pm.awayTeam.toLowerCase() === base.awayTeam.toLowerCase() ||
+        pm.awayTeam.toLowerCase().includes(base.awayTeam.toLowerCase()) ||
+        base.awayTeam.toLowerCase().includes(pm.awayTeam.toLowerCase());
+
+      return homeMatch && awayMatch;
+    });
+
+    if (match) {
+      if (
+        match.status !== pm.status ||
+        match.homeScore !== pm.homeScore ||
+        match.awayScore !== pm.awayScore ||
+        match.liveMinute !== pm.liveMinute ||
+        (pm.events && pm.events.length > 0 && JSON.stringify(match.events) !== JSON.stringify(pm.events))
+      ) {
+        match.status = pm.status;
+        match.homeScore = pm.homeScore !== undefined ? pm.homeScore : match.homeScore;
+        match.awayScore = pm.awayScore !== undefined ? pm.awayScore : match.awayScore;
+        match.liveMinute = pm.liveMinute || match.liveMinute;
+        if (pm.events && pm.events.length > 0) {
+          match.events = pm.events;
+        }
+        hasChanges = true;
+      }
+    }
+  });
+
+  if (hasChanges) {
+    notifyFixtureListeners();
+  }
+
+  return hasChanges;
+}

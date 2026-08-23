@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ALL_PLAYERS } from '../data/players';
 import { TEAMS_DATA } from '../data/teams';
+import { FIXTURES_DATA, subscribeToFixturesUpdate } from '../data/fixture';
 import { getDynamicStandings, TeamStanding } from '../data/standings';
 import {
   getDynamicTopScorers,
@@ -14,7 +15,6 @@ import {
 } from '../data/tournamentStats';
 import { TeamBadge } from './TeamBadge';
 import { PositionBadge } from './PositionBadge';
-import { GoogleSheetsSyncModal } from './GoogleSheetsSyncModal';
 import { getActiveRoundLabel, subscribeToLiveSheet } from '../services/sheetsService';
 import { normalizeText } from '../utils/textUtils';
 import {
@@ -31,7 +31,6 @@ import {
   Search,
   Award,
   Filter,
-  FileSpreadsheet,
   Info,
   Sparkles,
   RefreshCw,
@@ -55,7 +54,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
   const [onlyPlayedFilter, setOnlyPlayedFilter] = useState<boolean>(false);
   const [scorerSearch, setScorerSearch] = useState<string>('');
   const [defenseSubTab, setDefenseSubTab] = useState<'CLUBES' | 'ARQUEROS'>('CLUBES');
-  const [isSyncModalOpen, setIsSyncModalOpen] = useState<boolean>(false);
   const [roundLabelState, setRoundLabelState] = useState<string>(() => getActiveRoundLabel());
   const [lastAutoSyncTime, setLastAutoSyncTime] = useState<Date>(new Date());
 
@@ -69,22 +67,30 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
   // Escucha activa de sincronizaciones automáticas en segundo plano
   useEffect(() => {
-    const unsubscribe = subscribeToLiveSheet(result => {
+    const unsubscribeSheet = subscribeToLiveSheet(result => {
       if (result.detectedRound) {
         setRoundLabelState(result.detectedRound);
       }
       setLastAutoSyncTime(new Date());
       setNow(new Date());
     });
-    return () => unsubscribe();
+
+    const unsubscribeFixtures = subscribeToFixturesUpdate(() => {
+      setNow(new Date());
+    });
+
+    return () => {
+      unsubscribeSheet();
+      unsubscribeFixtures();
+    };
   }, []);
 
   // Cálculos dinámicos reactivos extraídos de las fuentes oficiales
   const dynamicStandings = useMemo(() => getDynamicStandings(now), [now]);
-  const topScorers = useMemo(() => getDynamicTopScorers(now), [now, players]);
+  const topScorers = useMemo(() => getDynamicTopScorers(now, players), [now, players]);
   const roundIncidents = useMemo(() => getDynamicRoundIncidents(now), [now]);
   const teamMetrics = useMemo(() => getTeamsPerformanceMetrics(now), [now]);
-  const clubDefenseStats = useMemo(() => getDynamicClubDefenseStats(now), [now]);
+  const clubDefenseStats = useMemo(() => getDynamicClubDefenseStats(now, players), [now, players]);
   const goalkeeperStats = useMemo(() => getDynamicGoalkeeperDefenseStats(now, players), [now, players]);
 
   // Filtrado y ordenamiento de equipos
@@ -128,171 +134,155 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
   return (
     <div className="space-y-3 pb-8">
-      {/* Modal de sincronización / configuración opcional */}
-      <GoogleSheetsSyncModal
-        isOpen={isSyncModalOpen}
-        onClose={() => setIsSyncModalOpen(false)}
-        onSyncSuccess={handleSyncSuccess}
-      />
-
-      {/* Official Gran DT Blue Header Banner */}
-      <div className="bg-gradient-to-r from-[#07245c] via-[#0e3f9a] to-[#082b6c] text-white rounded-xl shadow-xs p-4 sm:p-5 border border-blue-900/50">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* Official Gran DT Blue Header Banner - Ultra Compact on Mobile */}
+      <div className="bg-gradient-to-r from-[#07245c] via-[#0e3f9a] to-[#082b6c] text-white rounded-lg sm:rounded-xl shadow-xs p-2 sm:p-3.5 border border-blue-900/50">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2">
           <div>
-            <div className="flex flex-wrap items-center gap-2 mb-1">
-              <span className="bg-cyan-400 text-slate-950 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider">
-                Datos Oficiales AFA & Gran DT
+            <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 mb-0.5 sm:mb-1">
+              <span className="bg-cyan-400 text-slate-950 px-1.5 py-0.2 rounded text-[9px] sm:text-[10px] font-black uppercase tracking-wider">
+                Oficial AFA & Gran DT
               </span>
-              <span className="text-xs text-blue-200 font-bold uppercase tracking-wide flex items-center gap-1">
-                <Radio className="w-3 h-3 text-cyan-400 animate-pulse" />
-                Actualización Continua Automática
+              <span className="text-[9.5px] sm:text-xs text-blue-200 font-bold uppercase tracking-wide flex items-center gap-0.5 sm:gap-1">
+                <Radio className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-cyan-400 animate-pulse" />
+                <span className="hidden xs:inline">Auto-Actualizado</span>
               </span>
-              <span className="bg-white/10 text-blue-200 px-2 py-0.5 rounded text-[10px] font-bold">
+              <span className="bg-white/10 text-blue-200 px-1.5 py-0.2 rounded text-[9px] sm:text-[9.5px] font-bold">
                 {roundLabelState}
               </span>
             </div>
-            <h2 className="text-lg sm:text-xl font-black tracking-tight text-white">
-              Centro de Estadísticas, Posiciones & Goleadores
+            <h2 className="text-xs sm:text-lg font-black tracking-tight text-white leading-tight">
+              Estadísticas, Posiciones & Goleadores
             </h2>
-            <p className="text-blue-100/80 text-xs max-w-xl mt-0.5">
-              Goles, vallas menos vencidas (fechas sin recibir goles), arqueros y tabla de posiciones del Torneo Clausura 2026.
+            <p className="text-blue-100/80 text-[10px] sm:text-xs max-w-xl hidden sm:block mt-0.5">
+              Goles, vallas menos vencidas, arqueros y tabla de posiciones del Torneo Clausura 2026.
             </p>
           </div>
 
           {/* Automatic Live Sync Status Pill */}
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="bg-white/10 backdrop-blur-md rounded-lg p-2 sm:p-2.5 border border-white/15 flex items-center gap-2.5">
-              <div className="relative flex h-3 w-3">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 self-start sm:self-auto">
+            <div className="bg-white/10 backdrop-blur-md rounded-md sm:rounded-lg p-1 sm:p-2 border border-white/15 flex items-center gap-1.5">
+              <div className="relative flex h-2 w-2 sm:h-3 sm:w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 sm:h-3 sm:w-3 bg-emerald-500"></span>
               </div>
               <div className="text-left">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] text-emerald-300 font-black uppercase tracking-wider block">
-                    Auto-Sincronizado
-                  </span>
-                  <button
-                    onClick={() => setIsSyncModalOpen(true)}
-                    className="text-blue-200 hover:text-white transition opacity-75 hover:opacity-100"
-                    title="Configuración de fuente de datos Google Sheets"
-                  >
-                    <FileSpreadsheet className="w-3 h-3" />
-                  </button>
-                </div>
-                <span className="text-[11px] font-bold text-white block">
-                  Planeta Gran DT en Vivo
+                <span className="text-[8.5px] sm:text-[10px] text-emerald-300 font-black uppercase tracking-wider block leading-tight">
+                  En Vivo
+                </span>
+                <span className="text-[9.5px] sm:text-[11px] font-bold text-white hidden sm:block leading-tight">
+                  Planeta Gran DT
                 </span>
               </div>
             </div>
 
-            <div className="bg-white/10 backdrop-blur-md rounded-lg p-2.5 border border-white/15 flex items-center gap-3">
+            <div className="bg-white/10 backdrop-blur-md rounded-md sm:rounded-lg p-1 sm:p-2 border border-white/15 flex items-center gap-1.5">
               <div className="text-right">
-                <span className="text-[10px] text-blue-200 font-bold uppercase block">
-                  Fecha 6 en Disputa
+                <span className="text-[8.5px] sm:text-[10px] text-blue-200 font-bold uppercase block leading-tight">
+                  Fecha 6
                 </span>
-                <span className="text-xs font-black text-white font-mono">
-                  {teamMetrics.finishedMatches + teamMetrics.liveMatches} / {teamMetrics.totalMatches} Partidos
+                <span className="text-[9.5px] sm:text-xs font-black text-white font-mono leading-tight">
+                  {teamMetrics.finishedMatches + teamMetrics.liveMatches}/{teamMetrics.totalMatches} PJ
                 </span>
               </div>
-              <div className="w-8 h-8 rounded-full bg-cyan-400/20 border border-cyan-400/40 flex items-center justify-center">
-                <Flame className="w-4 h-4 text-cyan-300" />
+              <div className="w-5 h-5 sm:w-7 sm:h-7 rounded-full bg-cyan-400/20 border border-cyan-400/40 flex items-center justify-center">
+                <Flame className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-cyan-300" />
               </div>
             </div>
           </div>
         </div>
 
         {/* Section Navigation Tabs */}
-        <div className="flex items-center gap-1 mt-4 pt-3 border-t border-blue-800/60 overflow-x-auto">
+        <div className="flex items-center gap-1 mt-1.5 sm:mt-2.5 pt-1.5 sm:pt-2 border-t border-blue-800/60 overflow-x-auto">
           <button
             onClick={() => setActiveTab('POSICIONES')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shrink-0 ${
+            className={`px-2 py-0.5 sm:px-3 sm:py-1.5 rounded-md sm:rounded-lg text-[10.5px] sm:text-xs font-black transition flex items-center gap-1 sm:gap-1.5 shrink-0 ${
               activeTab === 'POSICIONES'
                 ? 'bg-cyan-400 text-slate-950 shadow-xs'
                 : 'text-blue-200 hover:bg-white/10 hover:text-white'
             }`}
           >
-            <Table className="w-3.5 h-3.5" />
-            <span>Tabla de Posiciones en Vivo</span>
+            <Table className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            <span>Posiciones</span>
           </button>
 
           <button
             onClick={() => setActiveTab('GOLEADORES')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shrink-0 ${
+            className={`px-2 py-0.5 sm:px-3 sm:py-1.5 rounded-md sm:rounded-lg text-[10.5px] sm:text-xs font-black transition flex items-center gap-1 sm:gap-1.5 shrink-0 ${
               activeTab === 'GOLEADORES'
                 ? 'bg-cyan-400 text-slate-950 shadow-xs'
                 : 'text-blue-200 hover:bg-white/10 hover:text-white'
             }`}
           >
-            <Flame className="w-3.5 h-3.5" />
-            <span>Tabla de Goleadores ({topScorers.length})</span>
+            <Flame className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            <span>Goleadores ({topScorers.length})</span>
           </button>
 
           <button
             onClick={() => setActiveTab('ATAQUE_DEFENSA')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 shrink-0 ${
+            className={`px-2 py-0.5 sm:px-3 sm:py-1.5 rounded-md sm:rounded-lg text-[10.5px] sm:text-xs font-black transition flex items-center gap-1 sm:gap-1.5 shrink-0 ${
               activeTab === 'ATAQUE_DEFENSA'
                 ? 'bg-cyan-400 text-slate-950 shadow-xs'
                 : 'text-blue-200 hover:bg-white/10 hover:text-white'
             }`}
           >
-            <Shield className="w-3.5 h-3.5" />
-            <span>Vallas Menos Vencidas (Fechas sin Recibir Goles)</span>
+            <Shield className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            <span>Vallas Menos Vencidas</span>
           </button>
         </div>
       </div>
 
       {/* Top 4 Metrics Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 min-w-0">
-        <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300/90 dark:border-slate-800 shadow-xs">
-          <span className="text-slate-600 dark:text-slate-400 text-[10px] font-black uppercase block tracking-wider">
-            Goles en la Fecha 6
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-1.5 sm:gap-2.5 min-w-0">
+        <div className="p-2 sm:p-3.5 rounded-lg sm:rounded-xl bg-white dark:bg-slate-900 border border-slate-300/90 dark:border-slate-800 shadow-xs">
+          <span className="text-slate-600 dark:text-slate-400 text-[9px] sm:text-[10px] font-black uppercase block tracking-wider">
+            Goles en Fecha 6
           </span>
-          <p className="text-2xl sm:text-3xl font-black text-slate-950 dark:text-slate-100 mt-0.5 font-mono">
+          <p className="text-lg sm:text-2xl font-black text-slate-950 dark:text-slate-100 font-mono">
             {teamMetrics.totalRoundGoals}
           </p>
-          <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-extrabold flex items-center gap-1">
-            <Activity className="w-3 h-3" />
-            {teamMetrics.averageGoalsPerMatch} promedio / partido
+          <span className="text-[9.5px] sm:text-[11px] text-emerald-700 dark:text-emerald-400 font-extrabold flex items-center gap-1 truncate">
+            <Activity className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+            {teamMetrics.averageGoalsPerMatch} prom / partido
           </span>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300/90 dark:border-slate-800 shadow-xs">
-          <span className="text-slate-600 dark:text-slate-400 text-[10px] font-black uppercase block tracking-wider">
-            Partidos Disputados / En Juego
+        <div className="p-2 sm:p-3.5 rounded-lg sm:rounded-xl bg-white dark:bg-slate-900 border border-slate-300/90 dark:border-slate-800 shadow-xs">
+          <span className="text-slate-600 dark:text-slate-400 text-[9px] sm:text-[10px] font-black uppercase block tracking-wider">
+            Partidos Disputados
           </span>
-          <p className="text-2xl sm:text-3xl font-black text-slate-950 dark:text-slate-100 mt-0.5 font-mono">
+          <p className="text-lg sm:text-2xl font-black text-slate-950 dark:text-slate-100 font-mono">
             {teamMetrics.finishedMatches + teamMetrics.liveMatches}
-            <span className="text-sm font-normal text-slate-400 ml-1">/ {teamMetrics.totalMatches}</span>
+            <span className="text-xs font-normal text-slate-400 ml-1">/ {teamMetrics.totalMatches}</span>
           </p>
-          <span className="text-[11px] text-[#1b55e2] dark:text-cyan-400 font-extrabold flex items-center gap-1">
-            <CheckCircle2 className="w-3 h-3" />
+          <span className="text-[9.5px] sm:text-[11px] text-[#1b55e2] dark:text-cyan-400 font-extrabold flex items-center gap-1 truncate">
+            <CheckCircle2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
             {teamMetrics.totalMatches - (teamMetrics.finishedMatches + teamMetrics.liveMatches)} pendientes
           </span>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300/90 dark:border-slate-800 shadow-xs">
-          <span className="text-slate-600 dark:text-slate-400 text-[10px] font-black uppercase block tracking-wider">
-            Máximo Goleador Oficial
+        <div className="p-2 sm:p-3.5 rounded-lg sm:rounded-xl bg-white dark:bg-slate-900 border border-slate-300/90 dark:border-slate-800 shadow-xs">
+          <span className="text-slate-600 dark:text-slate-400 text-[9px] sm:text-[10px] font-black uppercase block tracking-wider">
+            Máximo Goleador
           </span>
-          <p className="text-lg sm:text-xl font-black text-slate-950 dark:text-slate-100 mt-0.5 truncate">
+          <p className="text-xs sm:text-base font-black text-slate-950 dark:text-slate-100 truncate">
             {topScorerLeader?.playerName || 'Agustín Módica'}
           </p>
-          <span className="text-[11px] text-amber-700 dark:text-amber-400 font-extrabold flex items-center gap-1">
-            <Flame className="w-3 h-3 text-amber-500" />
+          <span className="text-[9.5px] sm:text-[11px] text-amber-700 dark:text-amber-400 font-extrabold flex items-center gap-1 truncate">
+            <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-500" />
             {topScorerLeader?.totalGoals || 5} goles ({topScorerLeader?.team})
           </span>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300/90 dark:border-slate-800 shadow-xs">
-          <span className="text-slate-600 dark:text-slate-400 text-[10px] font-black uppercase block tracking-wider">
-            Más Fechas con Valla Invicta
+        <div className="p-2 sm:p-3.5 rounded-lg sm:rounded-xl bg-white dark:bg-slate-900 border border-slate-300/90 dark:border-slate-800 shadow-xs">
+          <span className="text-slate-600 dark:text-slate-400 text-[9px] sm:text-[10px] font-black uppercase block tracking-wider">
+            Más Vallas Invictas
           </span>
-          <p className="text-lg sm:text-xl font-black text-slate-950 dark:text-slate-100 mt-0.5 truncate">
+          <p className="text-xs sm:text-base font-black text-slate-950 dark:text-slate-100 truncate">
             {bestDefenseClub?.teamName || 'Atlético Tucumán'}
           </p>
-          <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-extrabold flex items-center gap-1">
-            <Shield className="w-3 h-3 text-emerald-600" />
-            {bestDefenseClub?.cleanSheetsTotal || 4} Fechas sin recibir goles ({bestDefenseClub?.cleanSheetRate || 80}%)
+          <span className="text-[9.5px] sm:text-[11px] text-emerald-700 dark:text-emerald-400 font-extrabold flex items-center gap-1 truncate">
+            <Shield className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-600" />
+            {bestDefenseClub?.cleanSheetsTotal || 4} Fechas ({bestDefenseClub?.cleanSheetRate || 80}%)
           </span>
         </div>
       </div>
@@ -363,24 +353,24 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           </div>
 
           {/* Standings Table */}
-          <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+          <div className="overflow-x-auto sm:overflow-x-visible rounded-lg border border-slate-200 dark:border-slate-800">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-400 text-[10px] uppercase font-black bg-slate-100 dark:bg-slate-800/60 select-none">
-                  <th className="py-2.5 px-2 text-center w-16 min-w-[64px]">Pos</th>
-                  <th className="py-2.5 px-3 min-w-[160px]">Club</th>
-                  {standingsZone === 'GENERAL' && <th className="py-2.5 px-2 text-center w-16">Zona</th>}
-                  <th className="py-2.5 px-2 text-center w-36 min-w-[130px] hidden sm:table-cell">Estado F6</th>
-                  <th className="py-2.5 px-2 text-center w-18 min-w-[68px] font-black text-slate-900 dark:text-slate-100 bg-blue-100/60 dark:bg-blue-900/30">
+                <tr className="border-b border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-400 text-[9px] sm:text-[10px] uppercase font-black bg-slate-100 dark:bg-slate-800/60 select-none">
+                  <th className="py-2 px-1 text-center w-10 sm:w-16">Pos</th>
+                  <th className="py-2 px-1.5 sm:px-3">Club</th>
+                  {standingsZone === 'GENERAL' && <th className="py-2 px-1 text-center w-12 sm:w-16">Zona</th>}
+                  <th className="py-2 px-2 text-center w-36 min-w-[130px] hidden md:table-cell">Estado F6</th>
+                  <th className="py-2 px-1.5 sm:px-2 text-center w-14 sm:w-18 font-black text-slate-900 dark:text-slate-100 bg-blue-100/60 dark:bg-blue-900/30">
                     PTS
                   </th>
-                  <th className="py-2.5 px-1.5 text-center w-10 hidden sm:table-cell">PJ</th>
-                  <th className="py-2.5 px-1.5 text-center w-10 hidden sm:table-cell">PG</th>
-                  <th className="py-2.5 px-1.5 text-center w-10 hidden md:table-cell">PE</th>
-                  <th className="py-2.5 px-1.5 text-center w-10 hidden md:table-cell">PP</th>
-                  <th className="py-2.5 px-1.5 text-center w-10 hidden lg:table-cell">GF</th>
-                  <th className="py-2.5 px-1.5 text-center w-10 hidden lg:table-cell">GC</th>
-                  <th className="py-2.5 px-2 text-center w-12 font-black">DIF</th>
+                  <th className="py-2 px-1 text-center w-8 sm:w-10">PJ</th>
+                  <th className="py-2 px-1 text-center w-8 sm:w-10">PG</th>
+                  <th className="py-2 px-1 text-center w-8 sm:w-10 hidden sm:table-cell">PE</th>
+                  <th className="py-2 px-1 text-center w-8 sm:w-10 hidden sm:table-cell">PP</th>
+                  <th className="py-2 px-1 text-center w-8 sm:w-10 hidden lg:table-cell">GF</th>
+                  <th className="py-2 px-1 text-center w-8 sm:w-10 hidden lg:table-cell">GC</th>
+                  <th className="py-2 px-1 sm:px-2 text-center w-10 sm:w-12 font-black">DIF</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
@@ -408,10 +398,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                       title={`Ver estadísticas de ${team.teamName}`}
                     >
                       {/* Position & Variation (Perfect Centered Alignment) */}
-                      <td className="py-2 px-2 text-center font-mono font-black text-xs">
-                        <div className="flex items-center justify-center gap-1.5">
+                      <td className="py-1.5 sm:py-2 px-1 text-center font-mono font-black text-xs">
+                        <div className="flex items-center justify-center gap-0.5 sm:gap-1.5">
                           <span
-                            className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 font-bold ${
+                            className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center text-[9px] sm:text-[10px] shrink-0 font-bold ${
                               isQualifiedZone
                                 ? 'bg-emerald-600 text-white font-black'
                                 : isTop8Zone
@@ -422,10 +412,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                             {pos}
                           </span>
 
-                          <span className="w-5 flex items-center justify-start text-left shrink-0">
+                          <span className="w-3.5 sm:w-5 flex items-center justify-start text-left shrink-0">
                             {change !== undefined && change !== 0 ? (
                               <span
-                                className={`flex items-center text-[9px] font-black ${
+                                className={`flex items-center text-[8.5px] sm:text-[9px] font-black ${
                                   change > 0
                                     ? 'text-emerald-600 dark:text-emerald-400'
                                     : 'text-rose-600 dark:text-rose-400'
@@ -433,14 +423,14 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                                 title={change > 0 ? `Subió ${change} puestos` : `Bajó ${Math.abs(change)} puestos`}
                               >
                                 {change > 0 ? (
-                                  <ArrowUp className="w-2.5 h-2.5 shrink-0" />
+                                  <ArrowUp className="w-2 h-2 sm:w-2.5 sm:h-2.5 shrink-0" />
                                 ) : (
-                                  <ArrowDown className="w-2.5 h-2.5 shrink-0" />
+                                  <ArrowDown className="w-2 h-2 sm:w-2.5 sm:h-2.5 shrink-0" />
                                 )}
-                                <span>{Math.abs(change)}</span>
+                                <span className="hidden sm:inline">{Math.abs(change)}</span>
                               </span>
                             ) : (
-                              <span className="text-slate-300 dark:text-slate-700 text-[10px] pl-1 select-none">
+                              <span className="text-slate-300 dark:text-slate-700 text-[9px] pl-0.5 select-none">
                                 -
                               </span>
                             )}
@@ -449,25 +439,25 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                       </td>
 
                       {/* Club Name & Badge */}
-                      <td className="py-2 px-3 font-bold text-slate-900 dark:text-slate-100">
-                        <div className="flex items-center gap-2">
+                      <td className="py-1.5 sm:py-2 px-1 sm:px-3 font-bold text-slate-900 dark:text-slate-100 max-w-[120px] sm:max-w-none">
+                        <div className="flex items-center gap-1.5 sm:gap-2">
                           <TeamBadge teamName={team.teamName} size="xs" showName={false} />
-                          <span className="truncate group-hover:text-[#1b55e2] dark:group-hover:text-cyan-300 transition">
+                          <span className="truncate text-xs group-hover:text-[#1b55e2] dark:group-hover:text-cyan-300 transition">
                             {team.teamName}
                           </span>
                         </div>
                       </td>
 
                       {standingsZone === 'GENERAL' && (
-                        <td className="py-2 px-2 text-center">
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-semibold text-slate-600 dark:text-slate-300">
-                            {team.zone}
+                        <td className="py-1.5 sm:py-2 px-1 text-center">
+                          <span className="text-[9px] sm:text-[10px] px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800 font-semibold text-slate-600 dark:text-slate-300">
+                            {team.zone === 'Zona A' ? 'A' : 'B'}
                           </span>
                         </td>
                       )}
 
                       {/* Match Status in Round */}
-                      <td className="py-2 px-2 text-center whitespace-nowrap hidden sm:table-cell">
+                      <td className="py-2 px-2 text-center whitespace-nowrap hidden md:table-cell">
                         {team.isLiveMatch ? (
                           <span className="inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-200 dark:border-rose-900 animate-pulse whitespace-nowrap">
                             <Radio className="w-2.5 h-2.5 shrink-0" />
@@ -489,27 +479,25 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                       </td>
 
                       {/* Points with Gained Indicator (Stable Centered Layout) */}
-                      <td className="py-2 px-2 text-center font-mono font-black text-[#1b55e2] dark:text-cyan-400 bg-blue-50/50 dark:bg-blue-950/20">
-                        <div className="flex items-center justify-center gap-1">
-                          <span className="text-sm w-5 text-right font-black">{team.points}</span>
-                          <span className="w-5 flex items-center justify-start text-left shrink-0">
-                            {team.pointsGainedInRound !== undefined && team.pointsGainedInRound > 0 ? (
-                              <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-black">
-                                +{team.pointsGainedInRound}
-                              </span>
-                            ) : null}
-                          </span>
+                      <td className="py-1.5 sm:py-2 px-1 text-center font-mono font-black text-[#1b55e2] dark:text-cyan-400 bg-blue-50/50 dark:bg-blue-950/20">
+                        <div className="flex items-center justify-center gap-0.5 sm:gap-1">
+                          <span className="text-xs sm:text-sm font-black">{team.points}</span>
+                          {team.pointsGainedInRound !== undefined && team.pointsGainedInRound > 0 ? (
+                            <span className="text-[8px] sm:text-[9px] px-0.5 py-0.2 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-black">
+                              +{team.pointsGainedInRound}
+                            </span>
+                          ) : null}
                         </div>
                       </td>
 
-                      <td className="py-2 px-1.5 text-center font-mono font-semibold text-slate-700 dark:text-slate-300 hidden sm:table-cell">{team.played}</td>
-                      <td className="py-2 px-1.5 text-center font-mono font-semibold text-slate-700 dark:text-slate-300 hidden sm:table-cell">{team.won}</td>
-                      <td className="py-2 px-1.5 text-center font-mono font-semibold text-slate-700 dark:text-slate-300 hidden md:table-cell">{team.drawn}</td>
-                      <td className="py-2 px-1.5 text-center font-mono font-semibold text-slate-700 dark:text-slate-300 hidden md:table-cell">{team.lost}</td>
-                      <td className="py-2 px-1.5 text-center font-mono font-semibold text-slate-700 dark:text-slate-300 hidden lg:table-cell">{team.goalsFor}</td>
-                      <td className="py-2 px-1.5 text-center font-mono font-semibold text-slate-700 dark:text-slate-300 hidden lg:table-cell">{team.goalsAgainst}</td>
+                      <td className="py-1.5 sm:py-2 px-1 text-center font-mono font-semibold text-slate-700 dark:text-slate-300">{team.played}</td>
+                      <td className="py-1.5 sm:py-2 px-1 text-center font-mono font-semibold text-slate-700 dark:text-slate-300">{team.won}</td>
+                      <td className="py-1.5 sm:py-2 px-1 text-center font-mono font-semibold text-slate-700 dark:text-slate-300 hidden sm:table-cell">{team.drawn}</td>
+                      <td className="py-1.5 sm:py-2 px-1 text-center font-mono font-semibold text-slate-700 dark:text-slate-300 hidden sm:table-cell">{team.lost}</td>
+                      <td className="py-1.5 sm:py-2 px-1 text-center font-mono font-semibold text-slate-700 dark:text-slate-300 hidden lg:table-cell">{team.goalsFor}</td>
+                      <td className="py-1.5 sm:py-2 px-1 text-center font-mono font-semibold text-slate-700 dark:text-slate-300 hidden lg:table-cell">{team.goalsAgainst}</td>
                       <td
-                        className={`py-2 px-2 text-center font-mono font-black ${
+                        className={`py-1.5 sm:py-2 px-1 text-center font-mono font-black text-xs ${
                           team.goalDiff > 0
                             ? 'text-emerald-600 dark:text-emerald-400'
                             : team.goalDiff < 0
@@ -556,16 +544,16 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 min-w-0">
             {/* Main Top Scorers Table */}
-            <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs p-4 space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-slate-200 dark:border-slate-800">
+            <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs p-2.5 sm:p-4 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <Flame className="w-4 h-4 text-amber-500" />
+                  <div className="flex items-center gap-1.5">
+                    <Flame className="w-4 h-4 text-amber-500 shrink-0" />
                     <h3 className="font-black text-xs sm:text-sm uppercase tracking-wider text-slate-950 dark:text-slate-100">
-                      Tabla Oficial de Goleadores - Torneo Clausura 2026
+                      Goleadores Clausura 2026
                     </h3>
                   </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  <p className="text-[10.5px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                     Goles totales (F1 a F5 + F6 en vivo) con puntajes Gran DT consolidados a la Fecha 5.
                   </p>
                 </div>
@@ -586,20 +574,21 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 z-10">
-                    <tr className="border-b border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-400 text-[10px] uppercase font-black">
-                      <th className="py-2.5 px-3 text-center w-8">#</th>
-                      <th className="py-2.5 px-3">Jugador</th>
-                      <th className="py-2.5 px-3 text-center">Posición</th>
-                      <th className="py-2.5 px-3">Club</th>
-                      <th className="py-2.5 px-3 text-center">Goles F6</th>
-                      <th className="py-2.5 px-3 text-center font-black text-slate-900 dark:text-slate-200">
-                        Goles Totales
+                    <tr className="border-b border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-400 text-[9px] sm:text-[10px] uppercase font-black">
+                      <th className="py-2 px-0.5 sm:px-1 text-center w-4 sm:w-6">#</th>
+                      <th className="py-2 px-1 sm:px-3">Jugador</th>
+                      <th className="py-2 px-0.5 sm:px-1 text-center">Pos</th>
+                      <th className="py-2 px-1 sm:px-2 text-center sm:text-left">Club</th>
+                      <th className="py-2 px-1 text-center hidden sm:table-cell">Goles F6</th>
+                      <th className="py-2 px-1 sm:px-1.5 text-center font-black text-slate-900 dark:text-slate-200">
+                        Goles
                       </th>
-                      <th className="py-2.5 px-3 text-center">Penales</th>
-                      <th className="py-2.5 px-3 text-center bg-blue-50/60 dark:bg-blue-950/40 text-[#1b55e2] dark:text-cyan-300">
-                        Pts Gran DT (Hasta F5)
+                      <th className="py-2 px-1 text-center hidden md:table-cell">Penales</th>
+                      <th className="py-2 px-1 sm:px-2 text-center bg-blue-50/60 dark:bg-blue-950/40 text-[#1b55e2] dark:text-cyan-300">
+                        <span className="hidden sm:inline">Pts F5</span>
+                        <span className="sm:hidden">Pts</span>
                       </th>
-                      <th className="py-2.5 px-3 text-right">Cotización</th>
+                      <th className="py-2 px-1 sm:px-3 text-right">Precio</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -617,43 +606,51 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                           onClick={() => scorer.playerObj && onSelectPlayer?.(scorer.playerObj)}
                           title={`Ver estadísticas de ${scorer.playerName}`}
                         >
-                          <td className="py-2.5 px-3 text-center font-mono font-bold text-slate-500">
+                          <td className="py-1.5 sm:py-2 px-0.5 sm:px-1 text-center font-mono font-bold text-slate-500 text-[10px]">
                             {idx + 1}
                           </td>
-                          <td className="py-2.5 px-3 font-black text-slate-900 dark:text-slate-100">
-                            <span className="group-hover:text-[#1b55e2] dark:group-hover:text-cyan-300 transition">
+                          <td className="py-1.5 sm:py-2 px-1 sm:px-3 font-black text-slate-900 dark:text-slate-100">
+                            <span
+                              className="group-hover:text-[#1b55e2] dark:group-hover:text-cyan-300 transition text-xs block truncate max-w-[105px] xs:max-w-[130px] sm:max-w-none"
+                              title={scorer.playerName}
+                            >
                               {scorer.playerName}
                             </span>
                           </td>
-                          <td className="py-2.5 px-3 text-center">
-                            <PositionBadge position={scorer.posicion} size="sm" />
+                          <td className="py-1.5 sm:py-2 px-0.5 sm:px-1 text-center">
+                            <PositionBadge position={scorer.posicion} size="xs" />
                           </td>
-                          <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">
-                            <div className="flex items-center gap-1.5">
+                          <td className="py-1.5 sm:py-2 px-1 sm:px-2 text-slate-600 dark:text-slate-300 text-center sm:text-left">
+                            <div className="flex items-center justify-center sm:justify-start gap-1 sm:gap-1.5">
                               <TeamBadge teamName={scorer.team} size="xs" showName={false} />
-                              <span className="truncate max-w-[130px] font-bold">{scorer.team}</span>
+                              <span className="hidden sm:inline truncate max-w-[130px] font-bold text-[11px] sm:text-xs">
+                                {scorer.team}
+                              </span>
                             </div>
                           </td>
-                          <td className="py-2.5 px-3 text-center">
+                          <td className="py-1.5 sm:py-2 px-1 text-center hidden sm:table-cell">
                             {scorer.roundGoals > 0 ? (
-                              <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300 font-mono font-black text-[10px] border border-amber-300 dark:border-amber-800">
+                              <span className="px-1 py-0.2 rounded bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300 font-mono font-black text-[9px] border border-amber-300 dark:border-amber-800">
                                 +{scorer.roundGoals}
                               </span>
                             ) : (
                               <span className="text-slate-400 font-mono">-</span>
                             )}
                           </td>
-                          <td className="py-2.5 px-3 text-center font-mono font-black text-amber-600 dark:text-amber-400 text-sm bg-amber-50/50 dark:bg-amber-950/20">
+                          <td className="py-1.5 sm:py-2 px-1 sm:px-1.5 text-center font-mono font-black text-amber-600 dark:text-amber-400 text-xs sm:text-sm bg-amber-50/50 dark:bg-amber-950/20">
                             {scorer.totalGoals}
                           </td>
-                          <td className="py-2.5 px-3 text-center font-mono text-slate-500">
+                          <td className="py-1.5 sm:py-2 px-1 text-center font-mono text-slate-500 hidden md:table-cell">
                             {scorer.penalties > 0 ? scorer.penalties : '-'}
                           </td>
-                          <td className="py-2.5 px-3 text-center font-mono font-black text-[#1b55e2] dark:text-cyan-400 bg-blue-50/30 dark:bg-blue-950/20">
-                            {scorer.puntosTotales} pts
+                          <td className="py-1.5 sm:py-2 px-1 sm:px-2 text-center font-mono font-black text-[#1b55e2] dark:text-cyan-400 bg-blue-50/30 dark:bg-blue-950/20 text-xs">
+                            {scorer.puntosTotales}
                           </td>
-                          <td className="py-2.5 px-3 text-right font-mono font-black text-emerald-700 dark:text-emerald-400">
-                            {scorer.precio}
+                          <td className="py-1.5 sm:py-2 px-1 sm:px-3 text-right font-mono font-black text-emerald-700 dark:text-emerald-400 text-[10px] sm:text-xs whitespace-nowrap">
+                            <span className="hidden sm:inline">{scorer.precio}</span>
+                            <span className="sm:hidden">
+                              ${(scorer.playerObj?.precioNum ? (scorer.playerObj.precioNum / 1000000).toFixed(1) : (parseFloat(scorer.precio.replace(/[^0-9]/g, '')) / 1000000).toFixed(1))}M
+                            </span>
                           </td>
                         </tr>
                       ))
@@ -757,38 +754,39 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
           {/* VIEW 1: FECHAS SIN RECIBIR GOLES POR CLUB */}
           {defenseSubTab === 'CLUBES' && (
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs p-4 space-y-3">
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs p-2.5 sm:p-4 space-y-3">
               <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
                 <div>
                   <h3 className="font-black text-xs sm:text-sm uppercase tracking-wider text-slate-950 dark:text-slate-100">
-                    Ranking de Clubes: Fechas sin Recibir Goles (Vallas Invictas)
+                    Ranking de Clubes: Vallas Invictas
                   </h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    Ordenado por cantidad de fechas con arco en 0, porcentaje de efectividad defensiva y menos goles recibidos.
+                  <p className="text-[10.5px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Ordenado por fechas con arco en cero y solidez defensiva en el Clausura 2026.
                   </p>
                 </div>
                 <span className="text-[10px] text-emerald-600 font-bold uppercase bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">
-                  30 Clubes de Primera
+                  30 Clubes
                 </span>
               </div>
 
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
                 <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-400 text-[10px] uppercase font-black bg-slate-100 dark:bg-slate-800/40">
-                      <th className="py-2 px-2 text-center w-10">#</th>
-                      <th className="py-2 px-2">Club</th>
-                      <th className="py-2 px-2 text-center">Zona</th>
-                      <th className="py-2 px-2 text-center font-black bg-emerald-100/60 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border-x border-emerald-300 dark:border-emerald-800">
-                        Fechas sin Recibir Goles
+                  <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 z-10">
+                    <tr className="border-b border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-400 text-[9px] sm:text-[10px] uppercase font-black bg-slate-100 dark:bg-slate-800/40">
+                      <th className="py-2 px-0.5 sm:px-1 text-center w-4 sm:w-6">#</th>
+                      <th className="py-2 px-1 sm:px-2">Club</th>
+                      <th className="py-2 px-1 text-center hidden sm:table-cell">Zona</th>
+                      <th className="py-2 px-1 sm:px-1.5 text-center font-black bg-emerald-100/60 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border-x border-emerald-300 dark:border-emerald-800">
+                        <span className="hidden sm:inline">Vallas Invictas</span>
+                        <span className="sm:hidden">Vallas 0</span>
                       </th>
-                      <th className="py-2 px-2 text-center">% Arco en Cero</th>
-                      <th className="py-2 px-2 text-center">PJ</th>
-                      <th className="py-2 px-2 text-center">GC (Recibidos)</th>
-                      <th className="py-2 px-2 text-center">Promedio GC/PJ</th>
-                      <th className="py-2 px-2 text-center">GF</th>
-                      <th className="py-2 px-2 text-center">DIF</th>
-                      <th className="py-2 px-2 text-center">Puntos</th>
+                      <th className="py-2 px-1 text-center hidden xs:table-cell">% 0</th>
+                      <th className="py-2 px-1 text-center">PJ</th>
+                      <th className="py-2 px-1 text-center">GC</th>
+                      <th className="py-2 px-1 text-center hidden md:table-cell">Prom GC</th>
+                      <th className="py-2 px-1 text-center hidden lg:table-cell">GF</th>
+                      <th className="py-2 px-1 text-center hidden sm:table-cell">DIF</th>
+                      <th className="py-2 px-1 text-center">PTS</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -799,64 +797,64 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                         onClick={() => onSelectClub?.(team.teamName)}
                         title={`Ver plantel y estadísticas de ${team.teamName}`}
                       >
-                        <td className="py-2 px-2 text-center font-mono font-bold text-slate-500">
+                        <td className="py-1.5 sm:py-2 px-0.5 sm:px-1 text-center font-mono font-bold text-slate-500 text-[10px]">
                           {idx + 1}
                         </td>
-                        <td className="py-2 px-2 font-bold text-slate-900 dark:text-slate-100">
-                          <div className="flex items-center gap-2">
+                        <td className="py-1.5 sm:py-2 px-1 sm:px-2 font-bold text-slate-900 dark:text-slate-100">
+                          <div className="flex items-center gap-1.5">
                             <TeamBadge teamName={team.teamName} size="xs" showName={false} />
                             <div className="min-w-0">
-                              <span className="truncate group-hover:text-[#1b55e2] dark:group-hover:text-cyan-300 transition block">
+                              <span className="truncate group-hover:text-[#1b55e2] dark:group-hover:text-cyan-300 transition block text-xs max-w-[95px] xs:max-w-[120px] sm:max-w-none">
                                 {team.teamName}
                               </span>
                               {team.topGoalkeeperName && (
-                                <span className="text-[10px] font-normal text-slate-500 block truncate">
-                                  Arq: {team.topGoalkeeperName}
+                                <span className="text-[9px] sm:text-[10px] font-normal text-slate-500 block truncate max-w-[90px] sm:max-w-none">
+                                  {team.topGoalkeeperName}
                                 </span>
                               )}
                             </div>
                           </div>
                         </td>
-                        <td className="py-2 px-2 text-center">
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-semibold text-slate-600 dark:text-slate-300">
-                            {team.zone}
+                        <td className="py-1.5 sm:py-2 px-1 text-center hidden sm:table-cell">
+                          <span className="text-[9px] px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800 font-semibold text-slate-600 dark:text-slate-300">
+                            {team.zone === 'Zona A' ? 'A' : 'B'}
                           </span>
                         </td>
 
                         {/* Fechas sin recibir goles - Estadística Principal */}
-                        <td className="py-2 px-2 text-center font-mono font-black text-emerald-800 dark:text-emerald-300 bg-emerald-50/80 dark:bg-emerald-950/40 border-x border-emerald-200 dark:border-emerald-900/60">
+                        <td className="py-1.5 sm:py-2 px-1 sm:px-1.5 text-center font-mono font-black text-emerald-800 dark:text-emerald-300 bg-emerald-50/80 dark:bg-emerald-950/40 border-x border-emerald-200 dark:border-emerald-900/60">
                           <div className="flex items-center justify-center gap-1">
-                            <span className="text-sm font-black">{team.cleanSheetsTotal}</span>
-                            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
+                            <span className="text-xs sm:text-sm font-black">{team.cleanSheetsTotal}</span>
+                            <span className="text-[9px] sm:text-[10px] font-bold text-emerald-700 dark:text-emerald-400 hidden sm:inline">
                               {team.cleanSheetsTotal === 1 ? 'fecha' : 'fechas'}
                             </span>
                             {team.roundCleanSheet && (
-                              <span className="ml-1 text-[9px] px-1 py-0.2 rounded bg-emerald-200 text-emerald-950 font-black border border-emerald-300" title="Mantuvo arco en cero en Fecha 6">
-                                +1 F6
+                              <span className="text-[8px] sm:text-[9px] px-1 py-0.2 rounded bg-emerald-200 text-emerald-950 font-black border border-emerald-300" title="Mantuvo arco en cero en Fecha 6">
+                                +1
                               </span>
                             )}
                           </div>
                         </td>
 
-                        <td className="py-2 px-2 text-center font-mono font-bold text-slate-800 dark:text-slate-200">
-                          <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800">
+                        <td className="py-1.5 sm:py-2 px-1 text-center font-mono font-bold text-slate-800 dark:text-slate-200 text-[10px] sm:text-xs hidden xs:table-cell">
+                          <span className="px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800">
                             {team.cleanSheetRate}%
                           </span>
                         </td>
-                        <td className="py-2 px-2 text-center font-mono text-slate-600 dark:text-slate-400">
+                        <td className="py-1.5 sm:py-2 px-1 text-center font-mono text-slate-600 dark:text-slate-400 text-xs">
                           {team.played}
                         </td>
-                        <td className="py-2 px-2 text-center font-mono font-black text-slate-900 dark:text-slate-100">
+                        <td className="py-1.5 sm:py-2 px-1 text-center font-mono font-black text-slate-900 dark:text-slate-100 text-xs">
                           {team.goalsAgainst}
                         </td>
-                        <td className="py-2 px-2 text-center font-mono font-bold text-slate-700 dark:text-slate-300">
+                        <td className="py-1.5 sm:py-2 px-1 text-center font-mono font-bold text-slate-700 dark:text-slate-300 hidden md:table-cell">
                           {team.averageGoalsAgainst}
                         </td>
-                        <td className="py-2 px-2 text-center font-mono text-slate-600 dark:text-slate-400">
+                        <td className="py-1.5 sm:py-2 px-1 text-center font-mono text-slate-600 dark:text-slate-400 hidden lg:table-cell">
                           {team.goalsFor}
                         </td>
                         <td
-                          className={`py-2 px-2 text-center font-mono font-bold ${
+                          className={`py-1.5 sm:py-2 px-1 text-center font-mono font-bold hidden sm:table-cell ${
                             team.goalDiff > 0
                               ? 'text-emerald-600 dark:text-emerald-400'
                               : team.goalDiff < 0
@@ -866,8 +864,8 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                         >
                           {team.goalDiff > 0 ? `+${team.goalDiff}` : team.goalDiff}
                         </td>
-                        <td className="py-2 px-2 text-center font-mono font-black text-[#1b55e2] dark:text-cyan-400">
-                          {team.points} pts
+                        <td className="py-1.5 sm:py-2 px-1 text-center font-mono font-black text-[#1b55e2] dark:text-cyan-400 text-xs">
+                          {team.points}
                         </td>
                       </tr>
                     ))}
@@ -879,14 +877,14 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
           {/* VIEW 2: ARQUEROS CON VALLA INVICTA */}
           {defenseSubTab === 'ARQUEROS' && (
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs p-4 space-y-3">
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs p-2.5 sm:p-4 space-y-3">
               <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
                 <div>
                   <h3 className="font-black text-xs sm:text-sm uppercase tracking-wider text-slate-950 dark:text-slate-100">
-                    Ranking Oficial de Arqueros: Fechas sin Recibir Goles
+                    Ranking de Arqueros: Vallas Invictas
                   </h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    Fechas con arco en cero registradas en Gran DT con puntajes consolidados a la Fecha 5.
+                  <p className="text-[10.5px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Fechas con arco en cero registradas en Gran DT con puntajes consolidados ({roundLabelState}).
                   </p>
                 </div>
                 <span className="text-[10px] text-blue-600 font-bold uppercase bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded border border-blue-300 dark:border-blue-800">
@@ -894,24 +892,26 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 </span>
               </div>
 
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
                 <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-400 text-[10px] uppercase font-black bg-slate-100 dark:bg-slate-800/40">
-                      <th className="py-2.5 px-3 text-center w-10">#</th>
-                      <th className="py-2.5 px-3">Arquero</th>
-                      <th className="py-2.5 px-3 text-center">Posición</th>
-                      <th className="py-2.5 px-3">Club</th>
-                      <th className="py-2.5 px-3 text-center font-black bg-emerald-100/60 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border-x border-emerald-300 dark:border-emerald-800">
-                        Fechas sin Recibir Goles
+                  <thead className="sticky top-0 bg-slate-100 dark:bg-slate-800 z-10">
+                    <tr className="border-b border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-400 text-[9px] sm:text-[10px] uppercase font-black bg-slate-100 dark:bg-slate-800/40">
+                      <th className="py-2 px-0.5 sm:px-1 text-center w-4 sm:w-6">#</th>
+                      <th className="py-2 px-1 sm:px-3">Arquero</th>
+                      <th className="py-2 px-0.5 sm:px-1 text-center">Pos</th>
+                      <th className="py-2 px-1 sm:px-2 text-center sm:text-left">Club</th>
+                      <th className="py-2 px-1 sm:px-1.5 text-center font-black bg-emerald-100/60 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-300 border-x border-emerald-300 dark:border-emerald-800">
+                        <span className="hidden sm:inline">Vallas Invictas</span>
+                        <span className="sm:hidden">Vallas 0</span>
                       </th>
-                      <th className="py-2.5 px-3 text-center">% Arco en Cero</th>
-                      <th className="py-2.5 px-3 text-center">Partidos Jugados (PJ)</th>
-                      <th className="py-2.5 px-3 text-center bg-blue-50/60 dark:bg-blue-950/40 text-[#1b55e2] dark:text-cyan-300">
-                        Pts Gran DT (Hasta F5)
+                      <th className="py-2 px-1 text-center hidden xs:table-cell">% 0</th>
+                      <th className="py-2 px-1 text-center">PJ</th>
+                      <th className="py-2 px-1 sm:px-2 text-center bg-blue-50/60 dark:bg-blue-950/40 text-[#1b55e2] dark:text-cyan-300">
+                        <span className="hidden sm:inline">Pts Totales</span>
+                        <span className="sm:hidden">Pts</span>
                       </th>
-                      <th className="py-2.5 px-3 text-center">Promedio Calificación</th>
-                      <th className="py-2.5 px-3 text-right">Cotización</th>
+                      <th className="py-2 px-1 text-center hidden md:table-cell">Prom</th>
+                      <th className="py-2 px-1 sm:px-3 text-right">Precio</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -922,55 +922,63 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                         onClick={() => arq.playerObj && onSelectPlayer?.(arq.playerObj)}
                         title={`Ver estadísticas de ${arq.nombre}`}
                       >
-                        <td className="py-2.5 px-3 text-center font-mono font-bold text-slate-500">
+                        <td className="py-1.5 sm:py-2 px-0.5 sm:px-1 text-center font-mono font-bold text-slate-500 text-[10px]">
                           {idx + 1}
                         </td>
-                        <td className="py-2.5 px-3 font-black text-slate-900 dark:text-slate-100">
-                          <span className="group-hover:text-[#1b55e2] dark:group-hover:text-cyan-300 transition">
+                        <td className="py-1.5 sm:py-2 px-1 sm:px-3 font-black text-slate-900 dark:text-slate-100">
+                          <span
+                            className="group-hover:text-[#1b55e2] dark:group-hover:text-cyan-300 transition text-xs block truncate max-w-[105px] xs:max-w-[130px] sm:max-w-none"
+                            title={arq.nombre}
+                          >
                             {arq.nombre}
                           </span>
                         </td>
-                        <td className="py-2.5 px-3 text-center">
-                          <PositionBadge position="ARQ" size="sm" />
+                        <td className="py-1.5 sm:py-2 px-0.5 sm:px-1 text-center">
+                          <PositionBadge position="ARQ" size="xs" />
                         </td>
-                        <td className="py-2.5 px-3 text-slate-600 dark:text-slate-300">
-                          <div className="flex items-center gap-1.5">
+                        <td className="py-1.5 sm:py-2 px-1 sm:px-2 text-slate-600 dark:text-slate-300 text-center sm:text-left">
+                          <div className="flex items-center justify-center sm:justify-start gap-1 sm:gap-1.5">
                             <TeamBadge teamName={arq.equipo} size="xs" showName={false} />
-                            <span className="truncate font-bold">{arq.equipo}</span>
+                            <span className="hidden sm:inline truncate font-bold text-[11px] sm:text-xs max-w-[130px]">
+                              {arq.equipo}
+                            </span>
                           </div>
                         </td>
 
                         {/* Vallas Invictas Arquero - Estadística Principal */}
-                        <td className="py-2.5 px-3 text-center font-mono font-black text-emerald-800 dark:text-emerald-300 bg-emerald-50/80 dark:bg-emerald-950/40 border-x border-emerald-200 dark:border-emerald-900/60">
+                        <td className="py-1.5 sm:py-2 px-1 sm:px-1.5 text-center font-mono font-black text-emerald-800 dark:text-emerald-300 bg-emerald-50/80 dark:bg-emerald-950/40 border-x border-emerald-200 dark:border-emerald-900/60">
                           <div className="flex items-center justify-center gap-1">
-                            <span className="text-sm font-black">{arq.vallaInvictaTotal}</span>
-                            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
+                            <span className="text-xs sm:text-sm font-black">{arq.vallaInvictaTotal}</span>
+                            <span className="text-[9px] sm:text-[10px] font-bold text-emerald-700 dark:text-emerald-400 hidden sm:inline">
                               {arq.vallaInvictaTotal === 1 ? 'fecha' : 'fechas'}
                             </span>
                             {arq.roundVallaInvicta && (
-                              <span className="ml-1 text-[9px] px-1 py-0.2 rounded bg-emerald-200 text-emerald-950 font-black border border-emerald-300" title="Arco en cero en Fecha 6">
-                                +1 F6
+                              <span className="text-[8px] sm:text-[9px] px-1 py-0.2 rounded bg-emerald-200 text-emerald-950 font-black border border-emerald-300" title="Arco en cero en Fecha 6">
+                                +1
                               </span>
                             )}
                           </div>
                         </td>
 
-                        <td className="py-2.5 px-3 text-center font-mono font-bold text-slate-800 dark:text-slate-200">
-                          <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800">
+                        <td className="py-1.5 sm:py-2 px-1 text-center font-mono font-bold text-slate-800 dark:text-slate-200 text-[10px] sm:text-xs hidden xs:table-cell">
+                          <span className="px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800">
                             {arq.cleanSheetRate}%
                           </span>
                         </td>
-                        <td className="py-2.5 px-3 text-center font-mono text-slate-600 dark:text-slate-400">
+                        <td className="py-1.5 sm:py-2 px-1 text-center font-mono text-slate-600 dark:text-slate-400 text-xs">
                           {arq.partidosJugados}
                         </td>
-                        <td className="py-2.5 px-3 text-center font-mono font-black text-[#1b55e2] dark:text-cyan-400 bg-blue-50/30 dark:bg-blue-950/20">
-                          {arq.puntosTotales} pts
+                        <td className="py-1.5 sm:py-2 px-1 sm:px-2 text-center font-mono font-black text-[#1b55e2] dark:text-cyan-400 bg-blue-50/30 dark:bg-blue-950/20 text-xs">
+                          {arq.puntosTotales}
                         </td>
-                        <td className="py-2.5 px-3 text-center font-mono text-slate-600 dark:text-slate-400">
+                        <td className="py-1.5 sm:py-2 px-1 text-center font-mono text-slate-600 dark:text-slate-400 hidden md:table-cell">
                           {arq.promedio > 0 ? arq.promedio.toFixed(2) : '-'}
                         </td>
-                        <td className="py-2.5 px-3 text-right font-mono font-black text-emerald-700 dark:text-emerald-400">
-                          {arq.precio}
+                        <td className="py-1.5 sm:py-2 px-1 sm:px-3 text-right font-mono font-black text-emerald-700 dark:text-emerald-400 text-[10px] sm:text-xs whitespace-nowrap">
+                          <span className="hidden sm:inline">{arq.precio}</span>
+                          <span className="sm:hidden">
+                            ${(arq.playerObj?.precioNum ? (arq.playerObj.precioNum / 1000000).toFixed(1) : (parseFloat(arq.precio.replace(/[^0-9]/g, '')) / 1000000).toFixed(1))}M
+                          </span>
                         </td>
                       </tr>
                     ))}
