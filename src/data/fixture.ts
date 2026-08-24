@@ -202,7 +202,10 @@ export const FIXTURES_DATA: MatchFixture[] = [
     displayTime: 'Sábado 22/08 • 18:30 hs',
     stadium: 'Libertadores de América - Ricardo Bochini',
     isInterzonal: true,
-    status: 'SCHEDULED',
+    status: 'FINISHED',
+    homeScore: 0,
+    awayScore: 0,
+    liveMinute: 'Finalizado',
     events: [],
   },
   {
@@ -215,8 +218,36 @@ export const FIXTURES_DATA: MatchFixture[] = [
     displayTime: 'Sábado 22/08 • 21:00 hs',
     stadium: 'Marcelo Bielsa (Rosario)',
     isInterzonal: true,
-    status: 'SCHEDULED',
-    events: [],
+    status: 'FINISHED',
+    homeScore: 2,
+    awayScore: 1,
+    liveMinute: 'Finalizado',
+    events: [
+      {
+        id: 'ev-6-6-1',
+        minute: 51,
+        type: 'goal',
+        team: 'home',
+        playerName: 'Matías Cóccaro',
+        detail: 'Gol de Newell\'s',
+      },
+      {
+        id: 'ev-6-6-2',
+        minute: 77,
+        type: 'goal',
+        team: 'home',
+        playerName: 'Matías Cóccaro',
+        detail: 'Doblete para poner el 2-0',
+      },
+      {
+        id: 'ev-6-6-3',
+        minute: 90,
+        type: 'penalty_goal',
+        team: 'away',
+        playerName: 'Bruno Sepúlveda',
+        detail: 'Descuento de penal para Banfield',
+      },
+    ],
   },
   {
     id: 'f6-7',
@@ -228,7 +259,10 @@ export const FIXTURES_DATA: MatchFixture[] = [
     displayTime: 'Sábado 22/08 • 21:00 hs',
     stadium: 'Tomás Adolfo Ducó (Parque Patricios)',
     isInterzonal: true,
-    status: 'SCHEDULED',
+    status: 'FINISHED',
+    homeScore: 0,
+    awayScore: 0,
+    liveMinute: 'Finalizado',
     events: [],
   },
   {
@@ -241,8 +275,28 @@ export const FIXTURES_DATA: MatchFixture[] = [
     displayTime: 'Domingo 23/08 • 14:45 hs',
     stadium: 'Eva Perón (Junín)',
     isInterzonal: true,
-    status: 'SCHEDULED',
-    events: [],
+    status: 'FINISHED',
+    homeScore: 2,
+    awayScore: 0,
+    liveMinute: 'Finalizado',
+    events: [
+      {
+        id: 'ev-6-8-1',
+        minute: 18,
+        type: 'goal',
+        team: 'home',
+        playerName: 'Mauricio Martínez',
+        detail: 'Gol de Sarmiento',
+      },
+      {
+        id: 'ev-6-8-2',
+        minute: 80,
+        type: 'goal',
+        team: 'home',
+        playerName: 'Gastón González',
+        detail: 'Gol de Sarmiento',
+      },
+    ],
   },
   {
     id: 'f6-9',
@@ -254,8 +308,36 @@ export const FIXTURES_DATA: MatchFixture[] = [
     displayTime: 'Domingo 23/08 • 14:45 hs',
     stadium: 'Claudio Chiqui Tapia (Barracas)',
     isInterzonal: true,
-    status: 'SCHEDULED',
-    events: [],
+    status: 'FINISHED',
+    homeScore: 1,
+    awayScore: 2,
+    liveMinute: 'Finalizado',
+    events: [
+      {
+        id: 'ev-6-9-1',
+        minute: 23,
+        type: 'penalty_goal',
+        team: 'home',
+        playerName: 'Iván Tapia',
+        detail: 'Gol de penal para Barracas',
+      },
+      {
+        id: 'ev-6-9-2',
+        minute: 59,
+        type: 'goal',
+        team: 'away',
+        playerName: 'Nicolás Retamar',
+        detail: 'Empate de Platense',
+      },
+      {
+        id: 'ev-6-9-3',
+        minute: 90,
+        type: 'goal',
+        team: 'away',
+        playerName: 'Luciano Giménez',
+        detail: 'Gol agónico de Platense',
+      },
+    ],
   },
   {
     id: 'f6-10',
@@ -267,8 +349,36 @@ export const FIXTURES_DATA: MatchFixture[] = [
     displayTime: 'Domingo 23/08 • 17:00 hs',
     stadium: 'Julio César Villagra (Córdoba)',
     isInterzonal: true,
-    status: 'SCHEDULED',
-    events: [],
+    status: 'FINISHED',
+    homeScore: 1,
+    awayScore: 2,
+    liveMinute: 'Finalizado',
+    events: [
+      {
+        id: 'ev-6-10-1',
+        minute: 12,
+        type: 'goal',
+        team: 'away',
+        playerName: 'César Pérez',
+        detail: 'Gol de Defensa y Justicia',
+      },
+      {
+        id: 'ev-6-10-2',
+        minute: 47,
+        type: 'goal',
+        team: 'away',
+        playerName: 'Damián Fernández',
+        detail: 'Gol de Defensa y Justicia',
+      },
+      {
+        id: 'ev-6-10-3',
+        minute: 59,
+        type: 'goal',
+        team: 'home',
+        playerName: 'Ramiro Hernandes',
+        detail: 'Descuento de Belgrano',
+      },
+    ],
   },
   {
     id: 'f6-11',
@@ -280,8 +390,44 @@ export const FIXTURES_DATA: MatchFixture[] = [
     displayTime: 'Domingo 23/08 • 19:15 hs',
     stadium: 'Más Monumental (Núñez)',
     isInterzonal: true,
-    status: 'SCHEDULED',
-    events: [],
+    status: 'FINISHED',
+    homeScore: 2,
+    awayScore: 2,
+    liveMinute: 'Finalizado',
+    events: [
+      {
+        id: 'ev-6-11-1',
+        minute: 11,
+        type: 'goal',
+        team: 'home',
+        playerName: 'Ángel Correa',
+        detail: 'Gol de River Plate',
+      },
+      {
+        id: 'ev-6-11-2',
+        minute: 43,
+        type: 'goal',
+        team: 'home',
+        playerName: 'Thiago Silvero',
+        detail: 'Gol en contra de Vélez',
+      },
+      {
+        id: 'ev-6-11-3',
+        minute: 61,
+        type: 'goal',
+        team: 'away',
+        playerName: 'Diego Valdés',
+        detail: 'Descuento de Vélez',
+      },
+      {
+        id: 'ev-6-11-4',
+        minute: 79,
+        type: 'goal',
+        team: 'away',
+        playerName: 'Manuel Lanzini',
+        detail: 'Empate de Vélez',
+      },
+    ],
   },
   {
     id: 'f6-12',
@@ -293,8 +439,28 @@ export const FIXTURES_DATA: MatchFixture[] = [
     displayTime: 'Domingo 23/08 • 21:30 hs',
     stadium: 'Presidente Perón (Avellaneda)',
     isInterzonal: true,
-    status: 'SCHEDULED',
-    events: [],
+    status: 'FINISHED',
+    homeScore: 1,
+    awayScore: 1,
+    liveMinute: 'Finalizado',
+    events: [
+      {
+        id: 'ev-6-12-1',
+        minute: 9,
+        type: 'penalty_goal',
+        team: 'home',
+        playerName: 'Marcos Rojo',
+        detail: 'Gol de penal para Racing',
+      },
+      {
+        id: 'ev-6-12-2',
+        minute: 28,
+        type: 'goal',
+        team: 'away',
+        playerName: 'Miguel Merentiel',
+        detail: 'Empate de Boca',
+      },
+    ],
   },
   {
     id: 'f6-13',
@@ -508,66 +674,93 @@ export const FIXTURES_DATA: MatchFixture[] = [
 export const MATCH_DURATION_MS = 115 * 60 * 1000;
 
 /**
- * Calcula el estado dinámico y automático de un partido en función de la hora actual:
- * - SCHEDULED si aún no empezó
- * - LIVE con marcador y minuto exacto (PT 15', Entretiempo, ST 70', etc.) si está en juego
- * - FINISHED si concluyeron los 115 minutos desde el pitazo inicial
+ * Calcula el estado dinámico y automático de un partido:
+ * - Si match.status === 'FINISHED', devuelve FINISHED con sus marcadores y eventos definitivos.
+ * - Si match.status === 'LIVE', devuelve LIVE con sus marcadores en vivo.
+ * - Si match.status === 'SCHEDULED', calcula el estado temporal según la hora actual.
  */
 export function getDynamicMatchState(match: MatchFixture, currentDate: Date = new Date()): DynamicMatchState {
   const nowMs = currentDate.getTime();
   const kickoffMs = new Date(match.kickoff).getTime();
   const finishMs = kickoffMs + MATCH_DURATION_MS;
 
-  // 1. Partido PROGRAMADO (Aún no empezó)
-  if (nowMs < kickoffMs && match.status !== 'FINISHED') {
+  // 1. Partido ya marcado como FINALIZADO (Definitivo)
+  if (match.status === 'FINISHED' || nowMs >= finishMs) {
+    let finalHomeScore = match.homeScore;
+    let finalAwayScore = match.awayScore;
+
+    if ((finalHomeScore === undefined || finalAwayScore === undefined) && match.events && match.events.length > 0) {
+      let hs = 0;
+      let as = 0;
+      match.events.forEach(e => {
+        if (e.type === 'goal' || e.type === 'penalty_goal') {
+          if (e.team === 'home') hs++;
+          if (e.team === 'away') as++;
+        }
+      });
+      finalHomeScore = finalHomeScore ?? hs;
+      finalAwayScore = finalAwayScore ?? as;
+    }
+
     return {
       fixture: match,
-      status: 'SCHEDULED',
-      homeScore: undefined,
-      awayScore: undefined,
-      liveMinute: match.displayTime,
+      status: 'FINISHED',
+      homeScore: finalHomeScore ?? 0,
+      awayScore: finalAwayScore ?? 0,
+      liveMinute: match.liveMinute || 'Finalizado',
       isLive: false,
-      isFinished: false,
-      isScheduled: true,
-      visibleEvents: [],
+      isFinished: true,
+      isScheduled: false,
+      visibleEvents: match.events || [],
     };
   }
 
-  // 2. Partido EN VIVO (nowMs >= kickoffMs && nowMs < finishMs y no finalizado)
-  if (nowMs >= kickoffMs && nowMs < finishMs && match.status !== 'FINISHED') {
+  // 2. Partido EN VIVO (por estado explícito o por horario)
+  if (match.status === 'LIVE' || (nowMs >= kickoffMs && nowMs < finishMs)) {
     const elapsedMinutes = Math.floor((nowMs - kickoffMs) / 60000);
-    let liveMinuteStr = '';
+    let liveMinuteStr = match.liveMinute;
 
-    if (elapsedMinutes <= 45) {
-      liveMinuteStr = `PT ${Math.max(1, elapsedMinutes)}'`;
-    } else if (elapsedMinutes > 45 && elapsedMinutes <= 60) {
-      liveMinuteStr = 'Entretiempo';
-    } else if (elapsedMinutes > 60 && elapsedMinutes <= 105) {
-      liveMinuteStr = `ST ${elapsedMinutes - 15}'`;
-    } else {
-      const extra = Math.min(8, elapsedMinutes - 105);
-      liveMinuteStr = `ST 90+${extra}'`;
+    if (!liveMinuteStr || liveMinuteStr === 'Finalizado' || liveMinuteStr.includes('•') || liveMinuteStr === 'Prog.') {
+      if (elapsedMinutes <= 45) {
+        liveMinuteStr = `PT ${Math.max(1, elapsedMinutes)}'`;
+      } else if (elapsedMinutes > 45 && elapsedMinutes <= 60) {
+        liveMinuteStr = 'Entretiempo';
+      } else if (elapsedMinutes > 60 && elapsedMinutes <= 105) {
+        liveMinuteStr = `ST ${elapsedMinutes - 15}'`;
+      } else {
+        const extra = Math.min(8, elapsedMinutes - 105);
+        liveMinuteStr = `ST 90+${extra}'`;
+      }
     }
 
     const effectiveMin = elapsedMinutes <= 45 ? elapsedMinutes : (elapsedMinutes > 60 ? elapsedMinutes - 15 : 45);
-    const visibleEvents = (match.events || []).filter(e => e.minute <= effectiveMin);
+    const visibleEvents = match.events && match.events.length > 0
+      ? (match.status === 'LIVE' ? match.events : match.events.filter(e => e.minute <= effectiveMin))
+      : [];
 
-    let hScore = 0;
-    let aScore = 0;
-    visibleEvents.forEach(e => {
-      if (e.type === 'goal' || e.type === 'penalty_goal') {
-        if (e.team === 'home') hScore++;
-        if (e.team === 'away') aScore++;
-      }
-    });
+    let hScore = match.homeScore;
+    let aScore = match.awayScore;
+
+    if (hScore === undefined || aScore === undefined) {
+      let hs = 0;
+      let as = 0;
+      visibleEvents.forEach(e => {
+        if (e.type === 'goal' || e.type === 'penalty_goal') {
+          if (e.team === 'home') hs++;
+          if (e.team === 'away') as++;
+        }
+      });
+      hScore = hScore ?? hs;
+      aScore = aScore ?? as;
+    }
 
     return {
       fixture: match,
       status: 'LIVE',
-      homeScore: hScore,
-      awayScore: aScore,
+      homeScore: hScore ?? 0,
+      awayScore: aScore ?? 0,
       liveMinute: liveMinuteStr,
-      elapsedMinutes,
+      elapsedMinutes: Math.max(0, elapsedMinutes),
       isLive: true,
       isFinished: false,
       isScheduled: false,
@@ -575,32 +768,17 @@ export function getDynamicMatchState(match: MatchFixture, currentDate: Date = ne
     };
   }
 
-  // 3. Partido FINALIZADO (nowMs >= finishMs o match.status === 'FINISHED')
-  let finalHomeScore = match.homeScore;
-  let finalAwayScore = match.awayScore;
-  if ((finalHomeScore === undefined || finalAwayScore === undefined) && match.events && match.events.length > 0) {
-    let hs = 0;
-    let as = 0;
-    match.events.forEach(e => {
-      if (e.type === 'goal' || e.type === 'penalty_goal') {
-        if (e.team === 'home') hs++;
-        if (e.team === 'away') as++;
-      }
-    });
-    finalHomeScore = finalHomeScore ?? hs;
-    finalAwayScore = finalAwayScore ?? as;
-  }
-
+  // 3. Partido PROGRAMADO (Aún no empezó)
   return {
     fixture: match,
-    status: 'FINISHED',
-    homeScore: finalHomeScore ?? 0,
-    awayScore: finalAwayScore ?? 0,
-    liveMinute: match.liveMinute || 'Finalizado',
+    status: 'SCHEDULED',
+    homeScore: undefined,
+    awayScore: undefined,
+    liveMinute: match.displayTime,
     isLive: false,
-    isFinished: true,
-    isScheduled: false,
-    visibleEvents: match.events || [],
+    isFinished: false,
+    isScheduled: true,
+    visibleEvents: [],
   };
 }
 
@@ -779,6 +957,45 @@ function notifyFixtureListeners() {
   });
 }
 
+function cleanTeamString(str: string): string {
+  return (str || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function areTeamNamesEqual(nameA: string, nameB: string): boolean {
+  const a = cleanTeamString(nameA);
+  const b = cleanTeamString(nameB);
+  if (a === b) return true;
+
+  // Specific disambiguations
+  const isGimnasiaMendoza = (s: string) => s.includes('mendoza') || s.includes('mza') || s.includes('gimnasia m');
+  const isGimnasiaLP = (s: string) => (s.includes('plata') || s.includes('lp')) && !isGimnasiaMendoza(s);
+  if ((isGimnasiaMendoza(a) && isGimnasiaLP(b)) || (isGimnasiaLP(a) && isGimnasiaMendoza(b))) return false;
+
+  const isEstudiantesRC = (s: string) => s.includes('cuarto') || s.includes('rc') || s.includes('rio');
+  const isEstudiantesLP = (s: string) => (s.includes('plata') || s.includes('lp')) && !isEstudiantesRC(s);
+  if ((isEstudiantesRC(a) && isEstudiantesLP(b)) || (isEstudiantesLP(a) && isEstudiantesRC(b))) return false;
+
+  const isIndRivadavia = (s: string) => s.includes('rivadavia') || s.includes('riv');
+  const isIndependienteAvellaneda = (s: string) => s.includes('independiente') && !isIndRivadavia(s);
+  if ((isIndRivadavia(a) && isIndependienteAvellaneda(b)) || (isIndependienteAvellaneda(a) && isIndRivadavia(b))) return false;
+
+  const isCentralCordoba = (s: string) => s.includes('cordoba') || s.includes('sde') || s.includes('cba');
+  const isRosarioCentral = (s: string) => s.includes('rosario') && !isCentralCordoba(s);
+  if ((isCentralCordoba(a) && isRosarioCentral(b)) || (isRosarioCentral(a) && isCentralCordoba(b))) return false;
+
+  const isSanMartinSJ = (s: string) => s.includes('juan') || s.includes('sj');
+  const isSanMartinTuc = (s: string) => s.includes('tucuman') || s.includes(' t');
+  if ((isSanMartinSJ(a) && isSanMartinTuc(b)) || (isSanMartinTuc(a) && isSanMartinSJ(b))) return false;
+
+  return a.includes(b) || b.includes(a);
+}
+
 /**
  * Actualiza los partidos en memoria en tiempo real con la data recibida de Promiedos
  */
@@ -800,16 +1017,8 @@ export function updateFixturesFromPromiedos(
 
   promiedosMatches.forEach(pm => {
     const match = FIXTURES_DATA.find(base => {
-      const homeMatch =
-        pm.homeTeam.toLowerCase() === base.homeTeam.toLowerCase() ||
-        pm.homeTeam.toLowerCase().includes(base.homeTeam.toLowerCase()) ||
-        base.homeTeam.toLowerCase().includes(pm.homeTeam.toLowerCase());
-
-      const awayMatch =
-        pm.awayTeam.toLowerCase() === base.awayTeam.toLowerCase() ||
-        pm.awayTeam.toLowerCase().includes(base.awayTeam.toLowerCase()) ||
-        base.awayTeam.toLowerCase().includes(pm.awayTeam.toLowerCase());
-
+      const homeMatch = areTeamNamesEqual(pm.homeTeam, base.homeTeam);
+      const awayMatch = areTeamNamesEqual(pm.awayTeam, base.awayTeam);
       return homeMatch && awayMatch;
     });
 

@@ -50,6 +50,96 @@ const CACHE_TTL_MS = 30 * 1000; // 30s in-memory server cache for instant respon
 
 // Canonical Gran DT team name dictionary
 const TEAM_NAME_MAP: Record<string, string> = {
+  // Gimnasia
+  'gimnasia y esgrima de mendoza': 'Gimnasia y Esgrima de Mendoza',
+  'gimnasia y esgrima (mendoza)': 'Gimnasia y Esgrima de Mendoza',
+  'gimnasia y esgrima (m)': 'Gimnasia y Esgrima de Mendoza',
+  'gimnasia y esgrima mza': 'Gimnasia y Esgrima de Mendoza',
+  'gimnasia mendoza': 'Gimnasia y Esgrima de Mendoza',
+  'gimnasia de mendoza': 'Gimnasia y Esgrima de Mendoza',
+  'gimnasia mza': 'Gimnasia y Esgrima de Mendoza',
+  'gimnasia (m)': 'Gimnasia y Esgrima de Mendoza',
+  'gimnasia m': 'Gimnasia y Esgrima de Mendoza',
+  'gimnasia y esgrima la plata': 'Gimnasia y Esgrima La Plata',
+  'gimnasia y esgrima lp': 'Gimnasia y Esgrima La Plata',
+  'gimnasia la plata': 'Gimnasia y Esgrima La Plata',
+  'gimnasia (lp)': 'Gimnasia y Esgrima La Plata',
+  'gimnasia lp': 'Gimnasia y Esgrima La Plata',
+  'gimnasia': 'Gimnasia y Esgrima La Plata',
+
+  // Estudiantes
+  'estudiantes de rio cuarto': 'Estudiantes de Río Cuarto',
+  'estudiantes de río cuarto': 'Estudiantes de Río Cuarto',
+  'estudiantes rio cuarto': 'Estudiantes de Río Cuarto',
+  'estudiantes río cuarto': 'Estudiantes de Río Cuarto',
+  'estudiantes (rc)': 'Estudiantes de Río Cuarto',
+  'estudiantes rc': 'Estudiantes de Río Cuarto',
+  'estudiantes de la plata': 'Estudiantes de La Plata',
+  'estudiantes la plata': 'Estudiantes de La Plata',
+  'estudiantes (lp)': 'Estudiantes de La Plata',
+  'estudiantes lp': 'Estudiantes de La Plata',
+  'estudiantes': 'Estudiantes de La Plata',
+
+  // Independiente
+  'independiente rivadavia': 'Independiente Rivadavia',
+  'independiente riv': 'Independiente Rivadavia',
+  'ind. rivadavia': 'Independiente Rivadavia',
+  'ind rivadavia': 'Independiente Rivadavia',
+  'ind riv': 'Independiente Rivadavia',
+  'independiente': 'Independiente',
+
+  // Central
+  'central cordoba de sde': 'Central Córdoba de SDE',
+  'central córdoba de sde': 'Central Córdoba de SDE',
+  'central cordoba (sde)': 'Central Córdoba de SDE',
+  'central córdoba (sde)': 'Central Córdoba de SDE',
+  'central cordoba (se)': 'Central Córdoba de SDE',
+  'central córdoba (se)': 'Central Córdoba de SDE',
+  'central cba (sde)': 'Central Córdoba de SDE',
+  'central cba': 'Central Córdoba de SDE',
+  'central cordoba': 'Central Córdoba de SDE',
+  'central córdoba': 'Central Córdoba de SDE',
+  'rosario central': 'Rosario Central',
+  'r. central': 'Rosario Central',
+
+  // San Martín
+  'san martin de san juan': 'San Martín de San Juan',
+  'san martín de san juan': 'San Martín de San Juan',
+  'san martin (sj)': 'San Martín de San Juan',
+  'san martín (sj)': 'San Martín de San Juan',
+  'san martin sj': 'San Martín de San Juan',
+  'san martín sj': 'San Martín de San Juan',
+  'san martin de tucuman': 'San Martín de Tucumán',
+  'san martín de tucumán': 'San Martín de Tucumán',
+  'san martin (t)': 'San Martín de Tucumán',
+  'san martín (t)': 'San Martín de Tucumán',
+  'san martin t': 'San Martín de Tucumán',
+  'san martín t': 'San Martín de Tucumán',
+
+  // Sarmiento
+  'sarmiento de junin': 'Sarmiento de Junín',
+  'sarmiento de junín': 'Sarmiento de Junín',
+  'sarmiento (j)': 'Sarmiento de Junín',
+  'sarmiento junin': 'Sarmiento de Junín',
+  'sarmiento junín': 'Sarmiento de Junín',
+  'sarmiento': 'Sarmiento de Junín',
+
+  // Talleres
+  'talleres de cordoba': 'Talleres de Córdoba',
+  'talleres de córdoba': 'Talleres de Córdoba',
+  'talleres (c)': 'Talleres de Córdoba',
+  'talleres cordoba': 'Talleres de Córdoba',
+  'talleres': 'Talleres de Córdoba',
+
+  // Unión
+  'union de santa fe': 'Unión de Santa Fe',
+  'unión de santa fe': 'Unión de Santa Fe',
+  'union santa fe': 'Unión de Santa Fe',
+  'unión santa fe': 'Unión de Santa Fe',
+  'union': 'Unión de Santa Fe',
+  'unión': 'Unión de Santa Fe',
+
+  // Others
   'aldosivi': 'Aldosivi',
   'argentinos': 'Argentinos Juniors',
   'argentinos juniors': 'Argentinos Juniors',
@@ -59,108 +149,83 @@ const TEAM_NAME_MAP: Record<string, string> = {
   'atl tucuman': 'Atlético Tucumán',
   'atl. tucuman': 'Atlético Tucumán',
   'banfield': 'Banfield',
-  'barracas': 'Barracas Central',
   'barracas central': 'Barracas Central',
-  'belgrano': 'Belgrano de Córdoba',
+  'barracas': 'Barracas Central',
   'belgrano de cordoba': 'Belgrano de Córdoba',
   'belgrano de córdoba': 'Belgrano de Córdoba',
   'belgrano (c)': 'Belgrano de Córdoba',
-  'boca': 'Boca Juniors',
+  'belgrano': 'Belgrano de Córdoba',
   'boca juniors': 'Boca Juniors',
-  'central cordoba': 'Central Córdoba de SDE',
-  'central córdoba': 'Central Córdoba de SDE',
-  'central cordoba de sde': 'Central Córdoba de SDE',
-  'central córdoba de sde': 'Central Córdoba de SDE',
-  'central cba (sde)': 'Central Córdoba de SDE',
-  'central cba': 'Central Córdoba de SDE',
-  'central cordoba (se)': 'Central Córdoba de SDE',
+  'boca': 'Boca Juniors',
   'defensa y justicia': 'Defensa y Justicia',
-  'defensa': 'Defensa y Justicia',
   'def y justicia': 'Defensa y Justicia',
+  'defensa': 'Defensa y Justicia',
   'deportivo riestra': 'Deportivo Riestra',
+  'dep riestra': 'Deportivo Riestra',
   'riestra': 'Deportivo Riestra',
-  'estudiantes': 'Estudiantes de La Plata',
-  'estudiantes lp': 'Estudiantes de La Plata',
-  'estudiantes (lp)': 'Estudiantes de La Plata',
-  'estudiantes de la plata': 'Estudiantes de La Plata',
-  'estudiantes rc': 'Estudiantes de Río Cuarto',
-  'estudiantes (rc)': 'Estudiantes de Río Cuarto',
-  'estudiantes de rio cuarto': 'Estudiantes de Río Cuarto',
-  'estudiantes de río cuarto': 'Estudiantes de Río Cuarto',
-  'gimnasia': 'Gimnasia y Esgrima La Plata',
-  'gimnasia lp': 'Gimnasia y Esgrima La Plata',
-  'gimnasia (lp)': 'Gimnasia y Esgrima La Plata',
-  'gimnasia y esgrima la plata': 'Gimnasia y Esgrima La Plata',
-  'gimnasia y esgrima lp': 'Gimnasia y Esgrima La Plata',
-  'gimnasia mza': 'Gimnasia y Esgrima de Mendoza',
-  'gimnasia (m)': 'Gimnasia y Esgrima de Mendoza',
-  'gimnasia y esgrima de mendoza': 'Gimnasia y Esgrima de Mendoza',
-  'gimnasia y esgrima (mendoza)': 'Gimnasia y Esgrima de Mendoza',
   'huracan': 'Huracán',
   'huracán': 'Huracán',
-  'independiente': 'Independiente',
-  'independiente rivadavia': 'Independiente Rivadavia',
-  'ind. rivadavia': 'Independiente Rivadavia',
-  'ind rivadavia': 'Independiente Rivadavia',
-  'independiente riv': 'Independiente Rivadavia',
-  'instituto': 'Instituto de Córdoba',
   'instituto de cordoba': 'Instituto de Córdoba',
   'instituto de córdoba': 'Instituto de Córdoba',
   'instituto (c)': 'Instituto de Córdoba',
+  'instituto': 'Instituto de Córdoba',
   'lanus': 'Lanús',
   'lanús': 'Lanús',
-  'newells': "Newell's Old Boys",
-  "newell's": "Newell's Old Boys",
   "newell's old boys": "Newell's Old Boys",
   'newells old boys': "Newell's Old Boys",
+  "newell's": "Newell's Old Boys",
+  'newells': "Newell's Old Boys",
+  'nob': "Newell's Old Boys",
   'platense': 'Platense',
-  'racing': 'Racing Club',
   'racing club': 'Racing Club',
-  'river': 'River Plate',
+  'racing': 'Racing Club',
   'river plate': 'River Plate',
-  'rosario central': 'Rosario Central',
-  'central': 'Rosario Central',
-  'san lorenzo': 'San Lorenzo de Almagro',
+  'river': 'River Plate',
   'san lorenzo de almagro': 'San Lorenzo de Almagro',
-  'san martin sj': 'San Martín de San Juan',
-  'san martín sj': 'San Martín de San Juan',
-  'san martín (sj)': 'San Martín de San Juan',
-  'san martin (sj)': 'San Martín de San Juan',
-  'san martin t': 'San Martín de Tucumán',
-  'san martín t': 'San Martín de Tucumán',
-  'san martín (t)': 'San Martín de Tucumán',
-  'sarmiento': 'Sarmiento de Junín',
-  'sarmiento junin': 'Sarmiento de Junín',
-  'sarmiento junín': 'Sarmiento de Junín',
-  'sarmiento de junin': 'Sarmiento de Junín',
-  'sarmiento de junín': 'Sarmiento de Junín',
-  'sarmiento (j)': 'Sarmiento de Junín',
-  'talleres': 'Talleres de Córdoba',
-  'talleres de cordoba': 'Talleres de Córdoba',
-  'talleres de córdoba': 'Talleres de Córdoba',
-  'talleres (c)': 'Talleres de Córdoba',
+  'san lorenzo': 'San Lorenzo de Almagro',
   'tigre': 'Tigre',
-  'union': 'Unión de Santa Fe',
-  'unión': 'Unión de Santa Fe',
-  'union de santa fe': 'Unión de Santa Fe',
-  'unión de santa fe': 'Unión de Santa Fe',
-  'velez': 'Vélez Sarsfield',
-  'vélez': 'Vélez Sarsfield',
   'velez sarsfield': 'Vélez Sarsfield',
   'vélez sarsfield': 'Vélez Sarsfield',
+  'velez': 'Vélez Sarsfield',
+  'vélez': 'Vélez Sarsfield',
 };
+
+// Sort entries by key length descending so longer, more specific names match first
+const SORTED_TEAM_ENTRIES = Object.entries(TEAM_NAME_MAP).sort((a, b) => b[0].length - a[0].length);
 
 function normalizeTeamName(rawName: string): string {
   if (!rawName) return '';
-  const clean = rawName.trim().toLowerCase().replace(/[^\w\sáéíóúñ]/g, '').replace(/\s+/g, ' ');
+  const clean = rawName
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // remove diacritics for clean key search
+    .replace(/[^\w\s]/g, '')
+    .replace(/\s+/g, ' ');
+
+  const rawClean = rawName.trim().toLowerCase().replace(/[^\w\sáéíóúñ]/g, '').replace(/\s+/g, ' ');
+
+  if (TEAM_NAME_MAP[rawClean]) {
+    return TEAM_NAME_MAP[rawClean];
+  }
   if (TEAM_NAME_MAP[clean]) {
     return TEAM_NAME_MAP[clean];
   }
-  for (const [key, val] of Object.entries(TEAM_NAME_MAP)) {
-    if (clean.includes(key) || key.includes(clean)) {
+
+  for (const [key, val] of SORTED_TEAM_ENTRIES) {
+    const keyClean = key.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (clean === keyClean || clean.startsWith(`${keyClean} `) || clean.endsWith(` ${keyClean}`) || clean.includes(` ${keyClean} `)) {
       return val;
     }
   }
+
+  for (const [key, val] of SORTED_TEAM_ENTRIES) {
+    const keyClean = key.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (clean.includes(keyClean)) {
+      return val;
+    }
+  }
+
   return rawName.trim();
 }
 
