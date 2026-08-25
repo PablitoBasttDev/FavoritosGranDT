@@ -485,6 +485,42 @@ function notifyListeners(result: SheetSyncResult) {
 }
 
 export async function fetchLiveSheetPlayers(customUrl?: string): Promise<SheetSyncResult> {
+  // 1. First priority: If no custom URL is specified, fetch via backend /api/planetagrandt/latest-sheet
+  if (!customUrl) {
+    try {
+      const serverResp = await fetch('/api/planetagrandt/latest-sheet');
+      if (serverResp.ok) {
+        const serverJson = await serverResp.json();
+        if (serverJson.success && Array.isArray(serverJson.players) && serverJson.players.length >= 200) {
+          const now = Date.now();
+          const detectedRound = serverJson.roundTitle || detectRoundFromPlayers(serverJson.players);
+          try {
+            localStorage.setItem(STORAGE_KEY_PLAYERS, JSON.stringify(serverJson.players));
+            localStorage.setItem(STORAGE_KEY_TIMESTAMP, now.toString());
+            localStorage.setItem(STORAGE_KEY_ACTIVE_ROUND, detectedRound);
+            if (serverJson.sheetUrl) {
+              localStorage.setItem(STORAGE_KEY_ACTIVE_URL, serverJson.sheetUrl);
+            }
+          } catch {
+            // Ignore quota limits
+          }
+
+          const result: SheetSyncResult = {
+            players: serverJson.players,
+            lastUpdated: serverJson.timestamp || now,
+            isLive: true,
+            detectedRound,
+          };
+
+          notifyListeners(result);
+          return result;
+        }
+      }
+    } catch (e) {
+      console.warn('Backend planetagrandt sync fallback to client fetch:', e);
+    }
+  }
+
   let targetUrl = formatGoogleSheetCsvUrl(customUrl || getActiveGoogleSheetUrl());
 
   // Si no hay URL activa definida o se solicita auto-descubrimiento, buscar la última publicada en Planeta Gran DT

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { MatchFixture, MatchEvent, updateFixturesFromPromiedos } from '../data/fixture';
+import { MatchFixture, MatchEvent, updateFixturesFromPromiedos, areTeamNamesEqual } from '../data/fixture';
 import { Player } from '../types';
 
 export interface PromiedosMatchData {
@@ -13,6 +13,8 @@ export interface PromiedosMatchData {
   status: 'SCHEDULED' | 'LIVE' | 'FINISHED';
   liveMinute: string;
   displayTime: string;
+  dateStr?: string;
+  kickoff?: string;
   stadium?: string;
   isInterzonal?: boolean;
   tvNetworks?: string[];
@@ -31,7 +33,7 @@ export interface PromiedosApiResponse {
   error?: string;
 }
 
-const REFRESH_INTERVAL_SECONDS = 45;
+const REFRESH_INTERVAL_SECONDS = 30;
 
 type LivePlayersListener = (players: Player[]) => void;
 const playerSyncListeners: Set<LivePlayersListener> = new Set();
@@ -54,7 +56,7 @@ function notifyPlayerSyncListeners(players: Player[]) {
 }
 
 /**
- * Hook para consultar y sincronizar el fixture de Promiedos cada 45 segundos en tiempo real.
+ * Hook para consultar y sincronizar el fixture de Promiedos cada 30 segundos en tiempo real.
  */
 export function usePromiedosLiveFixture(selectedRound?: number) {
   const [data, setData] = useState<PromiedosApiResponse | null>(null);
@@ -108,7 +110,7 @@ export function usePromiedosLiveFixture(selectedRound?: number) {
     fetchFixture();
   }, [fetchFixture]);
 
-  // 45-second polling interval
+  // 30-second polling interval
   useEffect(() => {
     timerRef.current = setInterval(() => {
       fetchFixture();
@@ -162,31 +164,186 @@ export function mergeWithPromiedosMatches(
   }
 
   return baseFixtures.map(base => {
-    // Buscar coincidencia en Promiedos por nombres de clubes
+    // Buscar coincidencia en Promiedos por nombres canónicos (directo o invertido)
     const match = promiedosMatches.find(pm => {
-      const homeMatch =
-        pm.homeTeam.toLowerCase() === base.homeTeam.toLowerCase() ||
-        pm.homeTeam.toLowerCase().includes(base.homeTeam.toLowerCase()) ||
-        base.homeTeam.toLowerCase().includes(pm.homeTeam.toLowerCase());
-
-      const awayMatch =
-        pm.awayTeam.toLowerCase() === base.awayTeam.toLowerCase() ||
-        pm.awayTeam.toLowerCase().includes(base.awayTeam.toLowerCase()) ||
-        base.awayTeam.toLowerCase().includes(pm.awayTeam.toLowerCase());
-
-      return homeMatch && awayMatch;
+      const direct = areTeamNamesEqual(pm.homeTeam, base.homeTeam) && areTeamNamesEqual(pm.awayTeam, base.awayTeam);
+      const inverted = areTeamNamesEqual(pm.homeTeam, base.awayTeam) && areTeamNamesEqual(pm.awayTeam, base.homeTeam);
+      return direct || inverted;
     });
 
     if (!match) return base;
 
+    const isInverted = areTeamNamesEqual(match.homeTeam, base.awayTeam) && areTeamNamesEqual(match.awayTeam, base.homeTeam);
+    const targetHomeScore = isInverted ? match.awayScore : match.homeScore;
+    const targetAwayScore = isInverted ? match.homeScore : match.awayScore;
+
+    let adaptedEvents = match.events;
+    if (isInverted && match.events && match.events.length > 0) {
+      adaptedEvents = match.events.map(ev => ({
+        ...ev,
+        team: ev.team === 'home' ? 'away' : 'home',
+      }));
+    }
+
     return {
       ...base,
+      dateStr: match.dateStr || base.dateStr,
+      kickoff: match.kickoff || base.kickoff,
+      displayTime: match.displayTime || base.displayTime,
       status: match.status || base.status,
-      homeScore: match.homeScore !== undefined ? match.homeScore : base.homeScore,
-      awayScore: match.awayScore !== undefined ? match.awayScore : base.awayScore,
+      homeScore: targetHomeScore !== undefined ? targetHomeScore : base.homeScore,
+      awayScore: targetAwayScore !== undefined ? targetAwayScore : base.awayScore,
       liveMinute: match.liveMinute || base.liveMinute,
-      events: match.events && match.events.length > 0 ? match.events : base.events,
+      events: adaptedEvents && adaptedEvents.length > 0 ? adaptedEvents : base.events,
     };
   });
+}
+
+export interface PromiedosStandingRow {
+  positionZone: number;
+  positionGeneral: number;
+  teamName: string;
+  rawTeamName?: string;
+  zone: 'Zona A' | 'Zona B';
+  points: number;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDiff: number;
+  trend?: number[];
+}
+
+export interface PromiedosStandingsResponse {
+  success: boolean;
+  tournament: string;
+  source: string;
+  timestamp: number;
+  zoneA: PromiedosStandingRow[];
+  zoneB: PromiedosStandingRow[];
+  general: PromiedosStandingRow[];
+}
+
+export interface PromiedosScorerRow {
+  rank: number;
+  playerName: string;
+  team: string;
+  position: string;
+  goals: number;
+  promiedosPlayerId?: string;
+}
+
+export interface PromiedosCleanSheetRow {
+  teamName: string;
+  zone: string;
+  cleanSheets: number;
+  played: number;
+  cleanSheetRate: number;
+  goalsAgainst: number;
+  points: number;
+}
+
+/**
+ * Hook para obtener las tablas oficiales de posiciones de Promiedos (Torneo Clausura 2026).
+ */
+export function usePromiedosStandings() {
+  const [standings, setStandings] = useState<PromiedosStandingsResponse | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
+
+  const fetchStandings = useCallback(async () => {
+    try {
+      const res = await fetch('/api/promiedos/standings');
+      if (res.ok) {
+        const data: PromiedosStandingsResponse = await res.json();
+        if (data.success) {
+          setStandings(data);
+          setLastSync(new Date(data.timestamp || Date.now()));
+        }
+      }
+    } catch (e) {
+      console.warn('Error fetching Promiedos standings:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStandings();
+    const interval = setInterval(fetchStandings, REFRESH_INTERVAL_SECONDS * 1000);
+    return () => clearInterval(interval);
+  }, [fetchStandings]);
+
+  return { standings, isLoading, lastSync, refetch: fetchStandings };
+}
+
+/**
+ * Hook para obtener la tabla oficial de goleadores de Promiedos (Torneo Clausura 2026).
+ */
+export function usePromiedosScorers() {
+  const [scorers, setScorers] = useState<PromiedosScorerRow[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
+
+  const fetchScorers = useCallback(async () => {
+    try {
+      const res = await fetch('/api/promiedos/scorers');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.scorers)) {
+          setScorers(data.scorers);
+          setLastSync(new Date(data.timestamp || Date.now()));
+        }
+      }
+    } catch (e) {
+      console.warn('Error fetching Promiedos scorers:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchScorers();
+    const interval = setInterval(fetchScorers, REFRESH_INTERVAL_SECONDS * 1000);
+    return () => clearInterval(interval);
+  }, [fetchScorers]);
+
+  return { scorers, isLoading, lastSync, refetch: fetchScorers };
+}
+
+/**
+ * Hook para obtener las vallas invictas oficiales de Promiedos (Torneo Clausura 2026).
+ */
+export function usePromiedosCleanSheets() {
+  const [cleanSheets, setCleanSheets] = useState<PromiedosCleanSheetRow[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
+
+  const fetchCleanSheets = useCallback(async () => {
+    try {
+      const res = await fetch('/api/promiedos/clean-sheets');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.cleanSheets)) {
+          setCleanSheets(data.cleanSheets);
+          setLastSync(new Date(data.timestamp || Date.now()));
+        }
+      }
+    } catch (e) {
+      console.warn('Error fetching Promiedos clean sheets:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCleanSheets();
+    const interval = setInterval(fetchCleanSheets, REFRESH_INTERVAL_SECONDS * 1000);
+    return () => clearInterval(interval);
+  }, [fetchCleanSheets]);
+
+  return { cleanSheets, isLoading, lastSync, refetch: fetchCleanSheets };
 }
 

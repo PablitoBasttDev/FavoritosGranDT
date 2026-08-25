@@ -35,7 +35,8 @@ interface CountdownBannerProps {
 export const CountdownBanner: React.FC<CountdownBannerProps> = ({ onSelectClub }) => {
   const [now, setNow] = useState(new Date());
   const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [selectedFechaTab, setSelectedFechaTab] = useState<number>(6);
+  const roundStatus = getTournamentRoundStatus(now);
+  const [selectedFechaTab, setSelectedFechaTab] = useState<number>(() => getTournamentRoundStatus().roundNumber);
   const [fixtureStatusFilter, setFixtureStatusFilter] = useState<'ALL' | 'LIVE' | 'FINISHED' | 'SCHEDULED'>('ALL');
   const [fixtureSearchQuery, setFixtureSearchQuery] = useState('');
 
@@ -50,7 +51,6 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({ onSelectClub }
     return () => clearInterval(timer);
   }, []);
 
-  const roundStatus = getTournamentRoundStatus(now);
   const availableFechas = getAllAvailableFechas();
 
   // Sincronizar automáticamente la pestaña seleccionada con la fecha en juego o próxima
@@ -273,8 +273,8 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({ onSelectClub }
               </div>
             </div>
 
-            {/* Selector de Fechas (Fecha 6, Fecha 7, etc.) */}
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+            {/* Selector de Fechas (Fecha 1 a 16 con scroll horizontal suave) */}
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 overflow-x-auto max-w-full py-1">
               {availableFechas.map(fNum => {
                 const isSelected = selectedFechaTab === fNum;
                 const isCurrentActive = fNum === roundStatus.roundNumber;
@@ -282,7 +282,7 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({ onSelectClub }
                   <button
                     key={fNum}
                     onClick={() => setSelectedFechaTab(fNum)}
-                    className={`px-3 py-1 rounded-md text-xs font-black transition flex items-center gap-1.5 ${
+                    className={`px-2.5 py-1 rounded-md text-xs font-black transition whitespace-nowrap flex items-center gap-1.5 shrink-0 ${
                       isSelected
                         ? 'bg-white dark:bg-slate-700 text-[#1b55e2] dark:text-cyan-300 shadow-xs'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -294,7 +294,7 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({ onSelectClub }
                         className={`w-1.5 h-1.5 rounded-full ${
                           roundStatus.isRoundInPlay ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'
                         }`}
-                        title={roundStatus.isRoundInPlay ? 'Fecha en juego' : 'Próxima fecha'}
+                        title={roundStatus.isRoundInPlay ? 'Fecha en juego' : 'Fecha actual'}
                       />
                     )}
                   </button>

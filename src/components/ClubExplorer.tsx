@@ -193,12 +193,12 @@ export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favori
                     </span>
                   ) : standing?.roundMatchStatus === 'FINISHED' ? (
                     <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700" title={standing.matchScoreInfo}>
-                      {standing.matchScoreInfo || 'Jugó F6'}
+                      {standing.matchScoreInfo || `Jugó F${matchInfo?.match.fecha || 7}`}
                     </span>
                   ) : matchInfo ? (
                     <span
                       className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border border-amber-200/60 dark:border-amber-800/60 flex items-center gap-1"
-                      title={`Fecha 6: ${matchInfo.role} vs ${matchInfo.rival} (${matchInfo.displayTime})`}
+                      title={`Fecha ${matchInfo.match.fecha}: ${matchInfo.role} vs ${matchInfo.rival} (${matchInfo.displayTime})`}
                     >
                       <span>{matchInfo.isHome ? '🏠 Local' : '✈️ Visitante'}</span>
                       <span className="font-mono font-black uppercase">vs {matchInfo.rivalShort}</span>

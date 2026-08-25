@@ -9,6 +9,7 @@ import {
   getTeamsPerformanceMetrics,
   getDynamicGoalkeeperDefenseStats,
   getDynamicClubDefenseStats,
+  findPlayerByNameOrTeam,
   ScorerStat,
   GoalkeeperDefenseStat,
   ClubDefenseStat,
@@ -16,6 +17,11 @@ import {
 import { TeamBadge } from './TeamBadge';
 import { PositionBadge } from './PositionBadge';
 import { getActiveRoundLabel, subscribeToLiveSheet } from '../services/sheetsService';
+import {
+  usePromiedosStandings,
+  usePromiedosScorers,
+  usePromiedosCleanSheets,
+} from '../services/promiedosService';
 import { normalizeText } from '../utils/textUtils';
 import {
   Trophy,
@@ -57,6 +63,11 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
   const [roundLabelState, setRoundLabelState] = useState<string>(() => getActiveRoundLabel());
   const [lastAutoSyncTime, setLastAutoSyncTime] = useState<Date>(new Date());
 
+  // Promiedos Live Feeds (Torneo Clausura 2026)
+  const { standings: promiedosStandings, refetch: refetchStandings } = usePromiedosStandings();
+  const { scorers: promiedosScorers, refetch: refetchScorers } = usePromiedosScorers();
+  const { cleanSheets: promiedosCleanSheets, refetch: refetchCleanSheets } = usePromiedosCleanSheets();
+
   // Actualización automática cada 2 segundos a medida que transcurre el tiempo/fecha
   useEffect(() => {
     const timer = setInterval(() => {
@@ -87,18 +98,106 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
 
   // Cálculos dinámicos reactivos extraídos de las fuentes oficiales
   const dynamicStandings = useMemo(() => getDynamicStandings(now), [now]);
-  const topScorers = useMemo(() => getDynamicTopScorers(now, players), [now, players]);
+  const fallbackTopScorers = useMemo(() => getDynamicTopScorers(now, players), [now, players]);
   const roundIncidents = useMemo(() => getDynamicRoundIncidents(now), [now]);
   const teamMetrics = useMemo(() => getTeamsPerformanceMetrics(now), [now]);
-  const clubDefenseStats = useMemo(() => getDynamicClubDefenseStats(now, players), [now, players]);
+  const fallbackClubDefenseStats = useMemo(() => getDynamicClubDefenseStats(now, players), [now, players]);
   const goalkeeperStats = useMemo(() => getDynamicGoalkeeperDefenseStats(now, players), [now, players]);
 
-  // Filtrado y ordenamiento de equipos
+  // Top Scorers: Promiedos official table for Clausura 2026 enriched with Planeta Gran DT stats & prices
+  const topScorers: ScorerStat[] = useMemo(() => {
+    const currentPlayers = players && players.length > 0 ? players : ALL_PLAYERS;
+    if (promiedosScorers && promiedosScorers.length > 0) {
+      return promiedosScorers.map(ps => {
+        const playerObj = findPlayerByNameOrTeam(ps.playerName, ps.team);
+        const pos = playerObj?.posicion || (ps.position?.toLowerCase().includes('del') ? 'DEL' : ps.position?.toLowerCase().includes('vol') ? 'VOL' : ps.position?.toLowerCase().includes('def') ? 'DEF' : 'DEL');
+        return {
+          id: ps.promiedosPlayerId || ps.playerName,
+          playerId: playerObj?.id,
+          playerName: ps.playerName,
+          team: ps.team,
+          posicion: pos,
+          precio: playerObj?.precio || '$ 6.000.000',
+          precioNum: playerObj?.precioNum || 6000000,
+          totalGoals: ps.goals,
+          baseGoals: ps.goals,
+          roundGoals: 0,
+          penalties: 0,
+          puntosTotales: playerObj?.puntosTotales || 0,
+          partidosJugados: playerObj?.partidosJugados || 0,
+          playerObj,
+        };
+      });
+    }
+    return fallbackTopScorers;
+  }, [promiedosScorers, players, fallbackTopScorers]);
+
+  // Clean Sheets: Promiedos official matches in Clausura 2026
+  const clubDefenseStats: ClubDefenseStat[] = useMemo(() => {
+    if (promiedosCleanSheets && promiedosCleanSheets.length > 0) {
+      return promiedosCleanSheets.map(cs => {
+        const fallback = fallbackClubDefenseStats.find(f => f.teamName === cs.teamName);
+        return {
+          teamName: cs.teamName,
+          zone: (cs.zone as 'Zona A' | 'Zona B') || fallback?.zone || 'Zona A',
+          cleanSheetsTotal: cs.cleanSheets,
+          baseCleanSheets: cs.cleanSheets,
+          roundCleanSheet: false,
+          played: cs.played,
+          cleanSheetRate: cs.cleanSheetRate,
+          goalsAgainst: cs.goalsAgainst,
+          averageGoalsAgainst: cs.played > 0 ? parseFloat((cs.goalsAgainst / cs.played).toFixed(2)) : 0,
+          goalsFor: fallback?.goalsFor || 0,
+          goalDiff: (fallback?.goalsFor || 0) - cs.goalsAgainst,
+          points: cs.points,
+          topGoalkeeperName: fallback?.topGoalkeeperName,
+        };
+      });
+    }
+    return fallbackClubDefenseStats;
+  }, [promiedosCleanSheets, fallbackClubDefenseStats]);
+
+  // Filtrado y ordenamiento de equipos (Promiedos Standings)
   const displayedTeams = useMemo(() => {
     let list: TeamStanding[] = Object.values(dynamicStandings);
 
-    if (standingsZone !== 'GENERAL') {
-      list = list.filter(t => t.zone === standingsZone);
+    if (promiedosStandings) {
+      const sourceList =
+        standingsZone === 'Zona A'
+          ? promiedosStandings.zoneA
+          : standingsZone === 'Zona B'
+          ? promiedosStandings.zoneB
+          : promiedosStandings.general;
+
+      if (sourceList && sourceList.length > 0) {
+        list = sourceList.map(row => {
+          const fallback = dynamicStandings[row.teamName];
+          return {
+            teamName: row.teamName,
+            zone: row.zone,
+            positionZone: row.positionZone,
+            positionGeneral: row.positionGeneral || row.positionZone,
+            points: row.points,
+            played: row.played,
+            won: row.won,
+            drawn: row.drawn,
+            lost: row.lost,
+            goalsFor: row.goalsFor,
+            goalsAgainst: row.goalsAgainst,
+            goalDiff: row.goalDiff,
+            isLiveMatch: fallback?.isLiveMatch,
+            roundMatchStatus: fallback?.roundMatchStatus,
+            liveMinute: fallback?.liveMinute,
+            matchScoreInfo: fallback?.matchScoreInfo,
+            positionChangeZone: fallback?.positionChangeZone,
+            positionChangeGeneral: fallback?.positionChangeGeneral,
+          };
+        });
+      }
+    } else {
+      if (standingsZone !== 'GENERAL') {
+        list = list.filter(t => t.zone === standingsZone);
+      }
     }
 
     if (onlyPlayedFilter) {
@@ -111,7 +210,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       }
       return a.positionZone - b.positionZone;
     });
-  }, [dynamicStandings, standingsZone, onlyPlayedFilter]);
+  }, [dynamicStandings, promiedosStandings, standingsZone, onlyPlayedFilter]);
 
   // Filtrado de goleadores por búsqueda
   const filteredScorers = useMemo(() => {
@@ -167,10 +266,10 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               </div>
               <div className="text-left">
                 <span className="text-[8.5px] sm:text-[10px] text-emerald-300 font-black uppercase tracking-wider block leading-tight">
-                  En Vivo
+                  Promiedos & Planeta GDT
                 </span>
                 <span className="text-[9.5px] sm:text-[11px] font-bold text-white hidden sm:block leading-tight">
-                  Planeta Gran DT
+                  Clausura 2026 en Vivo
                 </span>
               </div>
             </div>
@@ -178,7 +277,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
             <div className="bg-white/10 backdrop-blur-md rounded-md sm:rounded-lg p-1 sm:p-2 border border-white/15 flex items-center gap-1.5">
               <div className="text-right">
                 <span className="text-[8.5px] sm:text-[10px] text-blue-200 font-bold uppercase block leading-tight">
-                  Fecha 6
+                  Fecha en Disputa
                 </span>
                 <span className="text-[9.5px] sm:text-xs font-black text-white font-mono leading-tight">
                   {teamMetrics.finishedMatches + teamMetrics.liveMatches}/{teamMetrics.totalMatches} PJ

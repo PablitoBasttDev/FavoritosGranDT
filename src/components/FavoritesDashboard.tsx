@@ -883,7 +883,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                             ? 'bg-amber-100/90 dark:bg-amber-950/50 text-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-800/70'
                             : 'bg-purple-100/90 dark:bg-purple-950/50 text-purple-950 dark:text-purple-200 border border-purple-300 dark:border-purple-800/70'
                         }`}
-                        title={`Fecha 6: ${matchInfo.role} vs ${matchInfo.rival} (${matchInfo.displayTime})`}
+                        title={`Fecha ${matchInfo.match.fecha}: ${matchInfo.role} vs ${matchInfo.rival} (${matchInfo.displayTime})`}
                       >
                         <span>{matchInfo.isHome ? '🏠' : '✈️'}</span>
                         <span>{matchInfo.dayOfWeek.slice(0, 3)}</span>

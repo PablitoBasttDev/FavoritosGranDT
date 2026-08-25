@@ -1,4 +1,4 @@
-import { FIXTURES_DATA, getDynamicMatchState } from './fixture';
+import { FIXTURES_DATA, getDynamicMatchState, getTournamentRoundStatus } from './fixture';
 import { ALL_PLAYERS } from './players';
 import { getDynamicStandings, TeamStanding } from './standings';
 import { Player } from '../types';
@@ -344,7 +344,8 @@ export function getTeamsPerformanceMetrics(currentDate: Date = new Date()): {
   let totalRoundGoals = 0;
   let finishedMatches = 0;
   let liveMatches = 0;
-  const roundFixtures = FIXTURES_DATA.filter(f => f.fecha === 6);
+  const currentRoundNum = getTournamentRoundStatus(currentDate).roundNumber;
+  const roundFixtures = FIXTURES_DATA.filter(f => f.fecha === currentRoundNum);
 
   roundFixtures.forEach(m => {
     const d = getDynamicMatchState(m, currentDate);
