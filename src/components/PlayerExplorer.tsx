@@ -436,9 +436,9 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
       {/* Main Content Area */}
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-3 min-w-0">
-          {paginatedPlayers.map(player => (
+          {paginatedPlayers.map((player, idx) => (
             <PlayerCard
-              key={player.id}
+              key={`player-card-${player.id}-${idx}`}
               player={player}
               isFavorite={favoriteIds.has(player.id)}
               onToggleFavorite={onToggleFavorite}

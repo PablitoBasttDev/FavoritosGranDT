@@ -15,7 +15,6 @@ import {
 } from './services/sheetsService';
 import {
   usePromiedosLiveFixture,
-  subscribeToLivePlayerUpdates,
 } from './services/promiedosService';
 import {
   getActiveUser,
@@ -26,6 +25,12 @@ import {
   syncUsersWithCloud,
   fetchUserFavoritesFromCloud,
 } from './utils/userStorage';
+
+import {
+  findPlayerInCollection,
+  isSamePlayer,
+  generateDeterministicPlayerId,
+} from './utils/playerIdentity';
 
 const THEME_KEY = 'gran_dt_theme';
 
@@ -56,17 +61,7 @@ export default function App() {
   // Poll and sync Promiedos fixtures & live match stats every 45s across the whole application
   usePromiedosLiveFixture();
 
-  // Subscribe to live enriched player updates from live match events
-  useEffect(() => {
-    const unsubscribe = subscribeToLivePlayerUpdates((updatedPlayers: Player[]) => {
-      if (updatedPlayers && updatedPlayers.length > 0) {
-        setLivePlayers(updatedPlayers);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
-
-  // Auto-sync Google Sheet in background on mount and continuously
+  // Auto-sync Google Sheet (Planeta Gran DT) in background on mount and continuously every 45s
   useEffect(() => {
     const unsubscribe = initBackgroundAutoSync((result: SheetSyncResult) => {
       if (result.players && result.players.length > 0) {
@@ -182,19 +177,19 @@ export default function App() {
     }
   }, [isDark]);
 
-  const favoriteIds = useMemo(() => new Set(favorites.map(p => p.id)), [favorites]);
-
   // Dynamically enrich user favorites with the latest prices, averages and scores from the live Google Sheet / Planeta Gran DT
+  // matching strictly by player NAME and club rather than transient row numbers
   const enrichedFavorites = useMemo(() => {
     if (!livePlayers || livePlayers.length === 0) return favorites;
-    const playerMap = new Map<number, Player>();
-    livePlayers.forEach(p => playerMap.set(p.id, p));
 
     return favorites.map(fav => {
-      const live = playerMap.get(fav.id);
+      // Find the corresponding player in livePlayers strictly by NAME and team
+      const live = findPlayerInCollection(fav, livePlayers);
       if (!live) return fav;
+
       return {
         ...fav,
+        id: live.id || fav.id,
         nombre: live.nombre || fav.nombre,
         equipo: live.equipo || fav.equipo,
         posicion: live.posicion || fav.posicion,
@@ -217,6 +212,16 @@ export default function App() {
     });
   }, [favorites, livePlayers]);
 
+  const favoriteIds = useMemo(() => {
+    const ids = new Set<number>();
+    enrichedFavorites.forEach(p => {
+      if (p.id) ids.add(p.id);
+      const detId = generateDeterministicPlayerId(p.nombre, p.equipo, p.posicion);
+      ids.add(detId);
+    });
+    return ids;
+  }, [enrichedFavorites]);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => {
@@ -224,13 +229,16 @@ export default function App() {
     }, 2500);
   };
 
-  // Add a player to favorites with optional note
+  // Add a player to favorites with optional note, matched by NAME
   const handleAddFavorite = (player: Player, notes?: string) => {
     if (!activeUser) return;
 
-    if (favoriteIds.has(player.id)) {
+    // Check if already in favorites by name or ID
+    const existingIndex = favorites.findIndex(f => isSamePlayer(f, player) || f.id === player.id);
+
+    if (existingIndex >= 0) {
       if (notes) {
-        handleUpdateNotes(player.id, notes);
+        handleUpdateNotes(favorites[existingIndex].id, notes, favorites[existingIndex].nombre);
         showToast(`Nota actualizada para ${player.nombre}`);
       } else {
         showToast(`${player.nombre} ya está en tus favoritos.`);
@@ -238,8 +246,10 @@ export default function App() {
       return;
     }
 
+    const stableId = player.id || generateDeterministicPlayerId(player.nombre, player.equipo, player.posicion);
     const newFav: FavoritePlayer = {
       ...player,
+      id: stableId,
       notes: notes || undefined,
       addedAt: Date.now(),
     };
@@ -251,26 +261,41 @@ export default function App() {
   // Toggle favorite on/off
   const handleToggleFavorite = (player: Player) => {
     if (!activeUser) return;
-    if (favoriteIds.has(player.id)) {
-      handleRemoveFavorite(player.id);
+    const exists = favorites.some(f => isSamePlayer(f, player) || f.id === player.id);
+    if (exists) {
+      handleRemoveFavorite(player.id, player.nombre);
     } else {
       handleAddFavorite(player);
     }
   };
 
-  // Remove single player from favorites
-  const handleRemoveFavorite = (playerId: number) => {
-    const playerToRemove = favorites.find(p => p.id === playerId);
-    setFavorites(prev => prev.filter(p => p.id !== playerId));
+  // Remove single player from favorites by ID and Name
+  const handleRemoveFavorite = (playerId: number, playerName?: string) => {
+    const playerToRemove = favorites.find(
+      p => p.id === playerId || (playerName && isSamePlayer(p, { nombre: playerName }))
+    );
+    setFavorites(prev =>
+      prev.filter(p => {
+        if (p.id === playerId) return false;
+        if (playerName && isSamePlayer(p, { nombre: playerName })) return false;
+        if (playerToRemove && isSamePlayer(p, playerToRemove)) return false;
+        return true;
+      })
+    );
     if (playerToRemove) {
       showToast(`✕ ${playerToRemove.nombre} eliminado de favoritos`);
     }
   };
 
   // Update scouting note
-  const handleUpdateNotes = (playerId: number, notes: string) => {
+  const handleUpdateNotes = (playerId: number, notes: string, playerName?: string) => {
     setFavorites(prev =>
-      prev.map(p => (p.id === playerId ? { ...p, notes: notes || undefined } : p))
+      prev.map(p => {
+        if (p.id === playerId || (playerName && isSamePlayer(p, { nombre: playerName }))) {
+          return { ...p, notes: notes || undefined };
+        }
+        return p;
+      })
     );
     showToast('Nota de scouting guardada');
   };

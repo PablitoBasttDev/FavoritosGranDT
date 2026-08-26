@@ -90,7 +90,7 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-            {players.map(player => {
+            {players.map((player, idx) => {
               const isFav = favoriteIds.has(player.id);
               const isExpanded = expandedPlayerId === player.id;
               const formattedPromedio =
@@ -99,9 +99,9 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
                   : '-';
 
               return (
-                <React.Fragment key={player.id}>
+                <React.Fragment key={`player-table-row-${player.id}-${idx}`}>
                   <tr
-                    id={`table-row-${player.id}`}
+                    id={`table-row-${player.id}-${idx}`}
                     onClick={() => setExpandedPlayerId(isExpanded ? null : player.id)}
                     className={`transition-colors cursor-pointer select-none ${
                       isExpanded

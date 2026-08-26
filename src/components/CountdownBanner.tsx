@@ -392,7 +392,7 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({ onSelectClub }
 
           {/* Grilla de Tarjetas de Partidos Optimizada para que quepa Toda la Información */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-[560px] overflow-y-auto pr-1">
-            {filteredFixtures.map(({ fixture: f, dynamic }) => {
+            {filteredFixtures.map(({ fixture: f, dynamic }, mIdx) => {
               const isTargetNext = f.id === roundStatus.nextUpcomingMatch?.id;
               const hasVisibleEvents = dynamic.visibleEvents && dynamic.visibleEvents.length > 0;
               const homeEvents = (dynamic.visibleEvents || []).filter(e => e.team === 'home');
@@ -400,7 +400,7 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({ onSelectClub }
 
               return (
                 <div
-                  key={f.id}
+                  key={`match-card-${f.id}-${mIdx}`}
                   id={`match-card-${f.id}`}
                   className={`p-2.5 rounded-xl border transition flex flex-col justify-between gap-2 ${
                     dynamic.isLive
@@ -516,7 +516,7 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({ onSelectClub }
                             const isRed = e.type === 'red_card' || e.type === 'second_yellow';
                             return (
                               <span
-                                key={e.id || idx}
+                                key={`home-event-${f.id}-${e.id || idx}-${idx}`}
                                 className={`inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[9.5px] font-semibold ${
                                   isRed
                                     ? 'bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 font-bold border border-rose-200 dark:border-rose-900'
@@ -541,7 +541,7 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({ onSelectClub }
                             const isRed = e.type === 'red_card' || e.type === 'second_yellow';
                             return (
                               <span
-                                key={e.id || idx}
+                                key={`away-event-${f.id}-${e.id || idx}-${idx}`}
                                 className={`inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[9.5px] font-semibold ${
                                   isRed
                                     ? 'bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 font-bold border border-rose-200 dark:border-rose-900'

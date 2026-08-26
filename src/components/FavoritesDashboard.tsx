@@ -7,6 +7,7 @@ import { normalizeText, playerMatchesQuery } from '../utils/textUtils';
 import { TeamBadge } from './TeamBadge';
 import { PositionBadge } from './PositionBadge';
 import { SHEET_TEAM_MAP } from '../services/sheetsService';
+import { isSamePlayer, generateDeterministicPlayerId } from '../utils/playerIdentity';
 import { CountdownBanner } from './CountdownBanner';
 import { PlayerTraitsDetail } from './PlayerTraitsDetail';
 import {
@@ -115,7 +116,19 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const favoriteIds = useMemo(() => new Set(favorites.map(f => f.id)), [favorites]);
+  const favoriteIds = useMemo(() => {
+    const ids = new Set<number>();
+    favorites.forEach(f => {
+      if (f.id) ids.add(f.id);
+      const detId = generateDeterministicPlayerId(f.nombre, f.equipo, f.posicion);
+      ids.add(detId);
+    });
+    return ids;
+  }, [favorites]);
+
+  const isFavoritePlayer = (p: Player) => {
+    return favoriteIds.has(p.id) || favorites.some(f => isSamePlayer(f, p));
+  };
 
   // Full candidate match list from all players without artificial slicing limits
   const allCandidateMatches = useMemo(() => {
@@ -423,11 +436,11 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
 
                 {/* Scrollable Results List */}
                 <div className="overflow-y-auto max-h-80 divide-y divide-slate-100 dark:divide-slate-800 p-1">
-                  {candidateResults.map(p => {
-                    const isAlreadyFav = favoriteIds.has(p.id);
+                  {candidateResults.map((p, idx) => {
+                    const isAlreadyFav = isFavoritePlayer(p);
                     return (
                       <div
-                        key={p.id}
+                        key={`cand-player-${p.id}-${idx}`}
                         className="p-1.5 hover:bg-blue-50/70 dark:hover:bg-slate-800/80 rounded-lg transition flex items-center justify-between gap-1 sm:gap-2 text-xs"
                       >
                         {/* Player details - Maximized space for player name */}
@@ -982,14 +995,14 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                       </span>
                     </div>
                   ) : (
-                    teamPlayers.map(player => {
+                    teamPlayers.map((player, idx) => {
                       const formattedPromedio =
                         typeof player.promedio === 'number' && player.promedio > 0
                           ? player.promedio.toFixed(2)
                           : '-';
 
                       return (
-                        <div key={player.id} className="flex flex-col mb-1 last:mb-0">
+                        <div key={`fav-team-player-${player.id}-${idx}`} className="flex flex-col mb-1 last:mb-0">
                           <div
                             onClick={() => setExpandedPlayerId(expandedPlayerId === player.id ? null : player.id)}
                             className="group/item flex items-center justify-between gap-1 px-1.5 py-1 rounded-md transition text-xs border shadow-2xs cursor-pointer select-none bg-white dark:bg-slate-800/90 backdrop-blur-[1px] hover:bg-blue-50/80 dark:hover:bg-slate-700/80 border-slate-200/90 dark:border-slate-700/80 hover:border-blue-300"
@@ -1131,7 +1144,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
               {(() => {
                 const expandedModalPlayer = clubModalPlayers.find(p => p.id === expandedPlayerId);
                 if (!expandedModalPlayer) return null;
-                const isFav = favoriteIds.has(expandedModalPlayer.id);
+                const isFav = isFavoritePlayer(expandedModalPlayer);
                 const formattedPromedio =
                   typeof expandedModalPlayer.promedio === 'number' && expandedModalPlayer.promedio > 0
                     ? expandedModalPlayer.promedio.toFixed(2)
@@ -1200,15 +1213,15 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                   No se encontraron futbolistas con ese filtro.
                 </div>
               ) : (
-                clubModalPlayers.map(p => {
-                  const isFav = favoriteIds.has(p.id);
+                clubModalPlayers.map((p, idx) => {
+                  const isFav = isFavoritePlayer(p);
                   const formattedPromedio =
                     typeof p.promedio === 'number' && p.promedio > 0
                       ? p.promedio.toFixed(2)
                       : '-';
 
                   return (
-                    <div key={p.id} className="flex flex-col">
+                    <div key={`modal-club-player-${p.id}-${idx}`} className="flex flex-col">
                       <div
                         onClick={() => setExpandedPlayerId(expandedPlayerId === p.id ? null : p.id)}
                         className="py-1.5 px-2 hover:bg-blue-50/60 dark:hover:bg-slate-800/80 rounded-lg flex items-center justify-between gap-1.5 sm:gap-3 text-xs transition cursor-pointer select-none"

@@ -86,7 +86,7 @@ interface PromiedosCache {
 }
 
 let cachedData: PromiedosCache | null = null;
-const CACHE_TTL_MS = 15 * 1000; // 15s in-memory server cache for real-time live updates
+const CACHE_TTL_MS = 45 * 1000; // 45s in-memory server cache for real-time live updates
 
 const PROMIEDOS_HEADERS = {
   'X-VER': '1.11.7.3',
@@ -510,10 +510,25 @@ function parseServerCsv(text: string): string[][] {
   return rows;
 }
 
+function generateDeterministicPlayerIdServer(nombre: string, equipo: string = '', posicion: string = ''): number {
+  const clean = (str: string) => (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const nameSig = clean(nombre).split('').sort().join('');
+  const teamNorm = clean(equipo);
+  const posNorm = clean(posicion);
+  const key = `${nameSig}_${teamNorm}_${posNorm}`;
+  let hash = 2166136261;
+  for (let i = 0; i < key.length; i++) {
+    hash ^= key.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  const positiveHash = Math.abs(hash >>> 0);
+  return 100000 + (positiveHash % 9899999);
+}
+
 // Scrape and parse Planeta Gran DT Estadísticas
 async function fetchPlanetaGranDTStats(): Promise<PlanetaGranDTCache> {
   const now = Date.now();
-  if (cachedPlanetaData && now - cachedPlanetaData.lastFetched < 60 * 1000) {
+  if (cachedPlanetaData && now - cachedPlanetaData.lastFetched < 45 * 1000) {
     return cachedPlanetaData;
   }
 
@@ -636,10 +651,14 @@ async function fetchPlanetaGranDTStats(): Promise<PlanetaGranDTCache> {
             rawObj[h] = row[i] ? row[i].trim() : '';
           });
 
+          const rawName = rawObj['Jugador'] || '';
           const rawTeam = rawObj['Equipo'] || '';
           const mappedTeam = normalizeTeamName(rawTeam);
+          const pos = rawObj['POS'] || 'VOL';
           const cotiz = rawObj['Cotización'] || '';
           const precioNum = parseCsvNum(cotiz);
+
+          const stableId = generateDeterministicPlayerIdServer(rawName, mappedTeam, pos);
 
           const prt = parseCsvNum(rawObj['PrT'], true);
           const prg = parseCsvNum(rawObj['PrG'], true);
@@ -663,10 +682,10 @@ async function fetchPlanetaGranDTStats(): Promise<PlanetaGranDTCache> {
           }
 
           parsedPlayers.push({
-            id: idCounter++,
-            nombre: rawObj['Jugador'] || '',
+            id: stableId,
+            nombre: rawName,
             equipo: mappedTeam,
-            posicion: rawObj['POS'],
+            posicion: pos,
             precio: cotiz || `$ ${precioNum.toLocaleString('es-AR')}`,
             precioNum,
             promedio: prt,
@@ -880,6 +899,13 @@ async function fetchPromiedosLeagueDetails(): Promise<PromiedosLeagueData> {
 }
 
 // API Routes
+app.use('/api', (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
@@ -994,7 +1020,7 @@ app.get('/api/promiedos/fixture', async (req, res) => {
       matches: matchesToSend,
       allRoundsCount: Object.keys(data.allRounds).length,
       source: data.source,
-      ttl: 30,
+      ttl: 45,
     });
   } catch (error) {
     res.status(500).json({
@@ -1046,6 +1072,21 @@ async function startServer() {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`El Gran Asistente server running on http://0.0.0.0:${PORT}`);
   });
+
+  // Background proactive sync every 45s to ensure cache is always warm
+  setInterval(async () => {
+    try {
+      await fetchPromiedosLiveData();
+      await fetchPromiedosLeagueDetails();
+    } catch (e) {
+      console.warn('Background Promiedos refresh error:', (e as Error).message);
+    }
+    try {
+      await fetchPlanetaGranDTStats();
+    } catch (e) {
+      console.warn('Background Planeta Gran DT refresh error:', (e as Error).message);
+    }
+  }, 45 * 1000);
 }
 
 startServer();

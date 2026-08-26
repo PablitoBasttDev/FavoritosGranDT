@@ -334,7 +334,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-1.5 sm:gap-2.5 min-w-0">
         <div className="p-2 sm:p-3.5 rounded-lg sm:rounded-xl bg-white dark:bg-slate-900 border border-slate-300/90 dark:border-slate-800 shadow-xs">
           <span className="text-slate-600 dark:text-slate-400 text-[9px] sm:text-[10px] font-black uppercase block tracking-wider">
-            Goles en Fecha 6
+            Goles en Fecha {teamMetrics.roundNumber || 7}
           </span>
           <p className="text-lg sm:text-2xl font-black text-slate-950 dark:text-slate-100 font-mono">
             {teamMetrics.totalRoundGoals}
@@ -700,7 +700,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                     ) : (
                       filteredScorers.map((scorer, idx) => (
                         <tr
-                          key={scorer.id}
+                          key={`scorer-${scorer.id || scorer.playerName}-${idx}`}
                           className="hover:bg-slate-50 dark:hover:bg-slate-800/70 transition cursor-pointer group"
                           onClick={() => scorer.playerObj && onSelectPlayer?.(scorer.playerObj)}
                           title={`Ver estadísticas de ${scorer.playerName}`}
@@ -777,9 +777,9 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                     No hay goles o incidencias registradas aún en esta fecha.
                   </p>
                 ) : (
-                  roundIncidents.map(inc => (
+                  roundIncidents.map((inc, idx) => (
                     <div
-                      key={inc.id}
+                      key={`incident-${inc.id || inc.playerName}-${idx}`}
                       className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs flex items-center justify-between gap-2"
                     >
                       <div className="flex items-center gap-2 min-w-0">
@@ -891,7 +891,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {clubDefenseStats.map((team, idx) => (
                       <tr
-                        key={team.teamName}
+                        key={`club-defense-${team.teamName}-${idx}`}
                         className="hover:bg-slate-50 dark:hover:bg-slate-800/70 transition cursor-pointer group"
                         onClick={() => onSelectClub?.(team.teamName)}
                         title={`Ver plantel y estadísticas de ${team.teamName}`}
@@ -1016,7 +1016,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {goalkeeperStats.map((arq, idx) => (
                       <tr
-                        key={arq.id}
+                        key={`goalkeeper-stat-${arq.id || arq.nombre}-${idx}`}
                         className="hover:bg-slate-50 dark:hover:bg-slate-800/70 transition cursor-pointer group"
                         onClick={() => arq.playerObj && onSelectPlayer?.(arq.playerObj)}
                         title={`Ver estadísticas de ${arq.nombre}`}

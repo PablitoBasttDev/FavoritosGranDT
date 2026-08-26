@@ -311,6 +311,7 @@ export function getDynamicClubDefenseStats(
  * Obtiene métricas completas de rendimiento ofensivo y defensivo de los equipos en tiempo real
  */
 export function getTeamsPerformanceMetrics(currentDate: Date = new Date()): {
+  roundNumber: number;
   topOffensive: TeamStanding[];
   topDefensive: TeamStanding[];
   allDefensiveRanked: TeamStanding[];
@@ -362,6 +363,7 @@ export function getTeamsPerformanceMetrics(currentDate: Date = new Date()): {
   const averageGoalsPerMatch = playedTotal > 0 ? Number((totalRoundGoals / playedTotal).toFixed(2)) : 0;
 
   return {
+    roundNumber: currentRoundNum,
     topOffensive,
     topDefensive,
     allDefensiveRanked,

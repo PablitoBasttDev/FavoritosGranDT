@@ -1,4 +1,4 @@
-import { FIXTURES_DATA, MatchFixture, getDynamicMatchState } from './fixture';
+import { FIXTURES_DATA, MatchFixture, getDynamicMatchState, getTournamentRoundStatus } from './fixture';
 import { getTeamData } from './teams';
 
 export interface TeamStanding {
@@ -458,6 +458,9 @@ export function calculateDynamicStandings(
   currentDate: Date = new Date(),
   fixtures: MatchFixture[] = FIXTURES_DATA
 ): Record<string, TeamStanding> {
+  const roundStatus = getTournamentRoundStatus(currentDate);
+  const activeRound = roundStatus.roundNumber;
+
   // 1. Inicializar con los datos base pre-fecha
   const updated: Record<string, TeamStanding> = {};
 
@@ -506,7 +509,7 @@ export function calculateDynamicStandings(
     };
   });
 
-  // 2. Procesar todos los partidos de la fecha en curso o finalizados
+  // 2. Procesar todos los partidos del torneo
   fixtures.forEach(match => {
     const dynamicState = getDynamicMatchState(match, currentDate);
     const homeName = match.homeTeam;
@@ -522,52 +525,61 @@ export function calculateDynamicStandings(
       const aScore = dynamicState.awayScore ?? 0;
       const isLive = dynamicState.status === 'LIVE';
 
-      // Datos Local
+      // Datos Local (acumulados para la tabla histórica)
       homeTeam.played += 1;
       homeTeam.goalsFor += hScore;
       homeTeam.goalsAgainst += aScore;
       homeTeam.goalDiff = homeTeam.goalsFor - homeTeam.goalsAgainst;
-      homeTeam.roundMatchStatus = dynamicState.status;
-      homeTeam.isLiveMatch = isLive;
-      homeTeam.liveMinute = dynamicState.liveMinute;
 
-      const awayShort = getTeamData(awayName)?.shortName || awayName.slice(0, 3).toUpperCase();
-      homeTeam.matchScoreInfo = `${hScore} - ${aScore} vs ${awayShort}`;
+      // Estado dinámico del partido solo si corresponde a la fecha activa en disputa
+      if (match.fecha === activeRound) {
+        homeTeam.roundMatchStatus = dynamicState.status;
+        homeTeam.isLiveMatch = isLive;
+        homeTeam.liveMinute = dynamicState.liveMinute;
+        const awayShort = getTeamData(awayName)?.shortName || awayName.slice(0, 3).toUpperCase();
+        homeTeam.matchScoreInfo = `${hScore} - ${aScore} vs ${awayShort}`;
+      }
 
-      // Datos Visitante
+      // Datos Visitante (acumulados para la tabla histórica)
       awayTeam.played += 1;
       awayTeam.goalsFor += aScore;
       awayTeam.goalsAgainst += hScore;
       awayTeam.goalDiff = awayTeam.goalsFor - awayTeam.goalsAgainst;
-      awayTeam.roundMatchStatus = dynamicState.status;
-      awayTeam.isLiveMatch = isLive;
-      awayTeam.liveMinute = dynamicState.liveMinute;
 
-      const homeShort = getTeamData(homeName)?.shortName || homeName.slice(0, 3).toUpperCase();
-      awayTeam.matchScoreInfo = `${aScore} - ${hScore} vs ${homeShort}`;
+      // Estado dinámico del partido solo si corresponde a la fecha activa en disputa
+      if (match.fecha === activeRound) {
+        awayTeam.roundMatchStatus = dynamicState.status;
+        awayTeam.isLiveMatch = isLive;
+        awayTeam.liveMinute = dynamicState.liveMinute;
+        const homeShort = getTeamData(homeName)?.shortName || homeName.slice(0, 3).toUpperCase();
+        awayTeam.matchScoreInfo = `${aScore} - ${hScore} vs ${homeShort}`;
+      }
 
       if (hScore > aScore) {
         homeTeam.points += 3;
         homeTeam.won += 1;
-        homeTeam.pointsGainedInRound = (homeTeam.pointsGainedInRound || 0) + 3;
-
+        if (match.fecha === activeRound) {
+          homeTeam.pointsGainedInRound = (homeTeam.pointsGainedInRound || 0) + 3;
+          awayTeam.pointsGainedInRound = (awayTeam.pointsGainedInRound || 0) + 0;
+        }
         awayTeam.lost += 1;
-        awayTeam.pointsGainedInRound = (awayTeam.pointsGainedInRound || 0) + 0;
       } else if (hScore === aScore) {
         homeTeam.points += 1;
         homeTeam.drawn += 1;
-        homeTeam.pointsGainedInRound = (homeTeam.pointsGainedInRound || 0) + 1;
-
+        if (match.fecha === activeRound) {
+          homeTeam.pointsGainedInRound = (homeTeam.pointsGainedInRound || 0) + 1;
+          awayTeam.pointsGainedInRound = (awayTeam.pointsGainedInRound || 0) + 1;
+        }
         awayTeam.points += 1;
         awayTeam.drawn += 1;
-        awayTeam.pointsGainedInRound = (awayTeam.pointsGainedInRound || 0) + 1;
       } else {
         awayTeam.points += 3;
         awayTeam.won += 1;
-        awayTeam.pointsGainedInRound = (awayTeam.pointsGainedInRound || 0) + 3;
-
+        if (match.fecha === activeRound) {
+          awayTeam.pointsGainedInRound = (awayTeam.pointsGainedInRound || 0) + 3;
+          homeTeam.pointsGainedInRound = (homeTeam.pointsGainedInRound || 0) + 0;
+        }
         homeTeam.lost += 1;
-        homeTeam.pointsGainedInRound = (homeTeam.pointsGainedInRound || 0) + 0;
       }
     }
   });
@@ -623,12 +635,30 @@ export function getDynamicStandings(currentDate: Date = new Date()): Record<stri
 }
 
 /**
- * Obtiene la información del próximo partido de un equipo en la Fecha 6
+ * Obtiene la información del próximo partido de un equipo para la fecha activa en disputa
  */
 export function getTeamMatchInfo(teamName: string, currentDate: Date = new Date()): TeamMatchInfo | undefined {
-  const nextMatch = FIXTURES_DATA.find(
-    m => m.fecha === 6 && (m.homeTeam === teamName || m.awayTeam === teamName)
+  const roundStatus = getTournamentRoundStatus(currentDate);
+  const targetRound = roundStatus.roundNumber;
+
+  // 1. Buscar primero el partido en la fecha activa del torneo
+  let nextMatch = FIXTURES_DATA.find(
+    m => m.fecha === targetRound && (m.homeTeam === teamName || m.awayTeam === teamName)
   );
+
+  // 2. Si no se encuentra en targetRound, buscar el próximo partido no finalizado
+  if (!nextMatch) {
+    nextMatch = FIXTURES_DATA.find(
+      m => m.fecha >= targetRound && (m.homeTeam === teamName || m.awayTeam === teamName) && m.status !== 'FINISHED'
+    );
+  }
+
+  // 3. Fallback a cualquier partido del equipo
+  if (!nextMatch) {
+    nextMatch = FIXTURES_DATA.find(
+      m => m.homeTeam === teamName || m.awayTeam === teamName
+    );
+  }
 
   if (!nextMatch) return undefined;
 
@@ -639,7 +669,7 @@ export function getTeamMatchInfo(teamName: string, currentDate: Date = new Date(
   const rivalShort = rivalMeta?.shortName || rival.slice(0, 3).toUpperCase();
 
   let dayOfWeek: 'Viernes' | 'Sábado' | 'Domingo' | 'Lunes' = 'Domingo';
-  const lowerDate = nextMatch.dateStr.toLowerCase();
+  const lowerDate = (nextMatch.dateStr || '').toLowerCase();
   if (lowerDate.includes('viernes')) dayOfWeek = 'Viernes';
   else if (lowerDate.includes('sábado') || lowerDate.includes('sabado')) dayOfWeek = 'Sábado';
   else if (lowerDate.includes('domingo')) dayOfWeek = 'Domingo';

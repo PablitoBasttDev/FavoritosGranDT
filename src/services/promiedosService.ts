@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { MatchFixture, MatchEvent, updateFixturesFromPromiedos, areTeamNamesEqual } from '../data/fixture';
-import { Player } from '../types';
 
 export interface PromiedosMatchData {
   id: string;
@@ -33,30 +32,10 @@ export interface PromiedosApiResponse {
   error?: string;
 }
 
-const REFRESH_INTERVAL_SECONDS = 30;
-
-type LivePlayersListener = (players: Player[]) => void;
-const playerSyncListeners: Set<LivePlayersListener> = new Set();
-
-export function subscribeToLivePlayerUpdates(listener: LivePlayersListener): () => void {
-  playerSyncListeners.add(listener);
-  return () => {
-    playerSyncListeners.delete(listener);
-  };
-}
-
-function notifyPlayerSyncListeners(players: Player[]) {
-  playerSyncListeners.forEach(listener => {
-    try {
-      listener(players);
-    } catch (e) {
-      console.warn('Error in player sync listener:', e);
-    }
-  });
-}
+const REFRESH_INTERVAL_SECONDS = 45;
 
 /**
- * Hook para consultar y sincronizar el fixture de Promiedos cada 30 segundos en tiempo real.
+ * Hook para consultar y sincronizar el fixture de Promiedos cada 45 segundos en tiempo real.
  */
 export function usePromiedosLiveFixture(selectedRound?: number) {
   const [data, setData] = useState<PromiedosApiResponse | null>(null);
@@ -78,7 +57,7 @@ export function usePromiedosLiveFixture(selectedRound?: number) {
         ? `/api/promiedos/fixture?round=${selectedRound}`
         : '/api/promiedos/fixture';
       
-      const response = await fetch(url);
+      const response = await fetch(url, { cache: 'no-store' });
       if (!response.ok) {
         throw new Error(`HTTP Error: ${response.status}`);
       }
@@ -255,7 +234,7 @@ export function usePromiedosStandings() {
 
   const fetchStandings = useCallback(async () => {
     try {
-      const res = await fetch('/api/promiedos/standings');
+      const res = await fetch('/api/promiedos/standings', { cache: 'no-store' });
       if (res.ok) {
         const data: PromiedosStandingsResponse = await res.json();
         if (data.success) {
@@ -289,7 +268,7 @@ export function usePromiedosScorers() {
 
   const fetchScorers = useCallback(async () => {
     try {
-      const res = await fetch('/api/promiedos/scorers');
+      const res = await fetch('/api/promiedos/scorers', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         if (data.success && Array.isArray(data.scorers)) {
@@ -323,7 +302,7 @@ export function usePromiedosCleanSheets() {
 
   const fetchCleanSheets = useCallback(async () => {
     try {
-      const res = await fetch('/api/promiedos/clean-sheets');
+      const res = await fetch('/api/promiedos/clean-sheets', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         if (data.success && Array.isArray(data.cleanSheets)) {

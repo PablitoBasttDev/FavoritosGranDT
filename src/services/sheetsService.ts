@@ -1,5 +1,6 @@
 import { Player, Position } from '../types';
 import defaultPlayersSnapshot from '../data/liveSheetSnapshot.json';
+import { generateDeterministicPlayerId } from '../utils/playerIdentity';
 
 const STORAGE_KEY_ACTIVE_URL = 'gran_dt_active_sheet_url_v2';
 const STORAGE_KEY_ACTIVE_ROUND = 'gran_dt_active_sheet_round_v2';
@@ -318,7 +319,6 @@ export function parsePlayersFromCSV(csvText: string): Player[] {
   const rows = parseCSV(csvText);
   let header: string[] | null = null;
   const players: Player[] = [];
-  let idCounter = 1;
 
   for (const row of rows) {
     if (!row || row.length < 4) continue;
@@ -335,10 +335,15 @@ export function parsePlayersFromCSV(csvText: string): Player[] {
         rawObj[h] = row[i] ? row[i].trim() : '';
       });
 
+      const rawName = rawObj['Jugador'] || '';
       const rawTeam = rawObj['Equipo'] || '';
       const mappedTeam = SHEET_TEAM_MAP[rawTeam] || rawTeam;
+      const pos = (rawObj['POS'] || 'VOL') as Position;
       const cotiz = rawObj['Cotización'] || '';
       const precioNum = parseNumber(cotiz);
+
+      // Deterministic immutable ID derived from player name + club + pos
+      const stableId = generateDeterministicPlayerId(rawName, mappedTeam, pos);
 
       // Promedio torneo (PrT) and Gran DT (PrG)
       const prt = parseNumber(rawObj['PrT'], true);
@@ -364,10 +369,10 @@ export function parsePlayersFromCSV(csvText: string): Player[] {
       }
 
       players.push({
-        id: idCounter++,
-        nombre: rawObj['Jugador'] || '',
+        id: stableId,
+        nombre: rawName,
         equipo: mappedTeam,
-        posicion: rawObj['POS'] as Position,
+        posicion: pos,
         precio: cotiz || `$ ${precioNum.toLocaleString('es-AR')}`,
         precioNum,
         promedio: prt,
@@ -488,7 +493,7 @@ export async function fetchLiveSheetPlayers(customUrl?: string): Promise<SheetSy
   // 1. First priority: If no custom URL is specified, fetch via backend /api/planetagrandt/latest-sheet
   if (!customUrl) {
     try {
-      const serverResp = await fetch('/api/planetagrandt/latest-sheet');
+      const serverResp = await fetch('/api/planetagrandt/latest-sheet', { cache: 'no-store' });
       if (serverResp.ok) {
         const serverJson = await serverResp.json();
         if (serverJson.success && Array.isArray(serverJson.players) && serverJson.players.length >= 200) {

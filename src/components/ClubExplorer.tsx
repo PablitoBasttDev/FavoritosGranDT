@@ -5,16 +5,21 @@ import { normalizeText } from '../utils/textUtils';
 import { TeamBadge } from './TeamBadge';
 import { ALL_PLAYERS } from '../data/players';
 import { Shield, Search, ChevronRight, BookmarkCheck, Users, Trophy, Radio, ArrowUp, ArrowDown, Minus } from 'lucide-react';
-import { FavoritePlayer } from '../types';
+import { FavoritePlayer, Player } from '../types';
 
 interface ClubExplorerProps {
   onSelectClub: (clubName: string) => void;
   favorites: FavoritePlayer[];
+  players?: Player[];
 }
 
-export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favorites }) => {
+export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favorites, players: propPlayers }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [now, setNow] = useState<Date>(new Date());
+
+  const activePlayers = useMemo(() => {
+    return propPlayers && propPlayers.length > 0 ? propPlayers : ALL_PLAYERS;
+  }, [propPlayers]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -37,18 +42,18 @@ export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favori
   });
 
   const getTeamStats = (teamName: string) => {
-    const players = ALL_PLAYERS.filter(p => p.equipo.toLowerCase() === teamName.toLowerCase());
-    const totalValue = players.reduce((sum, p) => sum + p.precioNum, 0);
-    const avgPrice = players.length > 0 ? totalValue / players.length : 0;
-    const mostExpensive = players.reduce(
+    const clubPlayers = activePlayers.filter(p => p.equipo.toLowerCase() === teamName.toLowerCase());
+    const totalValue = clubPlayers.reduce((sum, p) => sum + p.precioNum, 0);
+    const avgPrice = clubPlayers.length > 0 ? totalValue / clubPlayers.length : 0;
+    const mostExpensive = clubPlayers.reduce(
       (prev, current) => (prev.precioNum > current.precioNum ? prev : current),
-      players[0]
+      clubPlayers[0]
     );
 
     const clubFavorites = favorites.filter(f => f.equipo.toLowerCase() === teamName.toLowerCase());
 
     return {
-      count: players.length,
+      count: clubPlayers.length,
       totalValue,
       avgPrice,
       topPlayer: mostExpensive,
