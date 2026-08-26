@@ -898,16 +898,64 @@ async function fetchPromiedosLeagueDetails(): Promise<PromiedosLeagueData> {
   return cachedLeagueData;
 }
 
-// API Routes
+// Global CORS and Anti-Cache Headers
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, Pragma');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+// API Routes Cache Policy: strict no-cache on edge/CDN and browser
 app.use('/api', (req, res, next) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
   next();
 });
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Vercel Cron Job / Scheduled Webhook Endpoint
+app.all('/api/cron/refresh', async (req, res) => {
+  try {
+    cachedData = null;
+    cachedLeagueData = null;
+    cachedPlanetaData = null;
+    const [promiedosData, leagueData, planetaData] = await Promise.all([
+      fetchPromiedosLiveData(),
+      fetchPromiedosLeagueDetails(),
+      fetchPlanetaGranDTStats(),
+    ]);
+
+    res.json({
+      success: true,
+      message: 'Caché de datos actualizada correctamente',
+      timestamp: Date.now(),
+      promiedos: {
+        currentRound: promiedosData.currentRound,
+        matchesCount: promiedosData.matches.length,
+        standingsCount: leagueData.standingsGeneral.length,
+        scorersCount: leagueData.topScorers.length,
+      },
+      planetaGranDT: {
+        roundTitle: planetaData.roundTitle,
+        playersCount: planetaData.playersCount,
+        sheetUrl: planetaData.sheetUrl,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
 });
 
 // Planeta Gran DT Latest Sheet Endpoint (Cotizaciones, Jugadores, Puntajes Gran DT)
@@ -1089,4 +1137,9 @@ async function startServer() {
   }, 45 * 1000);
 }
 
-startServer();
+// Only start standalone HTTP server if not running as a Vercel Serverless Function
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export default app;

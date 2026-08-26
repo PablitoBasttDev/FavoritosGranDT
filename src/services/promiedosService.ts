@@ -53,11 +53,16 @@ export function usePromiedosLiveFixture(selectedRound?: number) {
       setIsRefreshing(true);
     }
     try {
-      const url = selectedRound
+      const baseUrl = selectedRound
         ? `/api/promiedos/fixture?round=${selectedRound}`
         : '/api/promiedos/fixture';
+      const sep = baseUrl.includes('?') ? '&' : '?';
+      const url = `${baseUrl}${sep}_t=${Date.now()}`;
       
-      const response = await fetch(url, { cache: 'no-store' });
+      const response = await fetch(url, {
+        cache: 'no-store',
+        headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+      });
       if (!response.ok) {
         throw new Error(`HTTP Error: ${response.status}`);
       }
@@ -234,7 +239,10 @@ export function usePromiedosStandings() {
 
   const fetchStandings = useCallback(async () => {
     try {
-      const res = await fetch('/api/promiedos/standings', { cache: 'no-store' });
+      const res = await fetch(`/api/promiedos/standings?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+      });
       if (res.ok) {
         const data: PromiedosStandingsResponse = await res.json();
         if (data.success) {
@@ -268,7 +276,10 @@ export function usePromiedosScorers() {
 
   const fetchScorers = useCallback(async () => {
     try {
-      const res = await fetch('/api/promiedos/scorers', { cache: 'no-store' });
+      const res = await fetch(`/api/promiedos/scorers?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+      });
       if (res.ok) {
         const data = await res.json();
         if (data.success && Array.isArray(data.scorers)) {
@@ -302,7 +313,10 @@ export function usePromiedosCleanSheets() {
 
   const fetchCleanSheets = useCallback(async () => {
     try {
-      const res = await fetch('/api/promiedos/clean-sheets', { cache: 'no-store' });
+      const res = await fetch(`/api/promiedos/clean-sheets?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+      });
       if (res.ok) {
         const data = await res.json();
         if (data.success && Array.isArray(data.cleanSheets)) {

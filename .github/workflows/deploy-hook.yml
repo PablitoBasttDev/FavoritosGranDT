@@ -1,0 +1,19 @@
+name: Scheduled Vercel Deploy Hook
+
+on:
+  schedule:
+    # Runs every 3 hours (adjust cron as needed)
+    - cron: '0 */3 * * *'
+  workflow_dispatch:
+
+jobs:
+  trigger-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel Rebuild via Deploy Hook
+        if: env.VERCEL_DEPLOY_HOOK_URL != ''
+        env:
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          echo "Disparando webhook de Vercel Deploy Hook..."
+          curl -X POST "$VERCEL_DEPLOY_HOOK_URL"

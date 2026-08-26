@@ -493,7 +493,10 @@ export async function fetchLiveSheetPlayers(customUrl?: string): Promise<SheetSy
   // 1. First priority: If no custom URL is specified, fetch via backend /api/planetagrandt/latest-sheet
   if (!customUrl) {
     try {
-      const serverResp = await fetch('/api/planetagrandt/latest-sheet', { cache: 'no-store' });
+      const serverResp = await fetch(`/api/planetagrandt/latest-sheet?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+      });
       if (serverResp.ok) {
         const serverJson = await serverResp.json();
         if (serverJson.success && Array.isArray(serverJson.players) && serverJson.players.length >= 200) {
