@@ -16,6 +16,8 @@ import {
   BookmarkCheck,
   Sparkles,
   Filter,
+  AlertTriangle,
+  RefreshCw,
 } from 'lucide-react';
 
 interface PlayerExplorerProps {
@@ -27,6 +29,10 @@ interface PlayerExplorerProps {
   targetPositionFilter?: string;
   onClearTargetPositionFilter?: () => void;
   onNavigateToFavorites?: () => void;
+  isLiveSync?: boolean;
+  detectedRound?: string;
+  onManualRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
@@ -38,6 +44,10 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
   targetPositionFilter = 'ALL',
   onClearTargetPositionFilter,
   onNavigateToFavorites,
+  isLiveSync = true,
+  detectedRound,
+  onManualRefresh,
+  isRefreshing = false,
 }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
@@ -180,14 +190,27 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
       <div className="bg-gradient-to-r from-[#07245c] via-[#0e3f9a] to-[#082b6c] text-white rounded-xl shadow-xs p-2.5 sm:p-4 border border-blue-900/50">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <div className="flex items-center gap-1.5 mb-0.5 sm:mb-1">
+            <div className="flex flex-wrap items-center gap-1.5 mb-0.5 sm:mb-1">
               <span className="bg-cyan-400 text-slate-950 px-1.5 py-0.2 rounded text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider">
                 {players.length} Futbolistas
               </span>
-              <span className="text-[10px] sm:text-xs text-blue-200 font-bold uppercase tracking-wide flex items-center gap-1">
-                <TrendingUp className="w-3 h-3 text-amber-300" />
-                Base en Vivo
-              </span>
+              {isLiveSync ? (
+                <span className="text-[10px] sm:text-xs text-emerald-300 font-bold uppercase tracking-wide flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  Base en Vivo {detectedRound ? `(${detectedRound})` : ''}
+                </span>
+              ) : (
+                <button
+                  onClick={onManualRefresh}
+                  disabled={isRefreshing}
+                  className="text-[10px] sm:text-xs text-amber-300 hover:text-amber-200 font-bold uppercase tracking-wide flex items-center gap-1 bg-amber-950/70 px-2 py-0.5 rounded-md border border-amber-500/50 cursor-pointer"
+                  title="Conexión en vivo no disponible. Mostrando última versión guardada. Clic para reintentar."
+                >
+                  <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
+                  <span>Versión guardada {detectedRound ? `(${detectedRound})` : ''}</span>
+                  <RefreshCw className={`w-2.5 h-2.5 ml-0.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </button>
+              )}
             </div>
             <h2 className="text-sm sm:text-lg font-black tracking-tight text-white">
               Base de Datos, Cotizaciones y Promedios AFA 2026

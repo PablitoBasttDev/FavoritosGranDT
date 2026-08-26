@@ -11,6 +11,7 @@ import { AuthScreen } from './components/AuthScreen';
 import {
   getCachedSheetPlayers,
   initBackgroundAutoSync,
+  fetchLiveSheetPlayers,
   SheetSyncResult,
 } from './services/sheetsService';
 import {
@@ -31,6 +32,7 @@ import {
   isSamePlayer,
   generateDeterministicPlayerId,
 } from './utils/playerIdentity';
+import { AlertTriangle, RefreshCw, Radio } from 'lucide-react';
 
 const THEME_KEY = 'gran_dt_theme';
 
@@ -44,6 +46,19 @@ export default function App() {
 
   // Dynamic Live Players state automatically synced with Google Sheets
   const [livePlayers, setLivePlayers] = useState<Player[]>(() => getCachedSheetPlayers());
+  const [sheetSyncInfo, setSheetSyncInfo] = useState<{
+    isLive: boolean;
+    detectedRound?: string;
+    lastUpdated: number;
+    hasSyncedOnce: boolean;
+    isRefreshing: boolean;
+  }>({
+    isLive: true,
+    detectedRound: undefined,
+    lastUpdated: Date.now(),
+    hasSyncedOnce: false,
+    isRefreshing: false,
+  });
 
   // Authenticated Active User State (null = not logged in / locked)
   const [activeUser, setActiveUserState] = useState<UserProfile | null>(() => getActiveUser());
@@ -68,9 +83,44 @@ export default function App() {
         setLivePlayers(result.players);
         updateAllPlayers(result.players);
       }
+      setSheetSyncInfo({
+        isLive: result.isLive,
+        detectedRound: result.detectedRound,
+        lastUpdated: result.lastUpdated || Date.now(),
+        hasSyncedOnce: true,
+        isRefreshing: false,
+      });
     });
     return () => unsubscribe();
   }, []);
+
+  // Manual re-sync trigger
+  const handleManualSheetRefresh = async () => {
+    setSheetSyncInfo(prev => ({ ...prev, isRefreshing: true }));
+    showToast('🔄 Conectando con Planeta Gran DT en vivo...');
+    try {
+      const result = await fetchLiveSheetPlayers();
+      if (result.players && result.players.length > 0) {
+        setLivePlayers(result.players);
+        updateAllPlayers(result.players);
+      }
+      setSheetSyncInfo({
+        isLive: result.isLive,
+        detectedRound: result.detectedRound,
+        lastUpdated: result.lastUpdated || Date.now(),
+        hasSyncedOnce: true,
+        isRefreshing: false,
+      });
+      if (result.isLive) {
+        showToast('✓ Base de futbolistas actualizada en vivo');
+      } else {
+        showToast('⚠️ No se pudo obtener la hoja en vivo. Mostrando versión guardada.');
+      }
+    } catch {
+      setSheetSyncInfo(prev => ({ ...prev, isRefreshing: false, isLive: false }));
+      showToast('⚠️ Error de conexión con la fuente en vivo.');
+    }
+  };
 
   // Sync users and active favorites with Firestore cloud on startup
   useEffect(() => {
@@ -357,10 +407,38 @@ export default function App() {
         activeUser={activeUser}
         onOpenUserModal={() => setIsUserModalOpen(true)}
         onLogout={handleLogout}
+        isLiveSync={sheetSyncInfo.isLive}
+        detectedRound={sheetSyncInfo.detectedRound}
+        onManualRefresh={handleManualSheetRefresh}
+        isRefreshing={sheetSyncInfo.isRefreshing}
       />
 
       {/* Main Full-Width Content Container */}
       <main className="flex-1 w-full max-w-[1920px] mx-auto px-2 sm:px-4 lg:px-5 py-2.5 sm:py-3">
+        {/* Sutil Indicador de Fallback / Datos Guardados cuando no se pudo sincronizar en vivo */}
+        {!sheetSyncInfo.isLive && (
+          <div
+            id="sheet-fallback-warning-banner"
+            className="mb-2.5 sm:mb-3 bg-amber-500/10 dark:bg-amber-950/40 border border-amber-500/40 dark:border-amber-600/40 rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-amber-900 dark:text-amber-200 shadow-xs"
+          >
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-medium">
+              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+              <span>
+                <strong className="font-bold">Datos no actualizados en vivo:</strong> mostrando última versión guardada ({sheetSyncInfo.detectedRound || 'Snapshot oficial Planeta Gran DT'}).
+              </span>
+            </div>
+            <button
+              onClick={handleManualSheetRefresh}
+              disabled={sheetSyncInfo.isRefreshing}
+              className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg text-xs transition shrink-0 flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
+              title="Reintentar conexión con Planeta Gran DT"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${sheetSyncInfo.isRefreshing ? 'animate-spin' : ''}`} />
+              <span>{sheetSyncInfo.isRefreshing ? 'Sincronizando...' : 'Reintentar conexión'}</span>
+            </button>
+          </div>
+        )}
+
         {activeTab === 'favorites' && (
           <FavoritesDashboard
             favorites={enrichedFavorites}
@@ -386,6 +464,10 @@ export default function App() {
             targetPositionFilter={targetPositionFilter}
             onClearTargetPositionFilter={() => setTargetPositionFilter('ALL')}
             onNavigateToFavorites={() => setActiveTab('favorites')}
+            isLiveSync={sheetSyncInfo.isLive}
+            detectedRound={sheetSyncInfo.detectedRound}
+            onManualRefresh={handleManualSheetRefresh}
+            isRefreshing={sheetSyncInfo.isRefreshing}
           />
         )}
 

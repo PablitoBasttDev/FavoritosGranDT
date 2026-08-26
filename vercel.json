@@ -1,5 +1,10 @@
 {
   "version": 2,
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -13,7 +18,7 @@
   "crons": [
     {
       "path": "/api/cron/refresh",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 6 * * *"
     }
   ]
 }

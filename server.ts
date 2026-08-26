@@ -264,64 +264,106 @@ function parsePromiedosGame(g: any, roundNumber: number, idx: number): Promiedos
   };
 }
 
-async function fetchPromiedosLiveData(): Promise<PromiedosCache> {
+async function fetchPromiedosLiveData(targetRound?: number): Promise<PromiedosCache> {
   const now = Date.now();
   if (cachedData && now - cachedData.lastFetched < CACHE_TTL_MS) {
-    return cachedData;
+    if (!targetRound || cachedData.allRounds[targetRound]) {
+      return cachedData;
+    }
   }
 
-  const allRounds: Record<number, PromiedosLiveMatch[]> = {};
-  let activeRoundNumber = 7;
+  const allRounds: Record<number, PromiedosLiveMatch[]> = cachedData ? { ...cachedData.allRounds } : {};
+  let activeRoundNumber = cachedData?.currentRound || 7;
   const currentMatches: PromiedosLiveMatch[] = [];
 
   try {
-    // 1. Fetch the main league structure to discover all round filters
+    // 1. Fetch the main league structure to discover filters and the preloaded active round games
     let filterList: Array<{ name: string; key: string; selected?: boolean }> = [];
+    let initialSelectedRound = 7;
 
     try {
       const leagueRes = await fetch('https://www.promiedos.com.ar/league/liga-profesional/hc', {
         headers: PROMIEDOS_HEADERS,
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(3500),
       });
       if (leagueRes.ok) {
         const html = await leagueRes.text();
         const $ = cheerio.load(html);
         const nextData = JSON.parse($('#__NEXT_DATA__').html() || '{}');
-        filterList = nextData.props?.pageProps?.data?.games?.filters || [];
+        const gamesData = nextData.props?.pageProps?.data?.games;
+        filterList = gamesData?.filters || [];
+
+        // Directly extract the preloaded games for the active/selected round
+        const preloadedGames = gamesData?.games;
+        if (Array.isArray(preloadedGames) && preloadedGames.length > 0) {
+          const selectedFilter = filterList.find(f => f.selected);
+          const roundNameMatch = (preloadedGames[0]?.stage_round_name || selectedFilter?.name || '').match(/Fecha\s+(\d+)/i);
+          initialSelectedRound = roundNameMatch ? parseInt(roundNameMatch[1], 10) : 7;
+          allRounds[initialSelectedRound] = preloadedGames.map((g: any, idx: number) =>
+            parsePromiedosGame(g, initialSelectedRound, idx)
+          );
+          activeRoundNumber = initialSelectedRound;
+        }
+      } else {
+        console.warn(`[PROMIEDOS_FETCH_NOTICE] League discovery HTTP ${leagueRes.status}`);
       }
     } catch (err) {
-      console.warn('League structure discovery warning:', (err as Error).message);
+      console.warn('[PROMIEDOS_FETCH_NOTICE] League structure discovery notice:', (err as Error).message);
     }
 
-    // Isolate ONLY Torneo Clausura 2026 filters (stage 8: key starting with 72_228_8_)
+    // Isolate ONLY Torneo Clausura 2026 filters
     const clausuraFilters = filterList.filter(
       f => f.key?.startsWith('72_228_8_') || f.key?.includes('_8_')
     );
     const effectiveFilters = clausuraFilters.length > 0 ? clausuraFilters : filterList;
 
-    // 2. Fetch official round data for each Clausura round (prioritizing recent and upcoming rounds)
-    for (const filter of effectiveFilters) {
-      const matchFecha = filter.name?.match(/Fecha\s+(\d+)/i);
+    // 2. Determine target rounds to fetch: focused on active round, neighbors (±1), and any requested round
+    const targetRoundNumbers = new Set<number>();
+    if (targetRound && targetRound > 0) targetRoundNumbers.add(targetRound);
+    targetRoundNumbers.add(activeRoundNumber);
+    if (activeRoundNumber > 1) targetRoundNumbers.add(activeRoundNumber - 1);
+    if (activeRoundNumber < 16) targetRoundNumbers.add(activeRoundNumber + 1);
+
+    // Filter down to only needed round filters that aren't already loaded
+    const filtersToFetch = effectiveFilters.filter(f => {
+      const matchFecha = f.name?.match(/Fecha\s+(\d+)/i);
       const fechaNum = matchFecha ? parseInt(matchFecha[1], 10) : 0;
-      if (fechaNum > 0 && filter.key) {
-        try {
-          const res = await fetch(`https://api.promiedos.com.ar/league/games/hc/${filter.key}`, {
-            headers: PROMIEDOS_HEADERS,
-            signal: AbortSignal.timeout(5000),
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.games && Array.isArray(data.games)) {
-              const parsed = data.games.map((g: any, idx: number) =>
-                parsePromiedosGame(g, fechaNum, idx)
-              );
-              allRounds[fechaNum] = parsed;
+      return fechaNum > 0 && targetRoundNumbers.has(fechaNum) && (!allRounds[fechaNum] || allRounds[fechaNum].length === 0);
+    });
+
+    // Fetch only the 2-3 focused rounds concurrently
+    if (filtersToFetch.length > 0) {
+      const roundFetchPromises = filtersToFetch.map(async filter => {
+        const matchFecha = filter.name?.match(/Fecha\s+(\d+)/i);
+        const fechaNum = matchFecha ? parseInt(matchFecha[1], 10) : 0;
+        if (fechaNum > 0 && filter.key) {
+          try {
+            const res = await fetch(`https://api.promiedos.com.ar/league/games/hc/${filter.key}`, {
+              headers: PROMIEDOS_HEADERS,
+              signal: AbortSignal.timeout(3500),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data.games && Array.isArray(data.games)) {
+                const parsed = data.games.map((g: any, idx: number) =>
+                  parsePromiedosGame(g, fechaNum, idx)
+                );
+                return { fechaNum, matches: parsed };
+              }
             }
+          } catch (err) {
+            console.warn(`[PROMIEDOS_FETCH_NOTICE] Round ${fechaNum} fetch notice:`, (err as Error).message);
           }
-        } catch (err) {
-          console.warn(`Round ${fechaNum} fetch warning:`, (err as Error).message);
         }
-      }
+        return null;
+      });
+
+      const settledResults = await Promise.allSettled(roundFetchPromises);
+      settledResults.forEach(r => {
+        if (r.status === 'fulfilled' && r.value) {
+          allRounds[r.value.fechaNum] = r.value.matches;
+        }
+      });
     }
 
     // 3. If no rounds were fetched from filters, try latest endpoint as fallback
@@ -329,7 +371,7 @@ async function fetchPromiedosLiveData(): Promise<PromiedosCache> {
       try {
         const latestRes = await fetch('https://api.promiedos.com.ar/league/games/hc/latest', {
           headers: PROMIEDOS_HEADERS,
-          signal: AbortSignal.timeout(6000),
+          signal: AbortSignal.timeout(3500),
         });
         if (latestRes.ok) {
           const latestData = await latestRes.json();
@@ -344,14 +386,12 @@ async function fetchPromiedosLiveData(): Promise<PromiedosCache> {
           }
         }
       } catch (err) {
-        console.warn('Latest round fallback warning:', (err as Error).message);
+        console.warn('[PROMIEDOS_FETCH_NOTICE] Latest round fallback notice:', (err as Error).message);
       }
     }
 
     // 4. Determine the active round in dispute:
-    // It is the first round in Torneo Clausura that has unplayed (SCHEDULED) or in-progress (LIVE) matches.
-    // If all matches in a round are FINISHED, the active round moves automatically to the next round.
-    let resolvedActiveRound = 1;
+    let resolvedActiveRound = activeRoundNumber;
     const sortedRoundNums = Object.keys(allRounds).map(Number).sort((a, b) => a - b);
     for (const rNum of sortedRoundNums) {
       const rMatches = allRounds[rNum];
@@ -378,7 +418,7 @@ async function fetchPromiedosLiveData(): Promise<PromiedosCache> {
     try {
       const homeRes = await fetch('https://www.promiedos.com.ar/', {
         headers: PROMIEDOS_HEADERS,
-        signal: AbortSignal.timeout(4000),
+        signal: AbortSignal.timeout(2500),
       });
       if (homeRes.ok) {
         const html = await homeRes.text();
@@ -418,7 +458,7 @@ async function fetchPromiedosLiveData(): Promise<PromiedosCache> {
         }
       }
     } catch (err) {
-      console.warn('Today live homepage fetch warning:', (err as Error).message);
+      console.warn('[PROMIEDOS_FETCH_NOTICE] Today live homepage fetch notice:', (err as Error).message);
     }
 
     if (currentMatches.length > 0) {
@@ -434,7 +474,7 @@ async function fetchPromiedosLiveData(): Promise<PromiedosCache> {
 
     throw new Error('No match data could be parsed from Promiedos API');
   } catch (error) {
-    console.error('Error in fetchPromiedosLiveData:', error);
+    console.error('[PROMIEDOS_FETCH_ERROR] Fatal in fetchPromiedosLiveData:', (error as Error).message);
     if (cachedData) {
       return cachedData;
     }
@@ -545,7 +585,7 @@ async function fetchPlanetaGranDTStats(): Promise<PlanetaGranDTCache> {
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
       },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(3000),
     });
 
     if (resp.ok) {
@@ -570,19 +610,21 @@ async function fetchPlanetaGranDTStats(): Promise<PlanetaGranDTCache> {
           sheetUrl = matches[0];
         }
       }
+    } else {
+      console.error(`[PLANETAGRANDT_FETCH_ERROR] Blog scrape HTTP ${resp.status}: ${resp.statusText}`);
     }
   } catch (err) {
-    console.warn('Error scraping Planeta Gran DT Estadísticas web page:', (err as Error).message);
+    console.error('[PLANETAGRANDT_FETCH_ERROR] Blog HTML scrape failed:', (err as Error).message);
   }
 
-  // Backup via JSON feed if not found
+  // Backup via JSON feed ONLY if sheetUrl was not found in HTML scrape
   if (!sheetUrl) {
     try {
       const feedResp = await fetch(
         'https://www.planetagrandt.com.ar/feeds/posts/default/-/Estad%C3%ADsticas?alt=json',
         {
           headers: { 'User-Agent': 'Mozilla/5.0' },
-          signal: AbortSignal.timeout(6000),
+          signal: AbortSignal.timeout(2500),
         }
       );
       if (feedResp.ok) {
@@ -598,9 +640,11 @@ async function fetchPlanetaGranDTStats(): Promise<PlanetaGranDTCache> {
             break;
           }
         }
+      } else {
+        console.error(`[PLANETAGRANDT_FETCH_ERROR] Feed backup HTTP ${feedResp.status}`);
       }
     } catch (err) {
-      console.warn('Error fetching Planeta Gran DT feed:', (err as Error).message);
+      console.error('[PLANETAGRANDT_FETCH_ERROR] Feed backup fetch failed:', (err as Error).message);
     }
   }
 
@@ -629,14 +673,13 @@ async function fetchPlanetaGranDTStats(): Promise<PlanetaGranDTCache> {
   try {
     const csvResp = await fetch(csvUrl, {
       headers: { 'Accept': 'text/csv, text/plain, */*' },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(3500),
     });
 
     if (csvResp.ok) {
       const csvText = await csvResp.text();
       const rows = parseServerCsv(csvText);
       let header: string[] | null = null;
-      let idCounter = 1;
 
       for (const row of rows) {
         if (!row || row.length < 4) continue;
@@ -704,9 +747,11 @@ async function fetchPlanetaGranDTStats(): Promise<PlanetaGranDTCache> {
           });
         }
       }
+    } else {
+      console.error(`[PLANETAGRANDT_FETCH_ERROR] Google Sheet CSV HTTP ${csvResp.status}: ${csvResp.statusText}`);
     }
   } catch (err) {
-    console.warn('Error downloading/parsing Google Sheet CSV:', (err as Error).message);
+    console.error('[PLANETAGRANDT_FETCH_ERROR] Google Sheet CSV fetch/parse failed:', (err as Error).message);
   }
 
   // Detect round
@@ -744,7 +789,7 @@ async function fetchPromiedosLeagueDetails(): Promise<PromiedosLeagueData> {
   try {
     const res = await fetch('https://www.promiedos.com.ar/league/liga-profesional/hc', {
       headers: PROMIEDOS_HEADERS,
-      signal: AbortSignal.timeout(6000),
+      signal: AbortSignal.timeout(3500),
     });
 
     if (res.ok) {
@@ -814,9 +859,11 @@ async function fetchPromiedosLeagueDetails(): Promise<PromiedosLeagueData> {
           };
         });
       }
+    } else {
+      console.error(`[PROMIEDOS_LEAGUE_ERROR] HTTP ${res.status}: ${res.statusText}`);
     }
   } catch (err) {
-    console.warn('Error fetching Promiedos league details:', (err as Error).message);
+    console.error('[PROMIEDOS_LEAGUE_ERROR] League details fetch failed:', (err as Error).message);
   }
 
   // 3. Build General Table (all 30 clubs ordered by Points desc, GoalDiff desc, GoalsFor desc)
@@ -1050,8 +1097,8 @@ app.get('/api/promiedos/clean-sheets', async (req, res) => {
 // Promiedos Live Fixture endpoint (Queried every 30s by client)
 app.get('/api/promiedos/fixture', async (req, res) => {
   try {
-    const data = await fetchPromiedosLiveData();
     const roundQuery = req.query.round ? parseInt(req.query.round as string, 10) : undefined;
+    const data = await fetchPromiedosLiveData(roundQuery);
 
     let matchesToSend = data.matches;
     if (roundQuery && data.allRounds[roundQuery]) {

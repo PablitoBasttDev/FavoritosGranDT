@@ -13,6 +13,9 @@ import {
   UserCheck,
   ChevronDown,
   LogOut,
+  Radio,
+  AlertTriangle,
+  RefreshCw,
 } from 'lucide-react';
 import { FavoritePlayer, UserProfile } from '../types';
 import { ALL_PLAYERS } from '../data/players';
@@ -29,6 +32,10 @@ interface NavbarProps {
   activeUser: UserProfile;
   onOpenUserModal: () => void;
   onLogout: () => void;
+  isLiveSync?: boolean;
+  detectedRound?: string;
+  onManualRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -43,6 +50,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeUser,
   onOpenUserModal,
   onLogout,
+  isLiveSync = true,
+  detectedRound,
+  onManualRefresh,
+  isRefreshing = false,
 }) => {
   const count = playersCount ?? ALL_PLAYERS.length;
   const navTabs = [
@@ -116,8 +127,30 @@ export const Navbar: React.FC<NavbarProps> = ({
             </nav>
           </div>
 
-          {/* Right: User Profile Chip, Theme Controls & Mobile Menu */}
+          {/* Right: Sync Status Chip, User Profile Chip, Theme Controls & Mobile Menu */}
           <div className="flex items-center gap-1.5 sm:gap-2.5">
+            {/* Live Sync Status Chip */}
+            {isLiveSync ? (
+              <div
+                title={`Sincronizado en vivo con Planeta Gran DT (${detectedRound || 'Oficial'})`}
+                className="hidden lg:flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>En Vivo</span>
+              </div>
+            ) : (
+              <button
+                onClick={onManualRefresh}
+                disabled={isRefreshing}
+                title="Conexión en vivo no disponible. Mostrando última versión guardada. Clic para reintentar."
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-950/70 border border-amber-500/50 text-amber-300 text-[10px] font-bold hover:bg-amber-900/80 transition cursor-pointer"
+              >
+                <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
+                <span className="hidden sm:inline">Versión guardada</span>
+                <RefreshCw className={`w-2.5 h-2.5 ml-0.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </button>
+            )}
+
             {/* User Profile Access Button & Quick Logout */}
             <div className="flex items-center gap-0.5 sm:gap-1 bg-blue-950/80 rounded-lg border border-blue-800/60 p-0.5">
               <button
