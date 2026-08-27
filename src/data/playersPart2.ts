@@ -1,4 +1,4 @@
-import { Player } from '../types';
+import { Player } from '../types.js';
 
 export const PLAYERS_PART_2: Player[] = [
   // 11. Estudiantes de La Plata

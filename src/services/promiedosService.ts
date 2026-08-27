@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { MatchFixture, MatchEvent, updateFixturesFromPromiedos, areTeamNamesEqual, FIXTURES_DATA, getTournamentRoundStatus } from '../data/fixture';
-import { getDynamicStandings } from '../data/standings';
-import { getDynamicTopScorers, getDynamicClubDefenseStats } from '../data/tournamentStats';
+import { MatchFixture, MatchEvent, updateFixturesFromPromiedos, areTeamNamesEqual, FIXTURES_DATA, getTournamentRoundStatus } from '../data/fixture.js';
+import { getDynamicStandings } from '../data/standings.js';
+import { getDynamicTopScorers, getDynamicClubDefenseStats } from '../data/tournamentStats.js';
 
 export interface PromiedosMatchData {
   id: string;

@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { Player, Position } from '../types';
-import { TEAMS_DATA } from '../data/teams';
-import { playerMatchesQuery } from '../utils/textUtils';
-import { ALL_TRAIT_DEFINITIONS, playerHasTrait } from '../utils/playerTraits';
-import { PlayerCard } from './PlayerCard';
-import { PlayerTable } from './PlayerTable';
+import { Player, Position } from '../types.js';
+import { TEAMS_DATA } from '../data/teams.js';
+import { playerMatchesQuery } from '../utils/textUtils.js';
+import { ALL_TRAIT_DEFINITIONS, playerHasTrait } from '../utils/playerTraits.js';
+import { PlayerCard } from './PlayerCard.js';
+import { PlayerTable } from './PlayerTable.js';
 import {
   Search,
   LayoutGrid,

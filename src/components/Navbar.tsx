@@ -17,8 +17,8 @@ import {
   AlertTriangle,
   RefreshCw,
 } from 'lucide-react';
-import { FavoritePlayer, UserProfile } from '../types';
-import { ALL_PLAYERS } from '../data/players';
+import { FavoritePlayer, UserProfile } from '../types.js';
+import { ALL_PLAYERS } from '../data/players.js';
 
 interface NavbarProps {
   activeTab: 'favorites' | 'players' | 'clubs' | 'stats';

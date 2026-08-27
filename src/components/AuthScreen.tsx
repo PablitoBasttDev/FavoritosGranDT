@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { UserProfile } from '../types';
-import { TEAMS_DATA } from '../data/teams';
-import { AVATAR_COLORS, getStoredUsers, loginUser, registerUser, syncUsersWithCloud } from '../utils/userStorage';
+import { UserProfile } from '../types.js';
+import { TEAMS_DATA } from '../data/teams.js';
+import { AVATAR_COLORS, getStoredUsers, loginUser, registerUser, syncUsersWithCloud } from '../utils/userStorage.js';
 import {
   Lock,
   User,

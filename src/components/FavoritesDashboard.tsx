@@ -1,15 +1,15 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { FavoritePlayer, Player } from '../types';
-import { ALL_PLAYERS } from '../data/players';
-import { TEAMS_DATA, getTeamData, getTeamFallbackBadge } from '../data/teams';
-import { getTeamStanding, getTeamMatchInfo, STANDINGS_DATA } from '../data/standings';
-import { normalizeText, playerMatchesQuery } from '../utils/textUtils';
-import { TeamBadge } from './TeamBadge';
-import { PositionBadge } from './PositionBadge';
-import { SHEET_TEAM_MAP } from '../services/sheetsService';
-import { isSamePlayer, generateDeterministicPlayerId } from '../utils/playerIdentity';
-import { CountdownBanner } from './CountdownBanner';
-import { PlayerTraitsDetail } from './PlayerTraitsDetail';
+import { FavoritePlayer, Player } from '../types.js';
+import { ALL_PLAYERS } from '../data/players.js';
+import { TEAMS_DATA, getTeamData, getTeamFallbackBadge } from '../data/teams.js';
+import { getTeamStanding, getTeamMatchInfo, STANDINGS_DATA } from '../data/standings.js';
+import { normalizeText, playerMatchesQuery } from '../utils/textUtils.js';
+import { TeamBadge } from './TeamBadge.js';
+import { PositionBadge } from './PositionBadge.js';
+import { SHEET_TEAM_MAP } from '../services/sheetsService.js';
+import { isSamePlayer, generateDeterministicPlayerId } from '../utils/playerIdentity.js';
+import { CountdownBanner } from './CountdownBanner.js';
+import { PlayerTraitsDetail } from './PlayerTraitsDetail.js';
 import {
   Search,
   Plus,

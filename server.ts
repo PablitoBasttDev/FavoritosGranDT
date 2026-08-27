@@ -1,10 +1,10 @@
 import express from 'express';
 import path from 'path';
 import * as cheerio from 'cheerio';
-import defaultPlayersSnapshot from './src/data/liveSheetSnapshot';
-import { FIXTURES_DATA, getTournamentRoundStatus } from './src/data/fixture';
-import { RAW_STANDINGS_DATA, getDynamicStandings } from './src/data/standings';
-import { getDynamicTopScorers, getDynamicClubDefenseStats } from './src/data/tournamentStats';
+import defaultPlayersSnapshot from './src/data/liveSheetSnapshot.js';
+import { FIXTURES_DATA, getTournamentRoundStatus } from './src/data/fixture.js';
+import { RAW_STANDINGS_DATA, getDynamicStandings } from './src/data/standings.js';
+import { getDynamicTopScorers, getDynamicClubDefenseStats } from './src/data/tournamentStats.js';
 
 const app = express();
 const PORT = 3000;

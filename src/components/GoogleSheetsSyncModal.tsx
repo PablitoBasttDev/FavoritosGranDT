@@ -16,7 +16,7 @@ import {
   fetchLiveSheetPlayers,
   formatGoogleSheetCsvUrl,
   discoverLatestPlanetaGranDTSheet,
-} from '../services/sheetsService';
+} from '../services/sheetsService.js';
 
 interface GoogleSheetsSyncModalProps {
   isOpen: boolean;

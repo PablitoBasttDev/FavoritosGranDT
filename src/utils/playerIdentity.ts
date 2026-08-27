@@ -1,6 +1,6 @@
-import { normalizeText } from './textUtils';
-import { SHEET_TEAM_MAP } from '../services/sheetsService';
-import { Player, FavoritePlayer, Position } from '../types';
+import { normalizeText } from './textUtils.js';
+import { SHEET_TEAM_MAP } from '../services/sheetsService.js';
+import { Player, FavoritePlayer, Position } from '../types.js';
 
 /**
  * Normalizes a player name for consistent matching across different sources and formats:

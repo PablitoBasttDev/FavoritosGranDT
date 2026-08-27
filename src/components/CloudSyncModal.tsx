@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FavoritePlayer, UserProfile } from '../types';
+import { FavoritePlayer, UserProfile } from '../types.js';
 import {
   fetchAllCloudSavedLists,
   CloudSavedListEntry,
@@ -7,7 +7,7 @@ import {
   parseFavoritesFromJSON,
   saveUserFavorites,
   fetchUserFavoritesFromCloud,
-} from '../utils/userStorage';
+} from '../utils/userStorage.js';
 import {
   Cloud,
   CloudDownload,

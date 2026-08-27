@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { UserProfile } from '../types';
-import { TEAMS_DATA } from '../data/teams';
+import { UserProfile } from '../types.js';
+import { TEAMS_DATA } from '../data/teams.js';
 import {
   AVATAR_COLORS,
   loginUser,
   registerUser,
   changeUserPassword,
   deleteUserProfile,
-} from '../utils/userStorage';
+} from '../utils/userStorage.js';
 import {
   User,
   Users,

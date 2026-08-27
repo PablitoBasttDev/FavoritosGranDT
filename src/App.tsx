@@ -1,22 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ALL_PLAYERS, updateAllPlayers } from './data/players';
-import { Player, FavoritePlayer, UserProfile } from './types';
-import { Navbar } from './components/Navbar';
-import { FavoritesDashboard } from './components/FavoritesDashboard';
-import { PlayerExplorer } from './components/PlayerExplorer';
-import { ClubExplorer } from './components/ClubExplorer';
-import { StatsDashboard } from './components/StatsDashboard';
-import { UserAuthModal } from './components/UserAuthModal';
-import { AuthScreen } from './components/AuthScreen';
+import { ALL_PLAYERS, updateAllPlayers } from './data/players.js';
+import { Player, FavoritePlayer, UserProfile } from './types.js';
+import { Navbar } from './components/Navbar.js';
+import { FavoritesDashboard } from './components/FavoritesDashboard.js';
+import { PlayerExplorer } from './components/PlayerExplorer.js';
+import { ClubExplorer } from './components/ClubExplorer.js';
+import { StatsDashboard } from './components/StatsDashboard.js';
+import { UserAuthModal } from './components/UserAuthModal.js';
+import { AuthScreen } from './components/AuthScreen.js';
 import {
   getCachedSheetPlayers,
   initBackgroundAutoSync,
   fetchLiveSheetPlayers,
   SheetSyncResult,
-} from './services/sheetsService';
+} from './services/sheetsService.js';
 import {
   usePromiedosLiveFixture,
-} from './services/promiedosService';
+} from './services/promiedosService.js';
 import {
   getActiveUser,
   getStoredUsers,
@@ -25,13 +25,13 @@ import {
   saveUserFavorites,
   syncUsersWithCloud,
   fetchUserFavoritesFromCloud,
-} from './utils/userStorage';
+} from './utils/userStorage.js';
 
 import {
   findPlayerInCollection,
   isSamePlayer,
   generateDeterministicPlayerId,
-} from './utils/playerIdentity';
+} from './utils/playerIdentity.js';
 import { AlertTriangle, RefreshCw, Radio } from 'lucide-react';
 
 const THEME_KEY = 'gran_dt_theme';

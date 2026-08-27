@@ -1,5 +1,5 @@
 import React from 'react';
-import { Position } from '../types';
+import { Position } from '../types.js';
 
 interface PositionBadgeProps {
   position: Position | string;

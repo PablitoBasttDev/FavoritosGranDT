@@ -1,6 +1,6 @@
-import { Player, Position } from '../types';
-import { FIXTURES_DATA, MatchFixture, MatchEvent, getDynamicMatchState } from '../data/fixture';
-import { findPlayerByNameOrTeam } from '../data/tournamentStats';
+import { Player, Position } from '../types.js';
+import { FIXTURES_DATA, MatchFixture, MatchEvent, getDynamicMatchState } from '../data/fixture.js';
+import { findPlayerByNameOrTeam } from '../data/tournamentStats.js';
 
 /**
  * Calcula los puntos de Gran DT para un jugador en un partido específico en vivo o finalizado

@@ -1,4 +1,4 @@
-import { TeamInfo } from '../types';
+import { TeamInfo } from '../types.js';
 
 export const TEAMS_DATA: Record<string, TeamInfo> = {
   "Aldosivi": {

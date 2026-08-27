@@ -1,4 +1,7 @@
-import app from '../server.js';
+// @ts-ignore
+import appModule from '../dist/server.cjs';
+
+const app = appModule && (appModule as any).default ? (appModule as any).default : appModule;
 
 export default function handler(req: any, res: any) {
   // Normalize and resolve the true requested route on Vercel Serverless

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ALL_PLAYERS } from '../data/players';
-import { TEAMS_DATA } from '../data/teams';
-import { FIXTURES_DATA, subscribeToFixturesUpdate } from '../data/fixture';
-import { getDynamicStandings, TeamStanding } from '../data/standings';
+import { ALL_PLAYERS } from '../data/players.js';
+import { TEAMS_DATA } from '../data/teams.js';
+import { FIXTURES_DATA, subscribeToFixturesUpdate } from '../data/fixture.js';
+import { getDynamicStandings, TeamStanding } from '../data/standings.js';
 import {
   getDynamicTopScorers,
   getDynamicRoundIncidents,
@@ -13,16 +13,16 @@ import {
   ScorerStat,
   GoalkeeperDefenseStat,
   ClubDefenseStat,
-} from '../data/tournamentStats';
-import { TeamBadge } from './TeamBadge';
-import { PositionBadge } from './PositionBadge';
-import { getActiveRoundLabel, subscribeToLiveSheet } from '../services/sheetsService';
+} from '../data/tournamentStats.js';
+import { TeamBadge } from './TeamBadge.js';
+import { PositionBadge } from './PositionBadge.js';
+import { getActiveRoundLabel, subscribeToLiveSheet } from '../services/sheetsService.js';
 import {
   usePromiedosStandings,
   usePromiedosScorers,
   usePromiedosCleanSheets,
-} from '../services/promiedosService';
-import { normalizeText } from '../utils/textUtils';
+} from '../services/promiedosService.js';
+import { normalizeText } from '../utils/textUtils.js';
 import {
   Trophy,
   Table,

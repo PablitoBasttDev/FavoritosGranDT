@@ -1,6 +1,6 @@
-import { Player } from '../types';
-import { RAW_STANDINGS_DATA } from '../data/standings';
-import { SHEET_TEAM_MAP } from '../services/sheetsService';
+import { Player } from '../types.js';
+import { RAW_STANDINGS_DATA } from '../data/standings.js';
+import { SHEET_TEAM_MAP } from '../services/sheetsService.js';
 
 export interface PlayerTrait {
   id: string;

@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { TEAMS_DATA, getTeamFallbackBadge } from '../data/teams';
-import { getDynamicStandings, getTeamMatchInfo } from '../data/standings';
-import { normalizeText } from '../utils/textUtils';
-import { TeamBadge } from './TeamBadge';
-import { ALL_PLAYERS } from '../data/players';
+import { TEAMS_DATA, getTeamFallbackBadge } from '../data/teams.js';
+import { getDynamicStandings, getTeamMatchInfo } from '../data/standings.js';
+import { normalizeText } from '../utils/textUtils.js';
+import { TeamBadge } from './TeamBadge.js';
+import { ALL_PLAYERS } from '../data/players.js';
 import { Shield, Search, ChevronRight, BookmarkCheck, Users, Trophy, Radio, ArrowUp, ArrowDown, Minus } from 'lucide-react';
-import { FavoritePlayer, Player } from '../types';
+import { FavoritePlayer, Player } from '../types.js';
 
 interface ClubExplorerProps {
   onSelectClub: (clubName: string) => void;

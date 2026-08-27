@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Player } from '../types';
-import { TeamBadge } from './TeamBadge';
-import { PositionBadge } from './PositionBadge';
-import { PlayerTraitsDetail } from './PlayerTraitsDetail';
+import { Player } from '../types.js';
+import { TeamBadge } from './TeamBadge.js';
+import { PositionBadge } from './PositionBadge.js';
+import { PlayerTraitsDetail } from './PlayerTraitsDetail.js';
 import { Plus, Check, X, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface PlayerCardProps {

@@ -1,6 +1,6 @@
-import { FavoritePlayer, Player } from '../types';
+import { FavoritePlayer, Player } from '../types.js';
 import defaultPlayersSnapshot from '../data/liveSheetSnapshot.json';
-import { findPlayerInCollection, generateDeterministicPlayerId } from './playerIdentity';
+import { findPlayerInCollection, generateDeterministicPlayerId } from './playerIdentity.js';
 
 const canonicalPlayers: Player[] = defaultPlayersSnapshot as unknown as Player[];
 

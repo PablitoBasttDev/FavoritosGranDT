@@ -1,6 +1,6 @@
-import { Player } from '../types';
+import { Player } from '../types.js';
 import defaultPlayersSnapshot from './liveSheetSnapshot.json';
-import { getCachedSheetPlayers } from '../services/sheetsService';
+import { getCachedSheetPlayers } from '../services/sheetsService.js';
 
 // Initialize with latest cached or default snapshot of all players from Google Sheet
 export let ALL_PLAYERS: Player[] = (function () {

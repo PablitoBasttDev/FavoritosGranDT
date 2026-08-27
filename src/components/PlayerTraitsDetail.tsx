@@ -1,6 +1,6 @@
 import React from 'react';
-import { Player } from '../types';
-import { getPlayerTraits } from '../utils/playerTraits';
+import { Player } from '../types.js';
+import { getPlayerTraits } from '../utils/playerTraits.js';
 import { Sparkles, Calendar } from 'lucide-react';
 
 interface PlayerTraitsDetailProps {

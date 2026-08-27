@@ -1,5 +1,5 @@
-import { FIXTURES_DATA, MatchFixture, getDynamicMatchState, getTournamentRoundStatus } from './fixture';
-import { getTeamData } from './teams';
+import { FIXTURES_DATA, MatchFixture, getDynamicMatchState, getTournamentRoundStatus } from './fixture.js';
+import { getTeamData } from './teams.js';
 
 export interface TeamStanding {
   teamName: string;

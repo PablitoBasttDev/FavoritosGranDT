@@ -1,6 +1,6 @@
-import { Player, Position } from '../types';
-import defaultPlayersSnapshot from '../data/liveSheetSnapshot';
-import { generateDeterministicPlayerId } from '../utils/playerIdentity';
+import { Player, Position } from '../types.js';
+import defaultPlayersSnapshot from '../data/liveSheetSnapshot.js';
+import { generateDeterministicPlayerId } from '../utils/playerIdentity.js';
 
 const STORAGE_KEY_ACTIVE_URL = 'gran_dt_active_sheet_url_v2';
 const STORAGE_KEY_ACTIVE_ROUND = 'gran_dt_active_sheet_round_v2';

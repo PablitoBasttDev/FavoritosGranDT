@@ -7,12 +7,12 @@ import {
   getDynamicMatchState,
   MatchFixture,
   MatchEvent,
-} from '../data/fixture';
+} from '../data/fixture.js';
 import {
   usePromiedosLiveFixture,
   mergeWithPromiedosMatches,
-} from '../services/promiedosService';
-import { TeamBadge } from './TeamBadge';
+} from '../services/promiedosService.js';
+import { TeamBadge } from './TeamBadge.js';
 import {
   Calendar,
   Clock,

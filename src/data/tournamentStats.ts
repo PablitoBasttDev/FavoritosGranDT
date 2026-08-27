@@ -1,8 +1,8 @@
-import { FIXTURES_DATA, getDynamicMatchState, getTournamentRoundStatus } from './fixture';
-import { ALL_PLAYERS } from './players';
-import { getDynamicStandings, TeamStanding } from './standings';
-import { Player } from '../types';
-import { normalizeText } from '../utils/textUtils';
+import { FIXTURES_DATA, getDynamicMatchState, getTournamentRoundStatus } from './fixture.js';
+import { ALL_PLAYERS } from './players.js';
+import { getDynamicStandings, TeamStanding } from './standings.js';
+import { Player } from '../types.js';
+import { normalizeText } from '../utils/textUtils.js';
 
 export interface ScorerStat {
   id: string;

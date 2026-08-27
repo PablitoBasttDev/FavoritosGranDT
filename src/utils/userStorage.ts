@@ -1,7 +1,7 @@
-import { UserProfile, FavoritePlayer } from '../types';
-import { hashPassword, generateSalt } from './crypto';
-import { db } from '../firebase';
-import { hydrateFavorites } from './hydrateFavorites';
+import { UserProfile, FavoritePlayer } from '../types.js';
+import { hashPassword, generateSalt } from './crypto.js';
+import { db } from '../firebase.js';
+import { hydrateFavorites } from './hydrateFavorites.js';
 import {
   collection,
   doc,

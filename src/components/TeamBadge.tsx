@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getTeamData, getTeamFallbackBadge } from '../data/teams';
+import { getTeamData, getTeamFallbackBadge } from '../data/teams.js';
 
 interface TeamBadgeProps {
   teamName: string;
