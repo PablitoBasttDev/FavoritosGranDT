@@ -1,8 +1,7 @@
 import express from 'express';
 import path from 'path';
-import { createServer as createViteServer } from 'vite';
 import * as cheerio from 'cheerio';
-import defaultPlayersSnapshot from './src/data/liveSheetSnapshot.json';
+import defaultPlayersSnapshot from './src/data/liveSheetSnapshot';
 import { FIXTURES_DATA, getTournamentRoundStatus } from './src/data/fixture';
 import { RAW_STANDINGS_DATA, getDynamicStandings } from './src/data/standings';
 import { getDynamicTopScorers, getDynamicClubDefenseStats } from './src/data/tournamentStats';
@@ -782,7 +781,7 @@ async function fetchPlanetaGranDTStats(customUrl?: string): Promise<PlanetaGranD
   }
 
   const isLive = parsedPlayers.length >= 200;
-  const finalPlayers = isLive ? parsedPlayers : (defaultPlayersSnapshot as any[]);
+  const finalPlayers = isLive ? parsedPlayers : (defaultPlayersSnapshot as unknown as any[]);
 
   const result: PlanetaGranDTCache = {
     sheetUrl: csvUrl,
@@ -1021,8 +1020,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// API Routes Cache Policy: strict no-cache on edge/CDN and browser
-app.use('/api', (req, res, next) => {
+// Dedicated Router for API endpoints (serves both /api/* and /* for full Vercel compatibility)
+const apiRouter = express.Router();
+
+apiRouter.use((req, res, next) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
@@ -1030,12 +1031,12 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-app.get('/api/health', (req, res) => {
+apiRouter.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Vercel Cron Job / Scheduled Webhook Endpoint
-app.all('/api/cron/refresh', async (req, res) => {
+apiRouter.all('/cron/refresh', async (req, res) => {
   try {
     cachedData = null;
     cachedLeagueData = null;
@@ -1073,7 +1074,7 @@ app.all('/api/cron/refresh', async (req, res) => {
 });
 
 // Planeta Gran DT Latest Sheet Endpoint (Cotizaciones, Jugadores, Puntajes Gran DT)
-app.get('/api/planetagrandt/latest-sheet', async (req, res) => {
+apiRouter.get('/planetagrandt/latest-sheet', async (req, res) => {
   try {
     const customUrl = req.query.customUrl as string | undefined;
     const data = await fetchPlanetaGranDTStats(customUrl);
@@ -1093,7 +1094,7 @@ app.get('/api/planetagrandt/latest-sheet', async (req, res) => {
     });
   } catch (error) {
     console.warn('[PLANETAGRANDT_API_NOTICE] Serving fallback snapshot due to:', (error as Error).message);
-    const fallbackPlayers = defaultPlayersSnapshot as any[];
+    const fallbackPlayers = defaultPlayersSnapshot as unknown as any[];
     res.json({
       success: true,
       isLive: false,
@@ -1111,7 +1112,7 @@ app.get('/api/planetagrandt/latest-sheet', async (req, res) => {
 });
 
 // Promiedos Official Standings (Torneo Clausura 2026)
-app.get('/api/promiedos/standings', async (req, res) => {
+apiRouter.get('/promiedos/standings', async (req, res) => {
   try {
     const data = await fetchPromiedosLeagueDetails();
     res.json({
@@ -1143,7 +1144,7 @@ app.get('/api/promiedos/standings', async (req, res) => {
 });
 
 // Promiedos Official Top Scorers (Torneo Clausura 2026)
-app.get('/api/promiedos/scorers', async (req, res) => {
+apiRouter.get('/promiedos/scorers', async (req, res) => {
   try {
     const data = await fetchPromiedosLeagueDetails();
     res.json({
@@ -1170,7 +1171,7 @@ app.get('/api/promiedos/scorers', async (req, res) => {
 });
 
 // Promiedos Clean Sheets / Vallas Invictas (Torneo Clausura 2026)
-app.get('/api/promiedos/clean-sheets', async (req, res) => {
+apiRouter.get('/promiedos/clean-sheets', async (req, res) => {
   try {
     const data = await fetchPromiedosLeagueDetails();
     res.json({
@@ -1197,7 +1198,7 @@ app.get('/api/promiedos/clean-sheets', async (req, res) => {
 });
 
 // Promiedos Live Fixture endpoint (Queried every 30s-45s by client)
-app.get('/api/promiedos/fixture', async (req, res) => {
+apiRouter.get('/promiedos/fixture', async (req, res) => {
   try {
     const roundQuery = req.query.round ? parseInt(req.query.round as string, 10) : undefined;
     const data = await fetchPromiedosLiveData(roundQuery);
@@ -1277,7 +1278,7 @@ app.get('/api/promiedos/fixture', async (req, res) => {
 });
 
 // Force refresh endpoint
-app.post('/api/promiedos/refresh', async (req, res) => {
+apiRouter.post('/promiedos/refresh', async (req, res) => {
   cachedData = null;
   cachedLeagueData = null;
   cachedPlanetaData = null;
@@ -1298,9 +1299,14 @@ app.post('/api/promiedos/refresh', async (req, res) => {
   }
 });
 
+// Mount router on both /api prefix and root for full flexibility
+app.use('/api', apiRouter);
+app.use('/', apiRouter);
+
 // Start Server with Vite Middleware in Development
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',

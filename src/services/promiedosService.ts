@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { MatchFixture, MatchEvent, updateFixturesFromPromiedos, areTeamNamesEqual } from '../data/fixture';
+import { MatchFixture, MatchEvent, updateFixturesFromPromiedos, areTeamNamesEqual, FIXTURES_DATA, getTournamentRoundStatus } from '../data/fixture';
+import { getDynamicStandings } from '../data/standings';
+import { getDynamicTopScorers, getDynamicClubDefenseStats } from '../data/tournamentStats';
 
 export interface PromiedosMatchData {
   id: string;
@@ -34,11 +36,42 @@ export interface PromiedosApiResponse {
 
 const REFRESH_INTERVAL_SECONDS = 45;
 
+function getLocalFallbackFixture(targetRound?: number): PromiedosApiResponse {
+  const currentRoundNum = getTournamentRoundStatus().roundNumber;
+  const roundNum = targetRound || currentRoundNum;
+  const matches: PromiedosMatchData[] = FIXTURES_DATA.filter(f => f.fecha === roundNum).map((f, idx) => ({
+    id: f.id || `fix-${roundNum}-${idx + 1}`,
+    fecha: roundNum,
+    homeTeam: f.homeTeam,
+    awayTeam: f.awayTeam,
+    homeScore: f.homeScore,
+    awayScore: f.awayScore,
+    status: f.status || 'SCHEDULED',
+    liveMinute: f.liveMinute || '',
+    displayTime: f.displayTime,
+    dateStr: f.dateStr,
+    kickoff: f.kickoff,
+    stadium: f.stadium,
+    events: f.events || [],
+  }));
+
+  return {
+    success: true,
+    lastUpdated: new Date().toISOString(),
+    timestamp: Date.now(),
+    currentRound: currentRoundNum,
+    round: roundNum,
+    matches,
+    source: 'fallback',
+    ttl: REFRESH_INTERVAL_SECONDS,
+  };
+}
+
 /**
  * Hook para consultar y sincronizar el fixture de Promiedos cada 45 segundos en tiempo real.
  */
 export function usePromiedosLiveFixture(selectedRound?: number) {
-  const [data, setData] = useState<PromiedosApiResponse | null>(null);
+  const [data, setData] = useState<PromiedosApiResponse | null>(() => getLocalFallbackFixture(selectedRound));
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [secondsRemaining, setSecondsRemaining] = useState<number>(REFRESH_INTERVAL_SECONDS);
@@ -63,25 +96,21 @@ export function usePromiedosLiveFixture(selectedRound?: number) {
         cache: 'no-store',
         headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
       });
-      if (!response.ok) {
-        throw new Error(`HTTP Error: ${response.status}`);
-      }
-      const json: PromiedosApiResponse = await response.json();
-      if (json.success) {
-        setData(json);
-        setLastSyncTime(new Date(json.timestamp || Date.now()));
-        setSyncError(null);
+      if (response.ok) {
+        const json: PromiedosApiResponse = await response.json();
+        if (json.success) {
+          setData(json);
+          setLastSyncTime(new Date(json.timestamp || Date.now()));
+          setSyncError(null);
 
-        // 1. Actualizar FIXTURES_DATA globalmente con los resultados del partido
-        if (json.matches && json.matches.length > 0) {
-          updateFixturesFromPromiedos(json.matches);
+          if (json.matches && json.matches.length > 0) {
+            updateFixturesFromPromiedos(json.matches);
+          }
+          return;
         }
-      } else {
-        setSyncError(json.error || 'Error al conectar con Promiedos');
       }
-    } catch (err) {
-      console.warn('Promiedos sync fetch warning:', (err as Error).message);
-      setSyncError((err as Error).message);
+    } catch {
+      // Handled gracefully via fallback state
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);

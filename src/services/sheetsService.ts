@@ -1,5 +1,5 @@
 import { Player, Position } from '../types';
-import defaultPlayersSnapshot from '../data/liveSheetSnapshot.json';
+import defaultPlayersSnapshot from '../data/liveSheetSnapshot';
 import { generateDeterministicPlayerId } from '../utils/playerIdentity';
 
 const STORAGE_KEY_ACTIVE_URL = 'gran_dt_active_sheet_url_v2';
