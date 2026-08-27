@@ -22,6 +22,19 @@ const PROMIEDOS_HEADERS = {
   'Referer': 'https://www.promiedos.com.ar/',
 };
 
+function safeTimeoutSignal(ms: number): AbortSignal {
+  if (typeof AbortSignal !== 'undefined' && typeof (AbortSignal as any).timeout === 'function') {
+    try {
+      return (AbortSignal as any).timeout(ms);
+    } catch {
+      // Fallback below
+    }
+  }
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), ms);
+  return controller.signal;
+}
+
 // ============================================================================
 // PROMIEDOS LIVE FIXTURE SCRAPING & NORMALIZATION ENGINE
 // ============================================================================
@@ -292,7 +305,7 @@ async function fetchPromiedosLiveData(targetRound?: number): Promise<PromiedosCa
     try {
       const leagueRes = await fetch('https://www.promiedos.com.ar/league/liga-profesional/hc', {
         headers: PROMIEDOS_HEADERS,
-        signal: AbortSignal.timeout(3500),
+        signal: safeTimeoutSignal(3500),
       });
       if (leagueRes.ok) {
         const html = await leagueRes.text();
@@ -348,7 +361,7 @@ async function fetchPromiedosLiveData(targetRound?: number): Promise<PromiedosCa
           try {
             const res = await fetch(`https://api.promiedos.com.ar/league/games/hc/${filter.key}`, {
               headers: PROMIEDOS_HEADERS,
-              signal: AbortSignal.timeout(3500),
+              signal: safeTimeoutSignal(3500),
             });
             if (res.ok) {
               const data = await res.json();
@@ -379,7 +392,7 @@ async function fetchPromiedosLiveData(targetRound?: number): Promise<PromiedosCa
       try {
         const latestRes = await fetch('https://api.promiedos.com.ar/league/games/hc/latest', {
           headers: PROMIEDOS_HEADERS,
-          signal: AbortSignal.timeout(3500),
+          signal: safeTimeoutSignal(3500),
         });
         if (latestRes.ok) {
           const latestData = await latestRes.json();
@@ -426,7 +439,7 @@ async function fetchPromiedosLiveData(targetRound?: number): Promise<PromiedosCa
     try {
       const homeRes = await fetch('https://www.promiedos.com.ar/', {
         headers: PROMIEDOS_HEADERS,
-        signal: AbortSignal.timeout(2500),
+        signal: safeTimeoutSignal(2500),
       });
       if (homeRes.ok) {
         const html = await homeRes.text();
@@ -656,7 +669,7 @@ async function fetchPlanetaGranDTStats(customUrl?: string): Promise<PlanetaGranD
               'User-Agent': BROWSER_USER_AGENT,
               'Accept': 'application/json, text/plain, */*',
             },
-            signal: AbortSignal.timeout(2500),
+            signal: safeTimeoutSignal(2500),
           }
         );
         if (feedResp.ok) {
@@ -693,7 +706,7 @@ async function fetchPlanetaGranDTStats(customUrl?: string): Promise<PlanetaGranD
         'User-Agent': BROWSER_USER_AGENT,
         'Accept': 'text/csv, text/plain, */*',
       },
-      signal: AbortSignal.timeout(3500),
+      signal: safeTimeoutSignal(3500),
     });
 
     if (csvResp.ok) {
@@ -814,7 +827,7 @@ async function fetchPromiedosLeagueDetails(): Promise<PromiedosLeagueData> {
   try {
     const res = await fetch('https://www.promiedos.com.ar/league/liga-profesional/hc', {
       headers: PROMIEDOS_HEADERS,
-      signal: AbortSignal.timeout(3500),
+      signal: safeTimeoutSignal(3500),
     });
 
     if (res.ok) {
@@ -1299,11 +1312,10 @@ apiRouter.post('/promiedos/refresh', async (req, res) => {
   }
 });
 
-// Mount router on both /api prefix and root for full flexibility
+// Mount API routes strictly under /api prefix
 app.use('/api', apiRouter);
-app.use('/', apiRouter);
 
-// Start Server with Vite Middleware in Development
+// Start Server with Vite Middleware in Development or standalone container
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
@@ -1345,4 +1357,5 @@ if (!process.env.VERCEL) {
   startServer();
 }
 
+export { apiRouter };
 export default app;
