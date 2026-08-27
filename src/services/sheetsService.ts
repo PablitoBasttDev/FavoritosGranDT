@@ -7,14 +7,6 @@ const STORAGE_KEY_ACTIVE_ROUND = 'gran_dt_active_sheet_round_v2';
 const STORAGE_KEY_PLAYERS = 'el_gran_asistente_sheet_players_v3';
 const STORAGE_KEY_TIMESTAMP = 'el_gran_asistente_sheet_last_sync_v3';
 
-// Feeds oficiales y fuentes de la sección "Estadísticas" de Planeta Gran DT
-export const PLANETA_GRANDT_FEEDS = [
-  'https://www.planetagrandt.com.ar/feeds/posts/default/-/Estad%C3%ADsticas?alt=json',
-  'https://www.planetagrandt.com.ar/feeds/posts/default/-/Estadisticas?alt=json',
-  'https://www.planetagrandt.com.ar/feeds/pages/default?alt=json', // Incluye la página fija /p/estadisticas.html
-  'https://www.planetagrandt.com.ar/feeds/posts/default?alt=json',
-];
-
 /**
  * Convierte cualquier formato de URL de Google Sheets (Web, Compartido, PubHTML o Edit)
  * al enlace directo de descarga CSV publicado.
@@ -90,116 +82,32 @@ export function resetToDefaultSheetUrl(): void {
 }
 
 /**
- * Escanea y descubre automáticamente en la pestaña "Estadísticas" de Planeta Gran DT
- * la URL del archivo Google Sheet consolidado de la última fecha jugada y finalizada.
+ * Consulta la API de backend para descubrir la última planilla oficial de Planeta Gran DT.
+ * Nunca realiza scraping o conexiones externas directas desde el navegador.
  */
 export async function discoverLatestPlanetaGranDTSheet(): Promise<{
   sheetUrl: string;
   roundTitle: string;
   postTitle?: string;
 } | null> {
-  // Proxies para resolver CORS en navegador si es necesario
-  const fetchWithProxies = async (url: string): Promise<any> => {
-    // 1. Intento directo
-    try {
-      const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-      if (resp.ok) return await resp.json();
-    } catch {
-      // ignore
-    }
-
-    // 2. Intento vía allorigins
-    try {
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-      const resp = await fetch(proxyUrl);
-      if (resp.ok) return await resp.json();
-    } catch {
-      // ignore
-    }
-
-    // 3. Intento vía corsproxy.io
-    try {
-      const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
-      const resp = await fetch(proxyUrl);
-      if (resp.ok) return await resp.json();
-    } catch {
-      // ignore
-    }
-
-    return null;
-  };
-
-  interface Candidate {
-    url: string;
-    roundNum: number;
-    title: string;
-    postTitle: string;
-    isClausura2026: boolean;
-  }
-
-  const candidates: Candidate[] = [];
-
-  for (const feedUrl of PLANETA_GRANDT_FEEDS) {
-    try {
-      const data = await fetchWithProxies(feedUrl);
-      if (!data || !data.feed || !data.feed.entry) continue;
-
-      const entries = data.feed.entry;
-      for (const entry of entries) {
-        const title = entry.title?.$t || '';
-        const content = entry.content?.$t || entry.summary?.$t || '';
-        const fullText = `${title} ${content}`;
-
-        // Buscar enlaces de Google Sheets en el contenido de la publicación de Estadísticas
-        const sheetRegex = /https?:\/\/docs\.google\.com\/spreadsheets\/d\/(?:e\/)?[a-zA-Z0-9_\-]+[^\s"'>]*/gi;
-        const matches = fullText.match(sheetRegex);
-
-        if (matches && matches.length > 0) {
-          for (const rawSheetUrl of matches) {
-            const formattedUrl = formatGoogleSheetCsvUrl(rawSheetUrl);
-            
-            // Detectar si pertenece al Torneo Clausura 2026
-            const isClausura2026 = /Clausura\s*2026|Clausura|2026/i.test(fullText);
-
-            // Extraer número de fecha del texto
-            let roundNum = 0;
-            const matchFecha = fullText.match(/Fecha\s+(\d+)/i) || title.match(/Fecha\s+(\d+)/i);
-            if (matchFecha && matchFecha[1]) {
-              roundNum = parseInt(matchFecha[1], 10);
-            }
-
-            candidates.push({
-              url: formattedUrl,
-              roundNum,
-              title: roundNum > 0 ? `Fecha ${roundNum} (Oficial Planeta Gran DT)` : 'Última Fecha Oficial',
-              postTitle: title,
-              isClausura2026,
-            });
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('Error escaneando feed de Estadísticas en Planeta Gran DT:', e);
-    }
-  }
-
-  if (candidates.length > 0) {
-    // Priorizar los de Clausura 2026 con mayor número de fecha
-    candidates.sort((a, b) => {
-      if (a.isClausura2026 !== b.isClausura2026) {
-        return a.isClausura2026 ? -1 : 1;
-      }
-      return b.roundNum - a.roundNum;
+  try {
+    const resp = await fetch(`/api/planetagrandt/latest-sheet?_t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { Pragma: 'no-cache', 'Cache-Control': 'no-cache' },
     });
-
-    const best = candidates[0];
-    return {
-      sheetUrl: best.url,
-      roundTitle: best.title,
-      postTitle: best.postTitle,
-    };
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.success && data.sheetUrl) {
+        return {
+          sheetUrl: data.sheetUrl,
+          roundTitle: data.roundTitle || 'Última Fecha Oficial',
+          postTitle: data.postTitle,
+        };
+      }
+    }
+  } catch (e) {
+    console.warn('Error consultando /api/planetagrandt/latest-sheet:', e);
   }
-
   return null;
 }
 
@@ -490,111 +398,45 @@ function notifyListeners(result: SheetSyncResult) {
 }
 
 export async function fetchLiveSheetPlayers(customUrl?: string): Promise<SheetSyncResult> {
-  // 1. First priority: If no custom URL is specified, fetch via backend /api/planetagrandt/latest-sheet
-  if (!customUrl) {
-    try {
-      const serverResp = await fetch(`/api/planetagrandt/latest-sheet?_t=${Date.now()}`, {
-        cache: 'no-store',
-        headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
-      });
-      if (serverResp.ok) {
-        const serverJson = await serverResp.json();
-        if (serverJson.success && Array.isArray(serverJson.players) && serverJson.players.length >= 200) {
-          const now = Date.now();
-          const detectedRound = serverJson.roundTitle || detectRoundFromPlayers(serverJson.players);
-          try {
-            localStorage.setItem(STORAGE_KEY_PLAYERS, JSON.stringify(serverJson.players));
-            localStorage.setItem(STORAGE_KEY_TIMESTAMP, now.toString());
-            localStorage.setItem(STORAGE_KEY_ACTIVE_ROUND, detectedRound);
-            if (serverJson.sheetUrl) {
-              localStorage.setItem(STORAGE_KEY_ACTIVE_URL, serverJson.sheetUrl);
-            }
-          } catch {
-            // Ignore quota limits
-          }
+  try {
+    const queryUrl = customUrl
+      ? `/api/planetagrandt/latest-sheet?customUrl=${encodeURIComponent(customUrl)}&_t=${Date.now()}`
+      : `/api/planetagrandt/latest-sheet?_t=${Date.now()}`;
 
-          const result: SheetSyncResult = {
-            players: serverJson.players,
-            lastUpdated: serverJson.timestamp || now,
-            isLive: true,
-            detectedRound,
-          };
+    const serverResp = await fetch(queryUrl, {
+      cache: 'no-store',
+      headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+    });
 
-          notifyListeners(result);
-          return result;
-        }
-      }
-    } catch (e) {
-      console.warn('Backend planetagrandt sync fallback to client fetch:', e);
-    }
-  }
-
-  let targetUrl = formatGoogleSheetCsvUrl(customUrl || getActiveGoogleSheetUrl());
-
-  // Si no hay URL activa definida o se solicita auto-descubrimiento, buscar la última publicada en Planeta Gran DT
-  if (!targetUrl) {
-    try {
-      const discovered = await discoverLatestPlanetaGranDTSheet();
-      if (discovered && discovered.sheetUrl) {
-        targetUrl = discovered.sheetUrl;
-        setActiveGoogleSheetUrl(targetUrl, discovered.roundTitle);
-      }
-    } catch (e) {
-      console.warn('Auto-descubrimiento en Planeta Gran DT:', e);
-    }
-  }
-
-  // Si aún no hay URL, intentar descubrir
-  if (!targetUrl) {
-    const discovered = await discoverLatestPlanetaGranDTSheet();
-    if (discovered && discovered.sheetUrl) {
-      targetUrl = discovered.sheetUrl;
-      setActiveGoogleSheetUrl(targetUrl, discovered.roundTitle);
-    }
-  }
-
-  if (targetUrl) {
-    try {
-      const response = await fetch(targetUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'text/csv, text/plain, */*',
-        },
-        cache: 'no-cache',
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error en servidor de Google Sheets (${response.status})`);
-      }
-
-      const csvText = await response.text();
-      const parsedPlayers = parsePlayersFromCSV(csvText);
-
-      if (parsedPlayers.length >= 200) {
+    if (serverResp.ok) {
+      const serverJson = await serverResp.json();
+      if (serverJson.success && Array.isArray(serverJson.players) && serverJson.players.length > 0) {
         const now = Date.now();
-        const detectedRound = detectRoundFromPlayers(parsedPlayers);
+        const detectedRound = serverJson.roundTitle || detectRoundFromPlayers(serverJson.players);
         try {
-          localStorage.setItem(STORAGE_KEY_PLAYERS, JSON.stringify(parsedPlayers));
-          localStorage.setItem(STORAGE_KEY_TIMESTAMP, now.toString());
+          localStorage.setItem(STORAGE_KEY_PLAYERS, JSON.stringify(serverJson.players));
+          localStorage.setItem(STORAGE_KEY_TIMESTAMP, (serverJson.timestamp || now).toString());
           localStorage.setItem(STORAGE_KEY_ACTIVE_ROUND, detectedRound);
-          localStorage.setItem(STORAGE_KEY_ACTIVE_URL, targetUrl);
+          if (serverJson.sheetUrl) {
+            localStorage.setItem(STORAGE_KEY_ACTIVE_URL, serverJson.sheetUrl);
+          }
         } catch {
           // Ignore quota limits
         }
 
         const result: SheetSyncResult = {
-          players: parsedPlayers,
-          lastUpdated: now,
-          isLive: true,
+          players: serverJson.players,
+          lastUpdated: serverJson.timestamp || now,
+          isLive: serverJson.isLive !== false && !serverJson.isFallback,
           detectedRound,
         };
 
         notifyListeners(result);
         return result;
       }
-    } catch (err: any) {
-      console.warn('Fallo al consultar URL de Google Sheets:', err);
     }
+  } catch (e) {
+    console.warn('Error al sincronizar con /api/planetagrandt/latest-sheet:', e);
   }
 
   // Fallback 1: LocalStorage Caché
@@ -611,6 +453,7 @@ export async function fetchLiveSheetPlayers(customUrl?: string): Promise<SheetSy
           isLive: false,
           detectedRound,
         };
+        notifyListeners(result);
         return result;
       }
     }
@@ -618,7 +461,7 @@ export async function fetchLiveSheetPlayers(customUrl?: string): Promise<SheetSy
     // ignore
   }
 
-  // Fallback 2: Snapshot base
+  // Fallback 2: Snapshot base local
   const defPlayers = defaultPlayersSnapshot as unknown as Player[];
   const detectedRound = detectRoundFromPlayers(defPlayers);
   const result: SheetSyncResult = {
@@ -627,6 +470,7 @@ export async function fetchLiveSheetPlayers(customUrl?: string): Promise<SheetSy
     isLive: false,
     detectedRound,
   };
+  notifyListeners(result);
   return result;
 }
 
