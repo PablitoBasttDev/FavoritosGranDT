@@ -1,4 +1,4 @@
-import { FIXTURES_DATA, getDynamicMatchState, getTournamentRoundStatus } from './fixture.js';
+import { FIXTURES_DATA, getDynamicMatchState, getTournamentRoundStatus, toCanonicalTeamName } from './fixture.js';
 import { ALL_PLAYERS } from './players.js';
 import { getDynamicStandings, TeamStanding } from './standings.js';
 import { Player } from '../types.js';
@@ -165,8 +165,94 @@ export function getDynamicTopScorers(
 }
 
 /**
+ * Agregación dinámica de vallas invictas por club a partir de los partidos disputados
+ */
+export interface TeamDefenseMatchAggregation {
+  cleanSheets: number;
+  played: number;
+  goalsAgainst: number;
+  goalsFor: number;
+  points: number;
+  roundCleanSheet: boolean;
+}
+
+export function calculateClubDefenseAggregations(
+  currentDate: Date = new Date()
+): Record<string, TeamDefenseMatchAggregation> {
+  const roundStatus = getTournamentRoundStatus(currentDate);
+  const currentRound = roundStatus.roundNumber;
+  const aggregations: Record<string, TeamDefenseMatchAggregation> = {};
+
+  FIXTURES_DATA.forEach(m => {
+    const dynamic = getDynamicMatchState(m, currentDate);
+    const homeCanonical = toCanonicalTeamName(m.homeTeam);
+    const awayCanonical = toCanonicalTeamName(m.awayTeam);
+
+    if (!aggregations[homeCanonical]) {
+      aggregations[homeCanonical] = {
+        cleanSheets: 0,
+        played: 0,
+        goalsAgainst: 0,
+        goalsFor: 0,
+        points: 0,
+        roundCleanSheet: false,
+      };
+    }
+    if (!aggregations[awayCanonical]) {
+      aggregations[awayCanonical] = {
+        cleanSheets: 0,
+        played: 0,
+        goalsAgainst: 0,
+        goalsFor: 0,
+        points: 0,
+        roundCleanSheet: false,
+      };
+    }
+
+    const isFinished = dynamic.status === 'FINISHED';
+    const isLive = dynamic.status === 'LIVE';
+
+    if (isFinished && typeof dynamic.homeScore === 'number' && typeof dynamic.awayScore === 'number') {
+      const hScore = dynamic.homeScore;
+      const aScore = dynamic.awayScore;
+
+      aggregations[homeCanonical].played += 1;
+      aggregations[homeCanonical].goalsFor += hScore;
+      aggregations[homeCanonical].goalsAgainst += aScore;
+
+      aggregations[awayCanonical].played += 1;
+      aggregations[awayCanonical].goalsFor += aScore;
+      aggregations[awayCanonical].goalsAgainst += hScore;
+
+      if (hScore > aScore) {
+        aggregations[homeCanonical].points += 3;
+      } else if (hScore === aScore) {
+        aggregations[homeCanonical].points += 1;
+        aggregations[awayCanonical].points += 1;
+      } else {
+        aggregations[awayCanonical].points += 3;
+      }
+
+      if (aScore === 0) {
+        aggregations[homeCanonical].cleanSheets += 1;
+        if (m.fecha === currentRound) aggregations[homeCanonical].roundCleanSheet = true;
+      }
+      if (hScore === 0) {
+        aggregations[awayCanonical].cleanSheets += 1;
+        if (m.fecha === currentRound) aggregations[awayCanonical].roundCleanSheet = true;
+      }
+    } else if (isLive && typeof dynamic.homeScore === 'number' && typeof dynamic.awayScore === 'number' && m.fecha === currentRound) {
+      if (dynamic.awayScore === 0) aggregations[homeCanonical].roundCleanSheet = true;
+      if (dynamic.homeScore === 0) aggregations[awayCanonical].roundCleanSheet = true;
+    }
+  });
+
+  return aggregations;
+}
+
+/**
  * Obtiene el ranking oficial de arqueros con más Vallas Invictas del torneo,
- * derivado exclusivamente de la hoja oficial de Estadísticas de Planeta Gran DT.
+ * calculado dinámicamente según los partidos con arco en cero de su club y su participación.
  */
 export function getDynamicGoalkeeperDefenseStats(
   currentDate: Date = new Date(),
@@ -174,12 +260,27 @@ export function getDynamicGoalkeeperDefenseStats(
 ): GoalkeeperDefenseStat[] {
   const activeList = playersList && playersList.length > 0 ? playersList : ALL_PLAYERS;
   const goalkeepers = activeList.filter(p => p.posicion === 'ARQ');
+  const aggregations = calculateClubDefenseAggregations(currentDate);
   const results: GoalkeeperDefenseStat[] = [];
 
   goalkeepers.forEach(arq => {
-    const totalValla = arq.vallaInvicta || 0;
+    const canonical = toCanonicalTeamName(arq.equipo);
+    const cStat = aggregations[canonical];
     const totalPJ = arq.partidosJugados || 0;
+    const teamPJ = cStat?.played || 6;
+    const clubVI = cStat?.cleanSheets || 0;
+
+    let totalValla = 0;
+    if (totalPJ > 0) {
+      if (totalPJ >= teamPJ - 1) {
+        totalValla = clubVI;
+      } else {
+        totalValla = Math.min(totalPJ, Math.max(arq.vallaInvicta || 0, Math.min(clubVI, totalPJ)));
+      }
+    }
+
     const rate = totalPJ > 0 ? Math.round((totalValla / totalPJ) * 100) : 0;
+    const roundVallaInvicta = !!(cStat?.roundCleanSheet && totalPJ > 0);
 
     if (totalValla > 0 || totalPJ >= 2) {
       results.push({
@@ -191,7 +292,7 @@ export function getDynamicGoalkeeperDefenseStats(
         precioNum: arq.precioNum || 0,
         vallaInvictaTotal: totalValla,
         baseVallaInvicta: totalValla,
-        roundVallaInvicta: false,
+        roundVallaInvicta,
         partidosJugados: totalPJ,
         puntosTotales: arq.puntosTotales || 0,
         promedio: arq.promedio || 0,
@@ -247,8 +348,8 @@ export function getDynamicRoundIncidents(currentDate: Date = new Date()): Incide
 }
 
 /**
- * Obtiene el ranking oficial de Clubes con Vallas Menos Vencidas,
- * derivado exclusivamente de las estadísticas oficiales de los arqueros de Planeta Gran DT.
+ * Obtiene el ranking oficial de Clubes con Vallas Menos Vencidas (Fechas sin recibir goles),
+ * calculado directamente de los partidos disputados en el torneo y actualizable dinámicamente.
  */
 export function getDynamicClubDefenseStats(
   currentDate: Date = new Date(),
@@ -257,47 +358,56 @@ export function getDynamicClubDefenseStats(
   const activeList = playersList && playersList.length > 0 ? playersList : ALL_PLAYERS;
   const standings = getDynamicStandings(currentDate);
   const list = Object.values(standings);
+  const aggregations = calculateClubDefenseAggregations(currentDate);
 
-  // Mapear arqueros titulares por club para obtener base oficial de vallas invictas
+  // Mapear arqueros con mayor rodaje por club
   const goalkeepers = activeList.filter(p => p.posicion === 'ARQ');
-  const clubGoalkeeperMap: Record<string, { baseVI: number; arqName: string }> = {};
+  const clubGoalkeeperMap: Record<string, { arqName: string; maxPJ: number }> = {};
 
   goalkeepers.forEach(arq => {
-    const existing = clubGoalkeeperMap[arq.equipo];
-    if (!existing || (arq.partidosJugados || 0) > (existing.baseVI || 0)) {
-      clubGoalkeeperMap[arq.equipo] = {
-        baseVI: arq.vallaInvicta || 0,
+    const canonical = toCanonicalTeamName(arq.equipo);
+    const pj = arq.partidosJugados || 0;
+    if (!clubGoalkeeperMap[canonical] || pj > clubGoalkeeperMap[canonical].maxPJ) {
+      clubGoalkeeperMap[canonical] = {
         arqName: arq.nombre,
+        maxPJ: pj,
       };
     }
   });
 
   const results: ClubDefenseStat[] = list.map(team => {
-    const arqInfo = clubGoalkeeperMap[team.teamName];
-    const baseVI = arqInfo?.baseVI ?? (team.goalsAgainst <= 3 ? 3 : team.goalsAgainst <= 6 ? 2 : 1);
-    const cleanSheetsTotal = baseVI;
-    const played = team.played || 1;
+    const canonical = toCanonicalTeamName(team.teamName);
+    const agg = aggregations[canonical];
+    const arqInfo = clubGoalkeeperMap[canonical];
+
+    const cleanSheetsTotal = agg ? agg.cleanSheets : (team.goalsAgainst <= 3 ? 3 : team.goalsAgainst <= 6 ? 2 : 1);
+    const played = agg && agg.played > 0 ? agg.played : (team.played || 1);
     const cleanSheetRate = Math.round((cleanSheetsTotal / played) * 100);
-    const averageGoalsAgainst = Number((team.goalsAgainst / played).toFixed(2));
+    const goalsAgainst = agg ? agg.goalsAgainst : team.goalsAgainst;
+    const goalsFor = agg ? agg.goalsFor : team.goalsFor;
+    const goalDiff = goalsFor - goalsAgainst;
+    const points = agg ? agg.points : team.points;
+    const averageGoalsAgainst = Number((goalsAgainst / played).toFixed(2));
+    const roundCleanSheet = agg?.roundCleanSheet || false;
 
     return {
       teamName: team.teamName,
       zone: team.zone,
       cleanSheetsTotal,
-      baseCleanSheets: baseVI,
-      roundCleanSheet: false,
+      baseCleanSheets: cleanSheetsTotal,
+      roundCleanSheet,
       played,
       cleanSheetRate,
-      goalsAgainst: team.goalsAgainst,
+      goalsAgainst,
       averageGoalsAgainst,
-      goalsFor: team.goalsFor,
-      goalDiff: team.goalDiff,
-      points: team.points,
+      goalsFor,
+      goalDiff,
+      points,
       topGoalkeeperName: arqInfo?.arqName,
     };
   });
 
-  // Ordenar prioritariamente por FECHAS SIN RECIBIR GOLES (DESC), % Valla Invicta (DESC), Menos Goles Recibidos (ASC)
+  // Ordenar prioritariamente por FECHAS SIN RECIBIR GOLES (DESC), % Valla Invicta (DESC), Menos Goles Recibidos (ASC), Diferencia de Gol (DESC), Puntos (DESC)
   return results.sort((a, b) => {
     if (b.cleanSheetsTotal !== a.cleanSheetsTotal) return b.cleanSheetsTotal - a.cleanSheetsTotal;
     if (b.cleanSheetRate !== a.cleanSheetRate) return b.cleanSheetRate - a.cleanSheetRate;

@@ -5525,6 +5525,16 @@ export function areTeamNamesEqual(nameA: string, nameB: string): boolean {
   const b = cleanTeamString(nameB);
   if (a === b) return true;
 
+  // Prevent false substring collisions between distinct clubs with similar words
+  if (
+    a.includes('rivadavia') !== b.includes('rivadavia') ||
+    a.includes('cuarto') !== b.includes('cuarto') ||
+    a.includes('mendoza') !== b.includes('mendoza') ||
+    a.includes('cordoba') !== b.includes('cordoba')
+  ) {
+    return false;
+  }
+
   return a.includes(b) || b.includes(a);
 }
 

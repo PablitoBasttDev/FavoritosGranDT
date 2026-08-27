@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ALL_PLAYERS } from '../data/players.js';
 import { TEAMS_DATA } from '../data/teams.js';
-import { FIXTURES_DATA, subscribeToFixturesUpdate } from '../data/fixture.js';
+import { FIXTURES_DATA, subscribeToFixturesUpdate, areTeamNamesEqual } from '../data/fixture.js';
 import { getDynamicStandings, TeamStanding } from '../data/standings.js';
 import {
   getDynamicTopScorers,
@@ -136,13 +136,13 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
   const clubDefenseStats: ClubDefenseStat[] = useMemo(() => {
     if (promiedosCleanSheets && promiedosCleanSheets.length > 0) {
       return promiedosCleanSheets.map(cs => {
-        const fallback = fallbackClubDefenseStats.find(f => f.teamName === cs.teamName);
+        const fallback = fallbackClubDefenseStats.find(f => areTeamNamesEqual(f.teamName, cs.teamName));
         return {
           teamName: cs.teamName,
           zone: (cs.zone as 'Zona A' | 'Zona B') || fallback?.zone || 'Zona A',
           cleanSheetsTotal: cs.cleanSheets,
           baseCleanSheets: cs.cleanSheets,
-          roundCleanSheet: false,
+          roundCleanSheet: fallback?.roundCleanSheet || false,
           played: cs.played,
           cleanSheetRate: cs.cleanSheetRate,
           goalsAgainst: cs.goalsAgainst,
@@ -152,6 +152,12 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           points: cs.points,
           topGoalkeeperName: fallback?.topGoalkeeperName,
         };
+      }).sort((a, b) => {
+        if (b.cleanSheetsTotal !== a.cleanSheetsTotal) return b.cleanSheetsTotal - a.cleanSheetsTotal;
+        if (b.cleanSheetRate !== a.cleanSheetRate) return b.cleanSheetRate - a.cleanSheetRate;
+        if (a.goalsAgainst !== b.goalsAgainst) return a.goalsAgainst - b.goalsAgainst;
+        if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
+        return b.points - a.points;
       });
     }
     return fallbackClubDefenseStats;

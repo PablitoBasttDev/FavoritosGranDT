@@ -2,7 +2,7 @@ import express from 'express';
 import path from 'path';
 import * as cheerio from 'cheerio';
 import defaultPlayersSnapshot from './src/data/liveSheetSnapshot.js';
-import { FIXTURES_DATA, getTournamentRoundStatus } from './src/data/fixture.js';
+import { FIXTURES_DATA, getTournamentRoundStatus, toCanonicalTeamName } from './src/data/fixture.js';
 import { RAW_STANDINGS_DATA, getDynamicStandings } from './src/data/standings.js';
 import { getDynamicTopScorers, getDynamicClubDefenseStats } from './src/data/tournamentStats.js';
 
@@ -932,23 +932,45 @@ async function fetchPromiedosLeagueDetails(): Promise<PromiedosLeagueData> {
     if (gen) t.positionGeneral = gen.positionGeneral;
   });
 
-  // 4. Compute Clean Sheets for Clubs from finished Promiedos matches or fallback
+  // 4. Compute Clean Sheets for Clubs from finished Promiedos matches, fixtures and fallback
   const cleanSheetsClubs: any[] = [];
   const clubCleanSheetsMap: Record<string, { cleanSheets: number; matches: number; ga: number }> = {};
 
   standingsGeneral.forEach(t => {
-    clubCleanSheetsMap[t.teamName] = { cleanSheets: 0, matches: t.played || 0, ga: t.goalsAgainst || 0 };
+    const cName = toCanonicalTeamName(t.teamName);
+    clubCleanSheetsMap[cName] = { cleanSheets: 0, matches: t.played || 0, ga: t.goalsAgainst || 0 };
   });
 
+  // Calculate clean sheets from all finished fixtures
+  FIXTURES_DATA.forEach(m => {
+    if (m.status === 'FINISHED' && typeof m.homeScore === 'number' && typeof m.awayScore === 'number') {
+      const hCanonical = toCanonicalTeamName(m.homeTeam);
+      const aCanonical = toCanonicalTeamName(m.awayTeam);
+      if (m.awayScore === 0 && clubCleanSheetsMap[hCanonical]) {
+        clubCleanSheetsMap[hCanonical].cleanSheets += 1;
+      }
+      if (m.homeScore === 0 && clubCleanSheetsMap[aCanonical]) {
+        clubCleanSheetsMap[aCanonical].cleanSheets += 1;
+      }
+    }
+  });
+
+  // Also include any live or cached scraped rounds from Promiedos that might override/enrich
   if (cachedData?.allRounds) {
     Object.values(cachedData.allRounds).forEach(roundMatches => {
       roundMatches.forEach(m => {
         if (m.status === 'FINISHED' && typeof m.homeScore === 'number' && typeof m.awayScore === 'number') {
-          if (m.awayScore === 0 && clubCleanSheetsMap[m.homeTeam]) {
-            clubCleanSheetsMap[m.homeTeam].cleanSheets += 1;
-          }
-          if (m.homeScore === 0 && clubCleanSheetsMap[m.awayTeam]) {
-            clubCleanSheetsMap[m.awayTeam].cleanSheets += 1;
+          const hCanonical = toCanonicalTeamName(m.homeTeam);
+          const aCanonical = toCanonicalTeamName(m.awayTeam);
+          // If match was not already in fixtures with finished status
+          const existing = FIXTURES_DATA.find(f => f.fecha === m.fecha && toCanonicalTeamName(f.homeTeam) === hCanonical);
+          if (!existing || existing.status !== 'FINISHED') {
+            if (m.awayScore === 0 && clubCleanSheetsMap[hCanonical]) {
+              clubCleanSheetsMap[hCanonical].cleanSheets += 1;
+            }
+            if (m.homeScore === 0 && clubCleanSheetsMap[aCanonical]) {
+              clubCleanSheetsMap[aCanonical].cleanSheets += 1;
+            }
           }
         }
       });
@@ -956,7 +978,8 @@ async function fetchPromiedosLeagueDetails(): Promise<PromiedosLeagueData> {
   }
 
   standingsGeneral.forEach(t => {
-    const stat = clubCleanSheetsMap[t.teamName] || { cleanSheets: 0, matches: t.played || 0, ga: t.goalsAgainst || 0 };
+    const cName = toCanonicalTeamName(t.teamName);
+    const stat = clubCleanSheetsMap[cName] || { cleanSheets: 0, matches: t.played || 0, ga: t.goalsAgainst || 0 };
     const rate = stat.matches > 0 ? Math.round((stat.cleanSheets / stat.matches) * 100) : 0;
     cleanSheetsClubs.push({
       teamName: t.teamName,
@@ -971,7 +994,9 @@ async function fetchPromiedosLeagueDetails(): Promise<PromiedosLeagueData> {
 
   cleanSheetsClubs.sort((a, b) => {
     if (b.cleanSheets !== a.cleanSheets) return b.cleanSheets - a.cleanSheets;
-    return a.goalsAgainst - b.goalsAgainst;
+    if (b.cleanSheetRate !== a.cleanSheetRate) return b.cleanSheetRate - a.cleanSheetRate;
+    if (a.goalsAgainst !== b.goalsAgainst) return a.goalsAgainst - b.goalsAgainst;
+    return b.points - a.points;
   });
 
   const finalCleanSheets = cleanSheetsClubs.some(c => c.cleanSheets > 0) ? cleanSheetsClubs : getDefaultCleanSheets();
