@@ -627,7 +627,7 @@ async function fetchPlanetaGranDTStats(customUrl?: string): Promise<PlanetaGranD
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
         },
-        signal: AbortSignal.timeout(3000),
+        signal: safeTimeoutSignal(3000),
       });
 
       if (resp.ok) {

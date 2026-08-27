@@ -398,6 +398,7 @@ function notifyListeners(result: SheetSyncResult) {
 }
 
 export async function fetchLiveSheetPlayers(customUrl?: string): Promise<SheetSyncResult> {
+  // 1. Try Backend API first
   try {
     const queryUrl = customUrl
       ? `/api/planetagrandt/latest-sheet?customUrl=${encodeURIComponent(customUrl)}&_t=${Date.now()}`
@@ -410,7 +411,7 @@ export async function fetchLiveSheetPlayers(customUrl?: string): Promise<SheetSy
 
     if (serverResp.ok) {
       const serverJson = await serverResp.json();
-      if (serverJson.success && Array.isArray(serverJson.players) && serverJson.players.length > 0) {
+      if (serverJson.success && Array.isArray(serverJson.players) && serverJson.players.length > 0 && !serverJson.isFallback) {
         const now = Date.now();
         const detectedRound = serverJson.roundTitle || detectRoundFromPlayers(serverJson.players);
         try {
@@ -427,7 +428,7 @@ export async function fetchLiveSheetPlayers(customUrl?: string): Promise<SheetSy
         const result: SheetSyncResult = {
           players: serverJson.players,
           lastUpdated: serverJson.timestamp || now,
-          isLive: serverJson.isLive !== false && !serverJson.isFallback,
+          isLive: true,
           detectedRound,
         };
 
@@ -436,7 +437,47 @@ export async function fetchLiveSheetPlayers(customUrl?: string): Promise<SheetSy
       }
     }
   } catch (e) {
-    console.warn('Error al sincronizar con /api/planetagrandt/latest-sheet:', e);
+    console.warn('Backend API sheet sync notice:', e);
+  }
+
+  // 2. Direct browser fetch of Google Sheet CSV if URL is stored or passed (bypasses serverless limitations)
+  const targetSheetUrl = customUrl || getActiveGoogleSheetUrl();
+  if (targetSheetUrl) {
+    try {
+      const formattedCsvUrl = formatGoogleSheetCsvUrl(targetSheetUrl);
+      if (formattedCsvUrl) {
+        const csvResp = await fetch(formattedCsvUrl, {
+          cache: 'no-store',
+          headers: { 'Pragma': 'no-cache' }
+        });
+        if (csvResp.ok) {
+          const csvText = await csvResp.text();
+          const parsedPlayers = parsePlayersFromCSV(csvText);
+          if (parsedPlayers && parsedPlayers.length >= 100) {
+            const now = Date.now();
+            const detectedRound = detectRoundFromPlayers(parsedPlayers);
+            try {
+              localStorage.setItem(STORAGE_KEY_PLAYERS, JSON.stringify(parsedPlayers));
+              localStorage.setItem(STORAGE_KEY_TIMESTAMP, now.toString());
+              localStorage.setItem(STORAGE_KEY_ACTIVE_ROUND, detectedRound);
+            } catch {
+              // Ignore
+            }
+
+            const result: SheetSyncResult = {
+              players: parsedPlayers,
+              lastUpdated: now,
+              isLive: true,
+              detectedRound,
+            };
+            notifyListeners(result);
+            return result;
+          }
+        }
+      }
+    } catch (csvErr) {
+      console.warn('Direct Google Sheet CSV fetch notice:', csvErr);
+    }
   }
 
   // Fallback 1: LocalStorage Caché
