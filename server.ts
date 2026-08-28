@@ -85,22 +85,16 @@ function formatPromiedosSchedule(start_time: string) {
   const hour = parseInt(hourStr, 10);
   const min = parseInt(minStr, 10);
 
-  // Add 4 hours to convert Promiedos UTC/base timestamp to Argentina Local Time
-  const dateObj = new Date(year, month, day, hour + 4, min);
-
-  const adjYear = dateObj.getFullYear();
-  const adjMonth = dateObj.getMonth();
-  const adjDay = dateObj.getDate();
-  const adjHour = dateObj.getHours();
-  const adjMin = dateObj.getMinutes();
-
-  const dayOfWeek = DAYS_ES[dateObj.getDay()];
-  const monthName = MONTHS_ES[adjMonth];
+  // Promiedos start_time is already in Argentina Local Time (ART, UTC-3)
+  // Use noon (12:00) UTC to safely determine the exact day of the week without timezone shifts
+  const dateForDayOfWeek = new Date(Date.UTC(year, month, day, 12, 0, 0));
+  const dayOfWeek = DAYS_ES[dateForDayOfWeek.getUTCDay()];
+  const monthName = MONTHS_ES[month];
 
   const pad = (n: number) => n.toString().padStart(2, '0');
-  const isoKickoff = `${adjYear}-${pad(adjMonth + 1)}-${pad(adjDay)}T${pad(adjHour)}:${pad(adjMin)}:00-03:00`;
-  const dateStr = `${dayOfWeek} ${adjDay} de ${monthName} de ${adjYear}`;
-  const displayTime = `${dayOfWeek} ${pad(adjDay)}/${pad(adjMonth + 1)} • ${pad(adjHour)}:${pad(adjMin)} hs`;
+  const isoKickoff = `${year}-${pad(month + 1)}-${pad(day)}T${pad(hour)}:${pad(min)}:00-03:00`;
+  const dateStr = `${dayOfWeek} ${day} de ${monthName} de ${year}`;
+  const displayTime = `${dayOfWeek} ${pad(day)}/${pad(month + 1)} • ${pad(hour)}:${pad(min)} hs`;
 
   return { dateStr, kickoff: isoKickoff, displayTime };
 }
