@@ -1,7 +1,7 @@
 import React from 'react';
 import { Player } from '../types.js';
 import { getPlayerTraits } from '../utils/playerTraits.js';
-import { Sparkles, Calendar } from 'lucide-react';
+import { Sparkles, Calendar, Ban, Activity, AlertCircle } from 'lucide-react';
 
 interface PlayerTraitsDetailProps {
   player: Player;
@@ -13,6 +13,7 @@ export const PlayerTraitsDetail: React.FC<PlayerTraitsDetailProps> = ({
   player,
 }) => {
   const traits = getPlayerTraits(player);
+  const statusInfo = player.statusInfo;
 
   // Get fixture history
   const fechasEntries = Object.entries(player.fechasPuntajes || {})
@@ -26,6 +27,39 @@ export const PlayerTraitsDetail: React.FC<PlayerTraitsDetailProps> = ({
 
   return (
     <div className="p-1.5 rounded-lg bg-slate-50/95 dark:bg-slate-900/95 border border-slate-200/90 dark:border-slate-800 text-xs w-full flex flex-col gap-1.5 select-none">
+      {/* Promiedos / Medical Unavailable Status Alert */}
+      {statusInfo && (
+        <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/80 text-rose-900 dark:text-rose-200 flex items-start gap-2 shadow-2xs">
+          {statusInfo.type === 'suspension' ? (
+            <Ban className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+          ) : statusInfo.type === 'lesion' ? (
+            <Activity className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+          ) : (
+            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          )}
+          <div className="min-w-0 flex-1 leading-tight">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="font-black text-[10.5px] uppercase tracking-wider text-rose-700 dark:text-rose-300">
+                {statusInfo.badgeText}
+              </span>
+              {statusInfo.returnEstimate && (
+                <span className="text-[9.5px] font-bold px-1.5 py-0.2 rounded-full bg-rose-200 dark:bg-rose-900/80 text-rose-950 dark:text-rose-200">
+                  {statusInfo.returnEstimate}
+                </span>
+              )}
+            </div>
+            <p className="font-medium text-[11px] text-rose-950 dark:text-rose-100 mt-0.5">
+              {statusInfo.reason}
+            </p>
+            {statusInfo.detail && (
+              <p className="text-[9.5px] text-rose-800 dark:text-rose-300/80 mt-0.5 opacity-90">
+                {statusInfo.detail}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Traits Section */}
       <div>
         <div className="flex items-center gap-1 mb-1 leading-none">

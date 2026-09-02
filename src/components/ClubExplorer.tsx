@@ -51,6 +51,7 @@ export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favori
     );
 
     const clubFavorites = favorites.filter(f => f.equipo.toLowerCase() === teamName.toLowerCase());
+    const unavailableCount = clubPlayers.filter(p => !!p.statusInfo).length;
 
     return {
       count: clubPlayers.length,
@@ -58,6 +59,7 @@ export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favori
       avgPrice,
       topPlayer: mostExpensive,
       favoritesCount: clubFavorites.length,
+      unavailableCount,
     };
   };
 
@@ -155,11 +157,20 @@ export const ClubExplorer: React.FC<ClubExplorerProps> = ({ onSelectClub, favori
                     </div>
                   </div>
 
-                  {stats.favoritesCount > 0 && (
-                    <span className="bg-blue-100 dark:bg-blue-950 text-[#1b55e2] dark:text-cyan-300 px-2 py-0.5 rounded-full text-[11px] font-black border border-blue-300/80 dark:border-blue-800 shrink-0">
-                      {stats.favoritesCount} favs
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {stats.unavailableCount > 0 && (
+                      <span className="bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 px-2 py-0.5 rounded-full text-[10.5px] font-black border border-rose-300/80 dark:border-rose-800 shrink-0 flex items-center gap-0.5" title={`${stats.unavailableCount} jugadores no juegan la próxima fecha`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-600 inline-block"></span>
+                        <span>{stats.unavailableCount} {stats.unavailableCount === 1 ? 'baja' : 'bajas'}</span>
+                      </span>
+                    )}
+
+                    {stats.favoritesCount > 0 && (
+                      <span className="bg-blue-100 dark:bg-blue-950 text-[#1b55e2] dark:text-cyan-300 px-2 py-0.5 rounded-full text-[11px] font-black border border-blue-300/80 dark:border-blue-800 shrink-0">
+                        {stats.favoritesCount} favs
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Standings Badge Row (Zona, Posición, Puntos, Estado Fecha) */}

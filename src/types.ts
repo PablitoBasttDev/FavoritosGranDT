@@ -1,5 +1,17 @@
 export type Position = 'ARQ' | 'DEF' | 'VOL' | 'DEL';
 
+export type PlayerUnavailableType = 'suspension' | 'lesion' | 'duda';
+
+export interface PlayerStatusInfo {
+  status: 'AVAILABLE' | 'SUSPENDED' | 'INJURED' | 'DOUBT';
+  type: PlayerUnavailableType;
+  badgeText: string; // 'SUSPENDIDO' | 'LESIONADO' | 'EN DUDA'
+  reason: string; // Motivo exacto (e.g., 'Tarjeta Roja (Expulsado en Promiedos)', 'Rotura de ligamentos cruzados')
+  detail?: string;
+  returnEstimate?: string; // 'Baja Fecha 7', 'Retorno Fecha 8', 'Baja médica'
+  source?: 'promiedos' | 'parte_medico' | 'manual';
+}
+
 export interface Player {
   id: number;
   nombre: string;
@@ -20,6 +32,7 @@ export interface Player {
   penalesAtajados?: number; // Penales atajados (PA)
   golesPenal?: number; // Goles de penal (GP)
   fechasPuntajes?: Record<string, string | number>; // F1..F18
+  statusInfo?: PlayerStatusInfo;
 }
 
 export interface FavoritePlayer extends Player {

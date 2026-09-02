@@ -18,6 +18,7 @@ import {
   Filter,
   AlertTriangle,
   RefreshCw,
+  Ban,
 } from 'lucide-react';
 
 interface PlayerExplorerProps {
@@ -92,6 +93,11 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
     return counts;
   }, [players]);
 
+  // Count unavailable / suspended / injured players
+  const unavailableCount = useMemo(() => {
+    return players.filter(p => !!p.statusInfo).length;
+  }, [players]);
+
   // Filter and sort logic
   const filteredPlayers = useMemo(() => {
     return players
@@ -111,8 +117,11 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
           return false;
         }
 
-        // Characteristic / Trait filter
-        if (selectedTrait !== 'ALL') {
+        // Unavailable / Suspended / Injured filter
+        if (selectedTrait === 'UNAVAILABLE') {
+          if (!player.statusInfo) return false;
+        } else if (selectedTrait !== 'ALL') {
+          // Characteristic / Trait filter
           if (!playerHasTrait(player, selectedTrait)) {
             return false;
           }
@@ -423,6 +432,24 @@ export const PlayerExplorer: React.FC<PlayerExplorerProps> = ({
             <span>Todos</span>
             <span className="text-[9.5px] opacity-75 font-normal">({players.length})</span>
           </button>
+
+          {/* Quick Unavailable / Bajas Filter Pill */}
+          {unavailableCount > 0 && (
+            <button
+              onClick={() => setSelectedTrait(selectedTrait === 'UNAVAILABLE' ? 'ALL' : 'UNAVAILABLE')}
+              className={`px-2 py-0.5 rounded-md text-[11px] font-black shrink-0 transition flex items-center gap-1 border ${
+                selectedTrait === 'UNAVAILABLE'
+                  ? 'bg-rose-600 text-white border-rose-700 ring-2 ring-rose-500/40 shadow-xs'
+                  : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/80 hover:bg-rose-100'
+              }`}
+            >
+              <Ban className="w-3 h-3 text-rose-500 shrink-0" />
+              <span>Bajas / Suspendidos</span>
+              <span className="text-[9.5px] px-1 py-0.2 rounded-full bg-rose-200 dark:bg-rose-900 text-rose-950 dark:text-rose-200 font-extrabold">
+                {unavailableCount}
+              </span>
+            </button>
+          )}
 
           {ALL_TRAIT_DEFINITIONS.map(def => {
             const isSelected = selectedTrait === def.id;

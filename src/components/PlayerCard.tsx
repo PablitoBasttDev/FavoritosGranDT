@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Player } from '../types.js';
 import { TeamBadge } from './TeamBadge.js';
 import { PositionBadge } from './PositionBadge.js';
+import { PlayerStatusBadge } from './PlayerStatusBadge.js';
 import { PlayerTraitsDetail } from './PlayerTraitsDetail.js';
 import { Plus, Check, X, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -19,6 +20,7 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
   compact = false,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const isUnavailable = !!player.statusInfo;
 
   // Format currency
   const formattedPrice = new Intl.NumberFormat('es-AR', {
@@ -37,7 +39,9 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
       <div
         id={`player-compact-${player.id}`}
         className={`flex flex-col p-2 rounded-xl border transition ${
-          isFavorite
+          isUnavailable
+            ? 'border-red-500/60 bg-red-50/40 dark:bg-red-950/20 shadow-xs'
+            : isFavorite
             ? 'bg-blue-50/95 border-[#1b55e2] ring-1 ring-[#1b55e2] dark:bg-blue-950/40 dark:border-blue-700 shadow-xs'
             : 'bg-white dark:bg-slate-900 border-slate-300/90 dark:border-slate-800 hover:border-slate-400 shadow-xs'
         }`}
@@ -49,12 +53,19 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
           <div className="flex items-center gap-2 min-w-0 flex-1 pr-1">
             <TeamBadge teamName={player.equipo} size="xs" />
             <div className="min-w-0 flex-1">
-              <p
-                className="font-black text-xs sm:text-sm text-slate-950 dark:text-slate-100 truncate leading-tight"
-                title={player.nombre}
-              >
-                {player.nombre}
-              </p>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <p
+                  className={`font-black text-xs sm:text-sm truncate leading-tight ${
+                    isUnavailable
+                      ? 'text-red-700 dark:text-red-400 font-black'
+                      : 'text-slate-950 dark:text-slate-100'
+                  }`}
+                  title={player.nombre}
+                >
+                  {player.nombre}
+                </p>
+                {isUnavailable && <PlayerStatusBadge statusInfo={player.statusInfo} size="xs" />}
+              </div>
               <div className="flex items-center gap-1.5 text-[10.5px] mt-0.5 flex-wrap">
                 <PositionBadge position={player.posicion} size="xs" />
                 <span className="font-mono text-emerald-800 dark:text-emerald-400 font-black text-[10.5px]">
@@ -97,7 +108,9 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
     <div
       id={`player-card-${player.id}`}
       className={`group relative flex flex-col justify-between p-3.5 rounded-xl border transition hover:shadow-md ${
-        isFavorite
+        isUnavailable
+          ? 'bg-red-50/30 dark:bg-red-950/20 border-red-500/50 dark:border-red-800/60 shadow-xs'
+          : isFavorite
           ? 'bg-blue-50/80 border-[#1b55e2] dark:bg-blue-950/30 dark:border-blue-700 ring-1 ring-[#1b55e2] shadow-xs'
           : 'bg-white dark:bg-slate-900 border-slate-300/90 dark:border-slate-800 hover:border-slate-400 shadow-xs'
       }`}
@@ -114,9 +127,16 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
               <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block truncate">
                 {player.equipo}
               </span>
-              <h3 className="font-black text-slate-950 dark:text-slate-100 text-xs sm:text-sm leading-snug truncate group-hover:text-[#1b55e2] transition-colors">
-                {player.nombre}
-              </h3>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <h3 className={`font-black text-xs sm:text-sm leading-snug truncate transition-colors ${
+                  isUnavailable
+                    ? 'text-red-700 dark:text-red-400'
+                    : 'text-slate-950 dark:text-slate-100 group-hover:text-[#1b55e2]'
+                }`}>
+                  {player.nombre}
+                </h3>
+                {isUnavailable && <PlayerStatusBadge statusInfo={player.statusInfo} size="xs" />}
+              </div>
             </div>
           </div>
 
@@ -164,16 +184,17 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
             e.stopPropagation();
             onToggleFavorite(player);
           }}
-          className={`px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-black transition active:scale-95 flex items-center gap-1 shadow-xs shrink-0 whitespace-nowrap ${
+          className={`px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-black transition active:scale-95 flex items-center gap-1 shadow-xs shrink-0 whitespace-nowrap cursor-pointer ${
             isFavorite
-              ? 'bg-blue-100 text-[#1b55e2] dark:bg-blue-900/60 dark:text-cyan-300 hover:bg-rose-500 hover:text-white border border-blue-300 dark:border-blue-700'
+              ? 'bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
               : 'bg-[#1b55e2] hover:bg-[#1444b8] text-white'
           }`}
+          title={isFavorite ? 'Quitar de favoritos' : 'Sumar a favoritos'}
         >
           {isFavorite ? (
             <>
-              <Check className="w-3.5 h-3.5 shrink-0" />
-              <span>En Lista</span>
+              <X className="w-3.5 h-3.5 shrink-0 text-rose-600 group-hover:text-white" />
+              <span>Quitar</span>
             </>
           ) : (
             <>

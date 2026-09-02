@@ -1047,6 +1047,401 @@ function getDefaultCleanSheets() {
   }));
 }
 
+// ============================================================================
+// PROMIEDOS UNAVAILABLE PLAYERS ENGINE (SUSPENSIONES Y LESIONES)
+// ============================================================================
+
+export interface UnavailablePlayerInfo {
+  status: 'SUSPENDED' | 'INJURED' | 'DOUBT';
+  type: 'suspension' | 'lesion' | 'duda';
+  badgeText: string;
+  reason: string;
+  detail?: string;
+  returnEstimate?: string;
+  source: 'promiedos' | 'parte_medico' | 'manual';
+}
+
+export interface UnavailablePlayerRecord {
+  playerId: number;
+  nombre: string;
+  equipo: string;
+  posicion: string;
+  statusInfo: UnavailablePlayerInfo;
+}
+
+interface UnavailablePlayersCache {
+  lastFetched: number;
+  roundName: string;
+  players: UnavailablePlayerRecord[];
+  unavailableMap: Record<string, UnavailablePlayerInfo>;
+  source: 'promiedos' | 'fallback';
+}
+
+let cachedUnavailableData: UnavailablePlayersCache | null = null;
+
+// Official confirmed injury reports and medical bajas for Clausura 2026
+const CONFIRMED_MEDICAL_INJURIES = [
+  { name: 'Blondel, Lucas', team: 'Boca Juniors', reason: 'Rotura de ligamento cruzado anterior', detail: 'Parte médico oficial: rehabilitación de rodilla', returnEstimate: 'En recuperación' },
+  { name: 'Martínez, Gonzalo', team: 'River Plate', reason: 'Rotura de ligamentos cruzados', detail: 'Parte médico oficial: etapa final de recuperación', returnEstimate: 'En recuperación' },
+  { name: 'Aliendro, Rodrigo', team: 'River Plate', reason: 'Luxación de hombro', detail: 'Parte médico: reposo articular e inmovilización', returnEstimate: 'En recuperación' },
+  { name: 'Hernández, Gastón', team: 'San Lorenzo de Almagro', reason: 'Rotura de ligamento cruzado anterior', detail: 'Parte médico: postoperatorio y kinesiología', returnEstimate: 'En recuperación' },
+  { name: 'Catalán, Matías', team: 'Talleres de Córdoba', reason: 'Rotura de ligamento cruzado anterior', detail: 'Parte médico oficial: rehabilitación quirúrgica', returnEstimate: 'En recuperación' },
+  { name: 'Sánchez, Ulises', team: 'Belgrano de Córdoba', reason: 'Rotura de ligamento cruzado', detail: 'Rehabilitación y acondicionamiento físico', returnEstimate: 'En recuperación' },
+  { name: 'Passerini, Lucas', team: 'Belgrano de Córdoba', reason: 'Rotura de ligamento cruzado anterior', detail: 'Parte médico oficial: kinesiología intensiva', returnEstimate: 'En recuperación' },
+  { name: 'Loaiza, Raúl', team: 'Lanús', reason: 'Rotura de ligamento cruzado', detail: 'Parte médico oficial: recuperación post-quirúrgica', returnEstimate: 'En recuperación' },
+  { name: 'Bravo, Agustín', team: 'Rosario Central', reason: 'Rotura de ligamento cruzado', detail: 'Parte médico: recuperación de rodilla', returnEstimate: 'En recuperación' },
+  { name: 'Monzón, Florián', team: 'Vélez Sarsfield', reason: 'Rotura de ligamento cruzado anterior', detail: 'Parte médico oficial: recuperación', returnEstimate: 'En recuperación' },
+  { name: 'Méndez, Mauro', team: 'Estudiantes de La Plata', reason: 'Rotura de ligamento cruzado', detail: 'Parte médico: postoperatorio', returnEstimate: 'En recuperación' },
+];
+
+function normalizePromiedosTeamName(raw: string): string {
+  const c = (raw || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (c.includes('cordoba') && c.includes('central')) return 'Central Córdoba de SDE';
+  if (c.includes('central cordoba') || c.includes('sde') || c.includes('santiago')) return 'Central Córdoba de SDE';
+  if (c.includes('estudiantes') && (c.includes('rc') || c.includes('rio cuarto') || c.includes('cuarto'))) return 'Estudiantes de Río Cuarto';
+  if (c.includes('estudiantes') && (c.includes('lp') || c.includes('plata'))) return 'Estudiantes de La Plata';
+  if (c.includes('estudiantes')) return 'Estudiantes de La Plata';
+  if (c.includes('gimnasia') && (c.includes('mendoza') || c.includes('mza'))) return 'Gimnasia y Esgrima de Mendoza';
+  if (c.includes('gimnasia') && (c.includes('plata') || c.includes('lp'))) return 'Gimnasia y Esgrima La Plata';
+  if (c.includes('sarmiento')) return 'Sarmiento de Junín';
+  if (c.includes('talleres')) return 'Talleres de Córdoba';
+  if (c.includes('belgrano')) return 'Belgrano de Córdoba';
+  if (c.includes('instituto')) return 'Instituto de Córdoba';
+  if (c.includes('san lorenzo')) return 'San Lorenzo de Almagro';
+  if (c.includes('union')) return 'Unión de Santa Fe';
+  if (c.includes('independiente') && (c.includes('rivadavia') || c.includes('mendoza'))) return 'Independiente Rivadavia';
+  if (c.includes('newell')) return "Newell's Old Boys";
+  if (c.includes('argentinos')) return 'Argentinos Juniors';
+  if (c.includes('atletico') && c.includes('tucuman')) return 'Atlético Tucumán';
+  if (c.includes('barracas')) return 'Barracas Central';
+  if (c.includes('boca')) return 'Boca Juniors';
+  if (c.includes('defensa')) return 'Defensa y Justicia';
+  if (c.includes('riestra')) return 'Deportivo Riestra';
+  if (c.includes('huracan')) return 'Huracán';
+  if (c.includes('independiente')) return 'Independiente';
+  if (c.includes('lanus')) return 'Lanús';
+  if (c.includes('platense')) return 'Platense';
+  if (c.includes('racing')) return 'Racing Club';
+  if (c.includes('river')) return 'River Plate';
+  if (c.includes('rosario')) return 'Rosario Central';
+  if (c.includes('tigre')) return 'Tigre';
+  if (c.includes('velez')) return 'Vélez Sarsfield';
+  if (c.includes('aldosivi')) return 'Aldosivi';
+  if (c.includes('banfield')) return 'Banfield';
+  return raw;
+}
+
+function matchPlayerAgainstSnapshot(
+  promName: string,
+  promSname: string,
+  promTeamName: string,
+  allPlayers: any[]
+): any | null {
+  const clean = (s: string) =>
+    (s || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const normalizedTeam = normalizePromiedosTeamName(promTeamName);
+  const normTeamClean = clean(normalizedTeam);
+
+  const candidates = allPlayers.filter(p => {
+    const tNorm = clean(p.equipo);
+    return tNorm === normTeamClean || tNorm.includes(normTeamClean) || normTeamClean.includes(tNorm);
+  });
+
+  const fullClean = clean(promName);
+  const snameClean = clean(promSname);
+  const tokens = fullClean.split(' ').filter(t => t.length >= 2);
+
+  // 1. In candidates: all tokens present in player name
+  let found = candidates.find(p => {
+    const pClean = clean(p.nombre);
+    return tokens.length > 0 && tokens.every(t => pClean.includes(t));
+  });
+
+  // 2. In candidates: both surname and first name tokens match
+  if (!found && candidates.length > 0 && tokens.length >= 2) {
+    found = candidates.find(p => {
+      const pClean = clean(p.nombre);
+      const matchCount = tokens.filter(t => t.length >= 3 && pClean.includes(t)).length;
+      return matchCount >= 2;
+    });
+  }
+
+  // 3. Single word / surname match ONLY if unambiguous within team
+  if (!found && candidates.length > 0 && (tokens.length === 1 || (snameClean && snameClean.length >= 4))) {
+    const keyToken = snameClean.length >= 4 ? snameClean : tokens[0];
+    if (keyToken && keyToken.length >= 4) {
+      const matchingInTeam = candidates.filter(p => clean(p.nombre).includes(keyToken));
+      if (matchingInTeam.length === 1) {
+        found = matchingInTeam[0];
+      }
+    }
+  }
+
+  // 4. Global match across all players ONLY if multi-token full name matches exactly
+  if (!found && tokens.length >= 2) {
+    const globalMatches = allPlayers.filter(p => {
+      const pClean = clean(p.nombre);
+      return tokens.every(t => pClean.includes(t));
+    });
+    if (globalMatches.length === 1) {
+      found = globalMatches[0];
+    }
+  }
+
+  // 5. If not found in snapshot, synthesize a valid player record so the baja is never dropped or misattributed
+  if (!found && promName) {
+    found = {
+      id: `pm_${clean(promName).replace(/\s+/g, '_')}_${clean(normalizedTeam).replace(/\s+/g, '_')}`,
+      nombre: promName,
+      equipo: normalizedTeam,
+      posicion: 'VOL',
+      precio: '$ 5.000.000',
+      puntosTotales: 0,
+      partidosJugados: 0,
+    };
+  }
+
+  return found || null;
+}
+
+export async function fetchPromiedosUnavailablePlayers(): Promise<UnavailablePlayersCache> {
+  const now = Date.now();
+  if (cachedUnavailableData && now - cachedUnavailableData.lastFetched < CACHE_TTL_MS) {
+    return cachedUnavailableData;
+  }
+
+  const allPlayers = (defaultPlayersSnapshot as unknown as any[]) || [];
+  const unavailableMap: Record<string, UnavailablePlayerInfo> = {};
+  const playersList: UnavailablePlayerRecord[] = [];
+  let detectedRoundName = 'Próxima Fecha';
+
+  const addUnavailable = (
+    player: any,
+    info: UnavailablePlayerInfo
+  ) => {
+    if (!player) return;
+    const idKey = String(player.id);
+    const nameKey = `${player.nombre.toLowerCase()}_${player.equipo.toLowerCase()}`;
+
+    unavailableMap[idKey] = info;
+    unavailableMap[nameKey] = info;
+
+    if (!playersList.some(p => p.playerId === player.id)) {
+      playersList.push({
+        playerId: player.id,
+        nombre: player.nombre,
+        equipo: player.equipo,
+        posicion: player.posicion,
+        statusInfo: info,
+      });
+    }
+  };
+
+  let source: 'promiedos' | 'fallback' = 'fallback';
+
+  // 1. Scrape match preview pages from Promiedos for the UPCOMING round (siguiente fecha a disputar)
+  try {
+    const leagueRes = await fetch('https://www.promiedos.com.ar/league/liga-profesional/hc', {
+      headers: PROMIEDOS_HEADERS,
+      signal: safeTimeoutSignal(4000),
+    });
+
+    if (leagueRes.ok) {
+      const leagueHtml = await leagueRes.text();
+      const $ = cheerio.load(leagueHtml);
+      const nextData = JSON.parse($('#__NEXT_DATA__').html() || '{}');
+      const filters = nextData.props?.pageProps?.data?.games?.filters || [];
+
+      // Filter round options
+      const roundFilters = filters.filter((f: any) => f.name?.startsWith('Fecha ') && f.key);
+
+      let targetFilter: any = null;
+
+      // Find the first upcoming round that has programmed matches ("Prog.") or live matches ("Vivo")
+      for (const rf of roundFilters) {
+        try {
+          const gamesRes = await fetch(`https://api.promiedos.com.ar/league/games/hc/${rf.key}`, {
+            headers: PROMIEDOS_HEADERS,
+            signal: safeTimeoutSignal(3500),
+          });
+          if (gamesRes.ok) {
+            const gData = await gamesRes.json();
+            const games = gData.games || [];
+            const hasProgrammed = games.some((g: any) =>
+              g.status?.name === 'Prog.' ||
+              g.status?.symbol_name === 'Prog.' ||
+              g.game_time_status_to_display === 'Prog.'
+            );
+            const isLive = games.some((g: any) =>
+              g.status?.name === 'Vivo' ||
+              g.status?.name === 'Entretiempo'
+            );
+            if (hasProgrammed || isLive) {
+              targetFilter = { ...rf, games };
+              break;
+            }
+          }
+        } catch {
+          // Check next filter
+        }
+      }
+
+      // Fallback to the latest round filter if none matched
+      if (!targetFilter && roundFilters.length > 0) {
+        targetFilter = roundFilters[roundFilters.length - 1];
+      }
+
+      if (targetFilter?.key) {
+        detectedRoundName = targetFilter.name || 'Próxima Fecha';
+
+        let gamesList = targetFilter.games;
+        if (!gamesList || gamesList.length === 0) {
+          const gamesRes = await fetch(`https://api.promiedos.com.ar/league/games/hc/${targetFilter.key}`, {
+            headers: PROMIEDOS_HEADERS,
+            signal: safeTimeoutSignal(4000),
+          });
+          if (gamesRes.ok) {
+            const gamesData = await gamesRes.json();
+            gamesList = gamesData.games || [];
+          }
+        }
+
+        if (Array.isArray(gamesList) && gamesList.length > 0) {
+          source = 'promiedos';
+          // Fetch match details in parallel for the upcoming round
+          const matchPromises = gamesList.map(async (g: any) => {
+            if (!g.url_name || !g.id) return null;
+            try {
+              const matchUrl = `https://www.promiedos.com.ar/game/${g.url_name}/${g.id}`;
+              const mRes = await fetch(matchUrl, {
+                headers: PROMIEDOS_HEADERS,
+                signal: safeTimeoutSignal(4000),
+              });
+              if (mRes.ok) {
+                const mHtml = await mRes.text();
+                const m$ = cheerio.load(mHtml);
+                const mJson = JSON.parse(m$('#__NEXT_DATA__').html() || '{}');
+                return mJson.props?.pageProps?.initialData?.game;
+              }
+            } catch {
+              return null;
+            }
+            return null;
+          });
+
+          const results = await Promise.allSettled(matchPromises);
+          results.forEach((res) => {
+            if (res.status === 'fulfilled' && res.value) {
+              const gData = res.value;
+              const missing = gData.players?.missing_players || [];
+              const t1 = gData.teams?.[0]?.name;
+              const t2 = gData.teams?.[1]?.name;
+
+              [0, 1].forEach((idx) => {
+                const teamName = idx === 0 ? t1 : t2;
+                const teamMissing = missing[idx] || [];
+                teamMissing.forEach((p: any) => {
+                  const reason = p.missing_details?.reason || 'Lesionado';
+                  const willPlay = p.missing_details?.will_play || 'No jugarán';
+                  const isSusp =
+                    /roja|sanc|amarill|expuls/i.test(reason) ||
+                    /suspend/i.test(willPlay) ||
+                    p.missing_details?.type === 2;
+                  const isDoubt = /duda/i.test(reason) || /duda/i.test(willPlay);
+
+                  const status: 'SUSPENDED' | 'DOUBT' | 'INJURED' = isSusp
+                    ? 'SUSPENDED'
+                    : isDoubt
+                    ? 'DOUBT'
+                    : 'INJURED';
+                  const type: 'suspension' | 'duda' | 'lesion' = isSusp
+                    ? 'suspension'
+                    : isDoubt
+                    ? 'duda'
+                    : 'lesion';
+                  const badgeText = isSusp
+                    ? reason.toLowerCase().includes('roja')
+                      ? 'EXPULSADO'
+                      : 'SUSPENDIDO'
+                    : isDoubt
+                    ? 'EN DUDA'
+                    : 'LESIONADO';
+
+                  const matched = matchPlayerAgainstSnapshot(p.name, p.sname || p.name, teamName, allPlayers);
+                  if (matched) {
+                    addUnavailable(matched, {
+                      status,
+                      type,
+                      badgeText,
+                      reason: `${reason} (${willPlay})`,
+                      detail: `Reportado en Alineación de Promiedos (${detectedRoundName}) para ${matched.equipo || teamName}`,
+                      returnEstimate: isDoubt ? `En duda (${detectedRoundName})` : `Baja (${detectedRoundName})`,
+                      source: 'promiedos',
+                    });
+                  }
+                });
+              });
+            }
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[UNAVAILABLE_PLAYERS_NOTICE] Live match scrape notice:', (err as Error).message);
+  }
+
+  // 2. Integrate confirmed medical injuries if not already added
+  CONFIRMED_MEDICAL_INJURIES.forEach(inj => {
+    const matched = matchPlayerAgainstSnapshot(inj.name, inj.name.split(',')[0], inj.team, allPlayers);
+    if (matched && !unavailableMap[String(matched.id)]) {
+      addUnavailable(matched, {
+        status: 'INJURED',
+        type: 'lesion',
+        badgeText: 'LESIONADO',
+        reason: inj.reason,
+        detail: inj.detail,
+        returnEstimate: inj.returnEstimate,
+        source: 'parte_medico',
+      });
+    }
+  });
+
+  // Sort unavailable players: Suspensions first, then Injuries, then Doubt, then by team name
+  playersList.sort((a, b) => {
+    if (a.statusInfo.type !== b.statusInfo.type) {
+      if (a.statusInfo.type === 'suspension') return -1;
+      if (b.statusInfo.type === 'suspension') return 1;
+      if (a.statusInfo.type === 'lesion') return -1;
+      if (b.statusInfo.type === 'lesion') return 1;
+    }
+    return a.equipo.localeCompare(b.equipo) || a.nombre.localeCompare(b.nombre);
+  });
+
+  cachedUnavailableData = {
+    lastFetched: now,
+    roundName: detectedRoundName,
+    players: playersList,
+    unavailableMap,
+    source,
+  };
+
+  return cachedUnavailableData;
+}
+
 // Global CORS and Anti-Cache Headers
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -1320,9 +1715,11 @@ apiRouter.post('/promiedos/refresh', async (req, res) => {
   cachedData = null;
   cachedLeagueData = null;
   cachedPlanetaData = null;
+  cachedUnavailableData = null;
   try {
     const data = await fetchPromiedosLiveData().catch(() => null);
     const leagueData = await fetchPromiedosLeagueDetails().catch(() => null);
+    const unavail = await fetchPromiedosUnavailablePlayers().catch(() => null);
     res.json({
       success: true,
       refreshed: true,
@@ -1330,10 +1727,49 @@ apiRouter.post('/promiedos/refresh', async (req, res) => {
       matchesCount: data?.matches?.length || 0,
       standingsCount: leagueData?.standingsGeneral?.length || 0,
       scorersCount: leagueData?.topScorers?.length || 0,
+      unavailableCount: unavail?.players?.length || 0,
       source: data?.source || 'promiedos',
     });
   } catch (error) {
     res.json({ success: true, refreshed: true, isFallback: true, timestamp: Date.now() });
+  }
+});
+
+// Unavailable Players endpoint (Suspendidos por tarjeta roja / 5 amarillas y Lesionados)
+apiRouter.get('/promiedos/unavailable-players', async (req, res) => {
+  try {
+    const data = await fetchPromiedosUnavailablePlayers();
+    const totalSuspended = data.players.filter(p => p.statusInfo.type === 'suspension').length;
+    const totalInjured = data.players.filter(p => p.statusInfo.type === 'lesion').length;
+
+    res.json({
+      success: true,
+      isLive: data.source === 'promiedos',
+      source: data.source,
+      roundName: data.roundName || 'Próxima Fecha',
+      timestamp: data.lastFetched,
+      lastUpdated: new Date(data.lastFetched).toISOString(),
+      totalUnavailable: data.players.length,
+      totalSuspended,
+      totalInjured,
+      players: data.players,
+      unavailableMap: data.unavailableMap,
+      ttl: 45,
+    });
+  } catch (error) {
+    console.warn('[UNAVAILABLE_PLAYERS_NOTICE] Serving fallback unavailable data:', (error as Error).message);
+    res.json({
+      success: true,
+      isLive: false,
+      source: 'fallback',
+      timestamp: Date.now(),
+      totalUnavailable: 0,
+      totalSuspended: 0,
+      totalInjured: 0,
+      players: [],
+      unavailableMap: {},
+      ttl: 45,
+    });
   }
 });
 

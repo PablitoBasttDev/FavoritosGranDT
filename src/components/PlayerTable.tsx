@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Player } from '../types.js';
 import { TeamBadge } from './TeamBadge.js';
 import { PositionBadge } from './PositionBadge.js';
+import { PlayerStatusBadge } from './PlayerStatusBadge.js';
 import { PlayerTraitsDetail } from './PlayerTraitsDetail.js';
-import { Plus, Check, ArrowUpDown, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Check, X, ArrowUpDown, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface PlayerTableProps {
   players: Player[];
@@ -93,6 +94,7 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
             {players.map((player, idx) => {
               const isFav = favoriteIds.has(player.id);
               const isExpanded = expandedPlayerId === player.id;
+              const isUnavailable = !!player.statusInfo;
               const formattedPromedio =
                 typeof player.promedio === 'number' && player.promedio > 0
                   ? player.promedio.toFixed(2)
@@ -106,6 +108,8 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
                     className={`transition-colors cursor-pointer select-none ${
                       isExpanded
                         ? 'bg-blue-50/90 dark:bg-blue-950/40'
+                        : isUnavailable
+                        ? 'bg-red-50/40 hover:bg-red-100/60 dark:bg-red-950/20 dark:hover:bg-red-950/40'
                         : isFav
                         ? 'bg-blue-50/60 hover:bg-blue-100/70 dark:bg-blue-950/20 dark:hover:bg-blue-950/40'
                         : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
@@ -117,12 +121,21 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
                         <span className="text-slate-400 shrink-0">
                           {isExpanded ? <ChevronUp className="w-3 h-3 text-[#1b55e2]" /> : <ChevronDown className="w-3 h-3" />}
                         </span>
-                        <span
-                          className="font-black text-slate-950 dark:text-slate-100 text-xs sm:text-[13px] truncate"
-                          title={player.nombre}
-                        >
-                          {player.nombre}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span
+                            className={`font-black text-xs sm:text-[13px] truncate ${
+                              isUnavailable
+                                ? 'text-red-700 dark:text-red-400'
+                                : 'text-slate-950 dark:text-slate-100'
+                            }`}
+                            title={player.nombre}
+                          >
+                            {player.nombre}
+                          </span>
+                          {isUnavailable && (
+                            <PlayerStatusBadge statusInfo={player.statusInfo} size="xs" />
+                          )}
+                        </div>
                       </div>
                     </td>
 
@@ -168,16 +181,17 @@ export const PlayerTable: React.FC<PlayerTableProps> = ({
                           e.stopPropagation();
                           onToggleFavorite(player);
                         }}
-                        className={`p-1.5 sm:px-2.5 sm:py-1 rounded-lg text-xs font-black transition flex items-center gap-1 shadow-xs mx-auto shrink-0 whitespace-nowrap ${
+                        className={`p-1.5 sm:px-2.5 sm:py-1 rounded-lg text-xs font-black transition flex items-center gap-1 shadow-xs mx-auto shrink-0 whitespace-nowrap cursor-pointer ${
                           isFav
-                            ? 'bg-blue-100 text-[#1b55e2] dark:bg-blue-900/60 dark:text-cyan-300 hover:bg-rose-500 hover:text-white border border-blue-200'
+                            ? 'bg-rose-50 text-rose-700 hover:bg-rose-600 hover:text-white dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
                             : 'bg-[#1b55e2] hover:bg-[#1444b8] text-white'
                         }`}
+                        title={isFav ? 'Quitar de favoritos' : 'Sumar a favoritos'}
                       >
                         {isFav ? (
                           <>
-                            <Check className="w-3.5 h-3.5 shrink-0" />
-                            <span className="hidden sm:inline">En Lista</span>
+                            <X className="w-3.5 h-3.5 shrink-0 text-rose-600 group-hover:text-white" />
+                            <span className="hidden sm:inline">Quitar</span>
                           </>
                         ) : (
                           <>

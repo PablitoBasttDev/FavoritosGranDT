@@ -2,14 +2,16 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { FavoritePlayer, Player } from '../types.js';
 import { ALL_PLAYERS } from '../data/players.js';
 import { TEAMS_DATA, getTeamData, getTeamFallbackBadge } from '../data/teams.js';
-import { getTeamStanding, getTeamMatchInfo, STANDINGS_DATA } from '../data/standings.js';
+import { getTeamStanding, getTeamMatchInfo, STANDINGS_DATA, TeamStanding } from '../data/standings.js';
 import { normalizeText, playerMatchesQuery } from '../utils/textUtils.js';
 import { TeamBadge } from './TeamBadge.js';
 import { PositionBadge } from './PositionBadge.js';
+import { PlayerStatusBadge } from './PlayerStatusBadge.js';
 import { SHEET_TEAM_MAP } from '../services/sheetsService.js';
 import { isSamePlayer, generateDeterministicPlayerId } from '../utils/playerIdentity.js';
 import { CountdownBanner } from './CountdownBanner.js';
 import { PlayerTraitsDetail } from './PlayerTraitsDetail.js';
+import { usePromiedosStandings } from '../services/promiedosService.js';
 import {
   Search,
   Plus,
@@ -42,8 +44,8 @@ interface FavoritesDashboardProps {
   favorites: FavoritePlayer[];
   players?: Player[];
   onAddFavorite: (player: Player, notes?: string) => void;
-  onRemoveFavorite: (playerId: number) => void;
-  onUpdateNotes: (playerId: number, notes: string) => void;
+  onRemoveFavorite: (playerOrId: number | Player, playerName?: string, playerTeam?: string) => void;
+  onUpdateNotes: (playerId: number, notes: string, playerName?: string) => void;
   onClearAll: () => void;
   onNavigateToDatabase: (clubName?: string) => void;
   activeUser?: UserProfile | null;
@@ -76,6 +78,26 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
   const [dropdownPosFilter, setDropdownPosFilter] = useState<string>('ALL');
   const [showCloudSyncModal, setShowCloudSyncModal] = useState(false);
 
+  // Live standings data directly from Promiedos API
+  const { standings: liveStandingsData } = usePromiedosStandings();
+
+  const liveStandingsMap = useMemo(() => {
+    const map: Record<string, TeamStanding> = {};
+    if (liveStandingsData?.general && liveStandingsData.general.length > 0) {
+      liveStandingsData.general.forEach(t => {
+        const canonical = SHEET_TEAM_MAP[t.teamName] || t.teamName;
+        map[canonical] = t;
+        map[t.teamName] = t;
+      });
+    }
+    return map;
+  }, [liveStandingsData]);
+
+  const getLiveTeamStanding = (teamName: string): TeamStanding | undefined => {
+    const canonical = SHEET_TEAM_MAP[teamName] || teamName;
+    return liveStandingsMap[canonical] || liveStandingsMap[teamName] || getTeamStanding(teamName);
+  };
+
   // View mode: 'all_30_clubs' by default so all club cards are visible immediately
   const [viewMode, setViewMode] = useState<'all_30_clubs' | 'with_favorites'>('all_30_clubs');
 
@@ -89,6 +111,11 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
   const [clubPickerModal, setClubPickerModal] = useState<string | null>(null);
   const [clubPickerSearch, setClubPickerSearch] = useState('');
   const [clubPickerPos, setClubPickerPos] = useState<string>('ALL');
+
+  // Unavailable / Suspended / Injured players inside user's favorites
+  const unavailableFavorites = useMemo(() => {
+    return favorites.filter(f => !!f.statusInfo);
+  }, [favorites]);
 
   // Copy notification
   const [copied, setCopied] = useState(false);
@@ -226,7 +253,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
     // 4. Filter by Zone
     if (cardZoneFilter !== 'ALL') {
       list = list.filter(teamName => {
-        const standing = getTeamStanding(teamName);
+        const standing = getLiveTeamStanding(teamName);
         return standing?.zone === cardZoneFilter;
       });
     }
@@ -239,8 +266,8 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
         return countB - countA; // Teams with favorites first
       }
 
-      const standingA = getTeamStanding(a);
-      const standingB = getTeamStanding(b);
+      const standingA = getLiveTeamStanding(a);
+      const standingB = getLiveTeamStanding(b);
 
       if (cardSortBy === 'table-pos') {
         const posA = standingA?.positionGeneral ?? 99;
@@ -261,7 +288,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
       }
       return a.localeCompare(b);
     });
-  }, [viewMode, groupedFavorites, cardRoleFilter, cardDayFilter, cardZoneFilter, cardSortBy]);
+  }, [viewMode, groupedFavorites, cardRoleFilter, cardDayFilter, cardZoneFilter, cardSortBy, liveStandingsMap]);
 
   const hasActiveCardFilters = cardRoleFilter !== 'ALL' || cardDayFilter !== 'ALL' || cardZoneFilter !== 'ALL' || cardSortBy !== 'table-pos';
 
@@ -477,17 +504,25 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                           </span>
 
                           <button
-                            onClick={() => handleQuickAdd(p)}
-                            className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-[9.5px] sm:text-[10.5px] font-black flex items-center gap-0.5 transition shadow-2xs shrink-0 active:scale-95 ${
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isAlreadyFav) {
+                                onRemoveFavorite(p, p.nombre, p.equipo);
+                              } else {
+                                handleQuickAdd(p);
+                              }
+                            }}
+                            className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-[9.5px] sm:text-[10.5px] font-black flex items-center gap-0.5 transition shadow-2xs shrink-0 active:scale-95 cursor-pointer ${
                               isAlreadyFav
-                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                                ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
                                 : 'bg-[#1b55e2] hover:bg-[#1444b8] text-white'
                             }`}
+                            title={isAlreadyFav ? 'Quitar de favoritos' : 'Sumar a favoritos'}
                           >
                             {isAlreadyFav ? (
                               <>
-                                <Check className="w-3 h-3 text-emerald-700 dark:text-emerald-300" />
-                                <span className="hidden xs:inline">Listo</span>
+                                <X className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                                <span>Quitar</span>
                               </>
                             ) : (
                               <>
@@ -600,6 +635,26 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
             </span>
           </div>
         </div>
+
+        {/* Unavailable Players Warning Banner for User's Favorites */}
+        {unavailableFavorites.length > 0 && (
+          <div className="mt-2.5 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-800/80 flex items-center justify-between flex-wrap gap-2 text-xs shadow-xs animate-in fade-in duration-200">
+            <div className="flex items-center gap-2 text-rose-950 dark:text-rose-200 min-w-0 flex-1">
+              <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+              <div className="min-w-0">
+                <span className="font-black text-[11px] uppercase tracking-wider text-rose-700 dark:text-rose-300 mr-1.5">
+                  ⚠️ {unavailableFavorites.length} {unavailableFavorites.length === 1 ? 'Baja' : 'Bajas'} en tus Favoritos:
+                </span>
+                <span className="font-medium text-[11px] text-rose-900 dark:text-rose-100">
+                  {unavailableFavorites.map(f => `${f.nombre} (${f.equipo})`).join(', ')}
+                </span>
+              </div>
+            </div>
+            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-600 text-white shrink-0">
+              No juegan la Fecha 7
+            </span>
+          </div>
+        )}
 
         {/* Cloud Recovery Suggestion Bar when 0 favorites */}
         {favorites.length === 0 && (
@@ -776,7 +831,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
             const teamBadgeSrc = teamMeta?.escudoUrl || getTeamFallbackBadge(teamName);
             const primaryColor = teamMeta?.primaryColor || '#1b55e2';
             const shortName = teamMeta?.shortName || teamName.slice(0, 3).toUpperCase();
-            const standing = getTeamStanding(teamName);
+            const standing = getLiveTeamStanding(teamName);
             const matchInfo = getTeamMatchInfo(teamName);
 
             // Dynamic card dimensions and watermark scaling according to player count:
@@ -882,7 +937,7 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                       {/* Points */}
                       <span
                         className="px-1.5 py-0.5 rounded font-black text-[9px] bg-emerald-100 dark:bg-emerald-950/80 text-emerald-900 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-800/60 font-mono"
-                        title={`${standing?.points || 0} puntos acumulados en 5 fechas disputadas`}
+                        title={`${standing?.points ?? 0} puntos acumulados en ${standing?.played || 7} fechas disputadas`}
                       >
                         {standing?.points ?? '-'} pts
                       </span>
@@ -931,10 +986,15 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                           <div className="flex items-center gap-1.5 min-w-0 flex-1">
                             <PositionBadge position={expandedPlayerInCard.posicion} size="sm" />
                             <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1">
-                                <span className="font-black text-[11px] truncate leading-tight block text-slate-950 dark:text-slate-100 group-hover/pinned:text-[#1b55e2] transition-colors">
+                              <div className="flex items-center gap-1 flex-wrap">
+                                <span className={`font-black text-[11px] truncate leading-tight block ${
+                                  expandedPlayerInCard.statusInfo ? 'text-red-700 dark:text-red-400' : 'text-slate-950 dark:text-slate-100'
+                                } group-hover/pinned:text-[#1b55e2] transition-colors`}>
                                   {expandedPlayerInCard.nombre}
                                 </span>
+                                {expandedPlayerInCard.statusInfo && (
+                                  <PlayerStatusBadge statusInfo={expandedPlayerInCard.statusInfo} size="xs" />
+                                )}
                                 <ChevronUp className="w-3 h-3 text-[#1b55e2] shrink-0" />
                               </div>
                               <div className="flex items-center gap-1.5 mt-0.5">
@@ -1001,20 +1061,32 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                           ? player.promedio.toFixed(2)
                           : '-';
 
+                      const isPlayerUnavailable = !!player.statusInfo;
                       return (
                         <div key={`fav-team-player-${player.id}-${idx}`} className="flex flex-col mb-1 last:mb-0">
                           <div
                             onClick={() => setExpandedPlayerId(expandedPlayerId === player.id ? null : player.id)}
-                            className="group/item flex items-center justify-between gap-1 px-1.5 py-1 rounded-md transition text-xs border shadow-2xs cursor-pointer select-none bg-white dark:bg-slate-800/90 backdrop-blur-[1px] hover:bg-blue-50/80 dark:hover:bg-slate-700/80 border-slate-200/90 dark:border-slate-700/80 hover:border-blue-300"
+                            className={`group/item flex items-center justify-between gap-1 px-1.5 py-1 rounded-md transition text-xs border shadow-2xs cursor-pointer select-none ${
+                              isPlayerUnavailable
+                                ? 'bg-red-50/70 dark:bg-red-950/30 border-red-300/80 dark:border-red-800/80 hover:bg-red-100/80'
+                                : 'bg-white dark:bg-slate-800/90 backdrop-blur-[1px] hover:bg-blue-50/80 dark:hover:bg-slate-700/80 border-slate-200/90 dark:border-slate-700/80 hover:border-blue-300'
+                            }`}
                           >
                             {/* Position Pill & Player Name */}
                             <div className="flex items-center gap-1.5 min-w-0 flex-1">
                               <PositionBadge position={player.posicion} size="sm" />
                               <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1">
-                                  <span className="font-black text-[11px] truncate leading-tight block text-slate-950 dark:text-slate-100 group-hover/item:text-[#1b55e2] transition-colors">
+                                <div className="flex items-center gap-1 flex-wrap">
+                                  <span className={`font-black text-[11px] truncate leading-tight block ${
+                                    isPlayerUnavailable
+                                      ? 'text-red-700 dark:text-red-400 font-black'
+                                      : 'text-slate-950 dark:text-slate-100 group-hover/item:text-[#1b55e2]'
+                                  } transition-colors`}>
                                     {player.nombre}
                                   </span>
+                                  {isPlayerUnavailable && (
+                                    <PlayerStatusBadge statusInfo={player.statusInfo} size="xs" />
+                                  )}
                                   <ChevronDown className="w-3 h-3 text-slate-400 opacity-0 group-hover/item:opacity-100 transition-opacity shrink-0" />
                                 </div>
                                 <div className="flex items-center gap-1.5 mt-0.5">
@@ -1057,9 +1129,9 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  onRemoveFavorite(player.id);
+                                  onRemoveFavorite(player, player.nombre, player.equipo);
                                 }}
-                                className="p-1 rounded text-slate-400 dark:text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 transition"
+                                className="p-1 rounded text-slate-400 dark:text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 transition cursor-pointer"
                                 title="Quitar de favoritos"
                               >
                                 <X className="w-3 h-3" />
@@ -1180,12 +1252,12 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                         <button
                           onClick={() => {
                             if (isFav) {
-                              onRemoveFavorite(expandedModalPlayer.id);
+                              onRemoveFavorite(expandedModalPlayer, expandedModalPlayer.nombre, expandedModalPlayer.equipo);
                             } else {
                               onAddFavorite(expandedModalPlayer);
                             }
                           }}
-                          className={`px-2.5 py-1 rounded-md text-[11px] font-bold flex items-center gap-1 transition ${
+                          className={`px-2.5 py-1 rounded-md text-[11px] font-bold flex items-center gap-1 transition cursor-pointer ${
                             isFav
                               ? 'bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200'
                               : 'bg-[#1b55e2] hover:bg-[#1444b8] text-white shadow-xs'
@@ -1224,16 +1296,27 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                     <div key={`modal-club-player-${p.id}-${idx}`} className="flex flex-col">
                       <div
                         onClick={() => setExpandedPlayerId(expandedPlayerId === p.id ? null : p.id)}
-                        className="py-1.5 px-2 hover:bg-blue-50/60 dark:hover:bg-slate-800/80 rounded-lg flex items-center justify-between gap-1.5 sm:gap-3 text-xs transition cursor-pointer select-none"
+                        className={`py-1.5 px-2 rounded-lg flex items-center justify-between gap-1.5 sm:gap-3 text-xs transition cursor-pointer select-none ${
+                          p.statusInfo
+                            ? 'bg-red-50/40 dark:bg-red-950/20 hover:bg-red-100/60'
+                            : 'hover:bg-blue-50/60 dark:hover:bg-slate-800/80'
+                        }`}
                       >
                         <div className="flex items-center gap-1.5 min-w-0 flex-1 pr-1">
                           <PositionBadge position={p.posicion} size="xs" />
-                          <span
-                            className="font-black text-slate-900 dark:text-slate-100 text-xs sm:text-[13px] truncate"
-                            title={p.nombre}
-                          >
-                            {p.nombre}
-                          </span>
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
+                            <span
+                              className={`font-black text-xs sm:text-[13px] truncate ${
+                                p.statusInfo ? 'text-red-700 dark:text-red-400' : 'text-slate-900 dark:text-slate-100'
+                              }`}
+                              title={p.nombre}
+                            >
+                              {p.nombre}
+                            </span>
+                            {p.statusInfo && (
+                              <PlayerStatusBadge statusInfo={p.statusInfo} size="xs" />
+                            )}
+                          </div>
                         </div>
 
                         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
@@ -1255,12 +1338,12 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                             onClick={(e) => {
                               e.stopPropagation();
                               if (isFav) {
-                                onRemoveFavorite(p.id);
+                                onRemoveFavorite(p, p.nombre, p.equipo);
                               } else {
                                 onAddFavorite(p);
                               }
                             }}
-                            className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-[10px] sm:text-[11px] font-black flex items-center gap-0.5 transition shadow-2xs active:scale-95 shrink-0 ${
+                            className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-[10px] sm:text-[11px] font-black flex items-center gap-0.5 transition shadow-2xs active:scale-95 shrink-0 cursor-pointer ${
                               isFav
                                 ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
                                 : 'bg-[#1b55e2] hover:bg-[#1444b8] text-white shadow-xs'

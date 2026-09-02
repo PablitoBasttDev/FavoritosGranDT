@@ -18,6 +18,11 @@ import {
   usePromiedosLiveFixture,
 } from './services/promiedosService.js';
 import {
+  useUnavailablePlayers,
+  enrichPlayersWithUnavailableStatus,
+  getPlayerStatusInfo,
+} from './services/unavailablePlayersService.js';
+import {
   getActiveUser,
   getStoredUsers,
   logoutUser,
@@ -75,6 +80,14 @@ export default function App() {
 
   // Poll and sync Promiedos fixtures & live match stats every 45s across the whole application
   usePromiedosLiveFixture();
+
+  // Poll and sync Promiedos unavailable players (suspended / injured) every 45s
+  const { unavailableMap } = useUnavailablePlayers();
+
+  // Enrich live players with unavailable status
+  const enrichedLivePlayers = useMemo(() => {
+    return enrichPlayersWithUnavailableStatus(livePlayers, unavailableMap);
+  }, [livePlayers, unavailableMap]);
 
   // Auto-sync Google Sheet (Planeta Gran DT) in background on mount and continuously every 45s
   useEffect(() => {
@@ -230,12 +243,27 @@ export default function App() {
   // Dynamically enrich user favorites with the latest prices, averages and scores from the live Google Sheet / Planeta Gran DT
   // matching strictly by player NAME and club rather than transient row numbers
   const enrichedFavorites = useMemo(() => {
-    if (!livePlayers || livePlayers.length === 0) return favorites;
+    if (!enrichedLivePlayers || enrichedLivePlayers.length === 0) {
+      return favorites.map(fav => {
+        const statusInfo = getPlayerStatusInfo(fav, unavailableMap);
+        return {
+          ...fav,
+          statusInfo: statusInfo || fav.statusInfo || undefined,
+        };
+      });
+    }
 
     return favorites.map(fav => {
-      // Find the corresponding player in livePlayers strictly by NAME and team
-      const live = findPlayerInCollection(fav, livePlayers);
-      if (!live) return fav;
+      // Find the corresponding player in enrichedLivePlayers strictly by NAME and team
+      const live = findPlayerInCollection(fav, enrichedLivePlayers);
+      const statusInfo = getPlayerStatusInfo(live || fav, unavailableMap);
+
+      if (!live) {
+        return {
+          ...fav,
+          statusInfo: statusInfo || fav.statusInfo || undefined,
+        };
+      }
 
       return {
         ...fav,
@@ -258,9 +286,10 @@ export default function App() {
         penalesAtajados: live.penalesAtajados ?? fav.penalesAtajados,
         golesPenal: live.golesPenal ?? fav.golesPenal,
         fechasPuntajes: live.fechasPuntajes || fav.fechasPuntajes,
+        statusInfo: statusInfo || live.statusInfo || fav.statusInfo || undefined,
       };
     });
-  }, [favorites, livePlayers]);
+  }, [favorites, enrichedLivePlayers, unavailableMap]);
 
   const favoriteIds = useMemo(() => {
     const ids = new Set<number>();
@@ -284,7 +313,12 @@ export default function App() {
     if (!activeUser) return;
 
     // Check if already in favorites by name or ID
-    const existingIndex = favorites.findIndex(f => isSamePlayer(f, player) || f.id === player.id);
+    const existingIndex = favorites.findIndex(
+      f =>
+        isSamePlayer(f, player) ||
+        f.id === player.id ||
+        (player.nombre && isSamePlayer(f, { nombre: player.nombre, equipo: player.equipo }))
+    );
 
     if (existingIndex >= 0) {
       if (notes) {
@@ -296,7 +330,8 @@ export default function App() {
       return;
     }
 
-    const stableId = player.id || generateDeterministicPlayerId(player.nombre, player.equipo, player.posicion);
+    const stableId =
+      player.id || generateDeterministicPlayerId(player.nombre, player.equipo, player.posicion);
     const newFav: FavoritePlayer = {
       ...player,
       id: stableId,
@@ -311,30 +346,75 @@ export default function App() {
   // Toggle favorite on/off
   const handleToggleFavorite = (player: Player) => {
     if (!activeUser) return;
-    const exists = favorites.some(f => isSamePlayer(f, player) || f.id === player.id);
+    const exists = favorites.some(
+      f =>
+        isSamePlayer(f, player) ||
+        f.id === player.id ||
+        (player.nombre && isSamePlayer(f, { nombre: player.nombre, equipo: player.equipo }))
+    );
     if (exists) {
-      handleRemoveFavorite(player.id, player.nombre);
+      handleRemoveFavorite(player, player.nombre, player.equipo);
     } else {
       handleAddFavorite(player);
     }
   };
 
-  // Remove single player from favorites by ID and Name
-  const handleRemoveFavorite = (playerId: number, playerName?: string) => {
-    const playerToRemove = favorites.find(
-      p => p.id === playerId || (playerName && isSamePlayer(p, { nombre: playerName }))
-    );
+  // Remove single player from favorites by ID, Name, or Player Object
+  const handleRemoveFavorite = (
+    playerOrId: number | Player | any,
+    playerName?: string,
+    playerTeam?: string
+  ) => {
+    const targetId = typeof playerOrId === 'number' ? playerOrId : playerOrId?.id;
+    const targetName =
+      playerName || (typeof playerOrId === 'object' ? playerOrId?.nombre : undefined);
+    const targetTeam =
+      playerTeam || (typeof playerOrId === 'object' ? playerOrId?.equipo : undefined);
+    const targetPos = typeof playerOrId === 'object' ? playerOrId?.posicion : undefined;
+
+    // Find the player in existing favorites
+    const playerToRemove = favorites.find(p => {
+      if (typeof playerOrId === 'object' && playerOrId && isSamePlayer(p, playerOrId)) {
+        return true;
+      }
+      if (targetId) {
+        if (p.id === targetId) return true;
+        const detId = generateDeterministicPlayerId(p.nombre, p.equipo, p.posicion);
+        if (detId === targetId) return true;
+      }
+      if (targetName) {
+        if (isSamePlayer(p, { nombre: targetName, equipo: targetTeam, posicion: targetPos })) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    const removedName = playerToRemove?.nombre || targetName || 'Jugador';
+
     setFavorites(prev =>
       prev.filter(p => {
-        if (p.id === playerId) return false;
-        if (playerName && isSamePlayer(p, { nombre: playerName })) return false;
-        if (playerToRemove && isSamePlayer(p, playerToRemove)) return false;
+        if (typeof playerOrId === 'object' && playerOrId && isSamePlayer(p, playerOrId)) {
+          return false;
+        }
+        if (targetId) {
+          if (p.id === targetId) return false;
+          const detId = generateDeterministicPlayerId(p.nombre, p.equipo, p.posicion);
+          if (detId === targetId) return false;
+        }
+        if (targetName) {
+          if (isSamePlayer(p, { nombre: targetName, equipo: targetTeam, posicion: targetPos })) {
+            return false;
+          }
+        }
+        if (playerToRemove && isSamePlayer(p, playerToRemove)) {
+          return false;
+        }
         return true;
       })
     );
-    if (playerToRemove) {
-      showToast(`✕ ${playerToRemove.nombre} eliminado de favoritos`);
-    }
+
+    showToast(`✕ ${removedName} eliminado de favoritos`);
   };
 
   // Update scouting note
@@ -442,7 +522,7 @@ export default function App() {
         {activeTab === 'favorites' && (
           <FavoritesDashboard
             favorites={enrichedFavorites}
-            players={livePlayers}
+            players={enrichedLivePlayers}
             onAddFavorite={handleAddFavorite}
             onRemoveFavorite={handleRemoveFavorite}
             onUpdateNotes={handleUpdateNotes}
@@ -456,7 +536,7 @@ export default function App() {
 
         {activeTab === 'players' && (
           <PlayerExplorer
-            players={livePlayers}
+            players={enrichedLivePlayers}
             favoriteIds={favoriteIds}
             onToggleFavorite={handleToggleFavorite}
             selectedClubFilter={selectedClubFilter}
@@ -473,7 +553,7 @@ export default function App() {
 
         {activeTab === 'stats' && (
           <StatsDashboard
-            players={livePlayers}
+            players={enrichedLivePlayers}
             onSelectClub={handleNavigateToDatabase}
           />
         )}

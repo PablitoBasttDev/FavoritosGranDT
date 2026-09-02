@@ -634,19 +634,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       {/* TAB 2: TABLA DE GOLEADORES EN VIVO */}
       {activeTab === 'GOLEADORES' && (
         <div className="space-y-3">
-          {/* Official Puntajes Clarification Notice */}
-          <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/80 flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-200">
-            <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-            <div>
-              <span className="font-black uppercase text-[10px] tracking-wider block text-amber-800 dark:text-amber-300">
-                Aclaración sobre Puntajes Gran DT
-              </span>
-              <p className="mt-0.5 leading-relaxed">
-                Los puntajes oficiales de Gran DT acumulados en la tabla corresponden <strong>hasta la Fecha 5</strong>. Los goles y penales ya contemplan la <strong>Fecha 6 en vivo</strong>, mientras que los puntajes finales de la Fecha 6 se consolidarán automáticamente una vez que Planeta Gran DT publique el cierre oficial de la fecha.
-              </p>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 min-w-0">
             {/* Main Top Scorers Table */}
             <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs p-2.5 sm:p-4 space-y-3">
@@ -659,7 +646,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                     </h3>
                   </div>
                   <p className="text-[10.5px] sm:text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    Goles totales (F1 a F5 + F6 en vivo) con puntajes Gran DT consolidados a la Fecha 5.
+                    Tabla de máximos artilleros del torneo con puntajes y estadísticas oficiales de Gran DT.
                   </p>
                 </div>
 
