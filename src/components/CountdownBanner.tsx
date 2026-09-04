@@ -73,7 +73,12 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({ onSelectClub }
   const currentRoundFixturesWithState = useMemo(() => {
     const baseFixtures = FIXTURES_DATA.filter(f => f.fecha === selectedFechaTab);
     const mergedFixtures = mergeWithPromiedosMatches(baseFixtures, promiedosMatches);
-    return mergedFixtures.map(f => ({
+    const sorted = [...mergedFixtures].sort((a, b) => {
+      const aT = a.kickoff ? new Date(a.kickoff).getTime() : 0;
+      const bT = b.kickoff ? new Date(b.kickoff).getTime() : 0;
+      return aT - bT;
+    });
+    return sorted.map(f => ({
       fixture: f,
       dynamic: getDynamicMatchState(f, now),
     }));

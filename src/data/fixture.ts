@@ -3217,7 +3217,9 @@ export const FIXTURES_DATA: MatchFixture[] = [
     "displayTime": "Viernes 28/08 • 19:00 hs",
     "stadium": "15 de Abril (Santa Fe)",
     "isInterzonal": false,
-    "status": "SCHEDULED",
+    "status": "FINISHED",
+    "homeScore": 4,
+    "awayScore": 1,
     "events": []
   },
   {
@@ -3230,7 +3232,9 @@ export const FIXTURES_DATA: MatchFixture[] = [
     "displayTime": "Viernes 28/08 • 21:30 hs",
     "stadium": "Alberto J. Armando - La Bombonera",
     "isInterzonal": false,
-    "status": "SCHEDULED",
+    "status": "FINISHED",
+    "homeScore": 1,
+    "awayScore": 0,
     "events": []
   },
   {
@@ -3243,7 +3247,9 @@ export const FIXTURES_DATA: MatchFixture[] = [
     "displayTime": "Sábado 29/08 • 14:45 hs",
     "stadium": "Guillermo Laza",
     "isInterzonal": false,
-    "status": "SCHEDULED",
+    "status": "FINISHED",
+    "homeScore": 1,
+    "awayScore": 1,
     "events": []
   },
   {
@@ -3256,7 +3262,9 @@ export const FIXTURES_DATA: MatchFixture[] = [
     "displayTime": "Sábado 29/08 • 17:00 hs",
     "stadium": "Gigante de Arroyito",
     "isInterzonal": false,
-    "status": "SCHEDULED",
+    "status": "FINISHED",
+    "homeScore": 1,
+    "awayScore": 2,
     "events": []
   },
   {
@@ -3269,7 +3277,9 @@ export const FIXTURES_DATA: MatchFixture[] = [
     "displayTime": "Sábado 29/08 • 19:00 hs",
     "stadium": "Tomás Adolfo Ducó",
     "isInterzonal": false,
-    "status": "SCHEDULED",
+    "status": "FINISHED",
+    "homeScore": 1,
+    "awayScore": 1,
     "events": []
   },
   {
@@ -3282,7 +3292,9 @@ export const FIXTURES_DATA: MatchFixture[] = [
     "displayTime": "Sábado 29/08 • 21:30 hs",
     "stadium": "Monumental José Fierro",
     "isInterzonal": false,
-    "status": "SCHEDULED",
+    "status": "FINISHED",
+    "homeScore": 0,
+    "awayScore": 0,
     "events": []
   },
   {
@@ -3295,7 +3307,9 @@ export const FIXTURES_DATA: MatchFixture[] = [
     "displayTime": "Sábado 29/08 • 21:30 hs",
     "stadium": "Mario Alberto Kempes",
     "isInterzonal": false,
-    "status": "SCHEDULED",
+    "status": "FINISHED",
+    "homeScore": 0,
+    "awayScore": 0,
     "events": []
   },
   {
@@ -3308,7 +3322,9 @@ export const FIXTURES_DATA: MatchFixture[] = [
     "displayTime": "Domingo 30/08 • 15:00 hs",
     "stadium": "Florencio Sola",
     "isInterzonal": false,
-    "status": "SCHEDULED",
+    "status": "FINISHED",
+    "homeScore": 2,
+    "awayScore": 3,
     "events": []
   },
   {
@@ -3321,7 +3337,9 @@ export const FIXTURES_DATA: MatchFixture[] = [
     "displayTime": "Domingo 30/08 • 17:00 hs",
     "stadium": "Diego Armando Maradona",
     "isInterzonal": false,
-    "status": "SCHEDULED",
+    "status": "FINISHED",
+    "homeScore": 2,
+    "awayScore": 1,
     "events": []
   },
   {
@@ -3334,7 +3352,9 @@ export const FIXTURES_DATA: MatchFixture[] = [
     "displayTime": "Domingo 30/08 • 19:15 hs",
     "stadium": "Libertadores de América - Ricardo E. Bochini",
     "isInterzonal": false,
-    "status": "SCHEDULED",
+    "status": "FINISHED",
+    "homeScore": 0,
+    "awayScore": 3,
     "events": []
   },
   {
@@ -3347,7 +3367,9 @@ export const FIXTURES_DATA: MatchFixture[] = [
     "displayTime": "Domingo 30/08 • 21:30 hs",
     "stadium": "Bautista Gargantini (Mendoza)",
     "isInterzonal": false,
-    "status": "SCHEDULED",
+    "status": "FINISHED",
+    "homeScore": 3,
+    "awayScore": 1,
     "events": []
   },
   {
@@ -3360,7 +3382,9 @@ export const FIXTURES_DATA: MatchFixture[] = [
     "displayTime": "Lunes 31/08 • 19:00 hs",
     "stadium": "Jorge Luis Hirschi - UNO",
     "isInterzonal": false,
-    "status": "SCHEDULED",
+    "status": "FINISHED",
+    "homeScore": 0,
+    "awayScore": 0,
     "events": []
   },
   {
@@ -3373,7 +3397,9 @@ export const FIXTURES_DATA: MatchFixture[] = [
     "displayTime": "Lunes 31/08 • 19:00 hs",
     "stadium": "Norberto Tomaghello",
     "isInterzonal": false,
-    "status": "SCHEDULED",
+    "status": "FINISHED",
+    "homeScore": 1,
+    "awayScore": 0,
     "events": []
   },
   {
@@ -3386,7 +3412,9 @@ export const FIXTURES_DATA: MatchFixture[] = [
     "displayTime": "Lunes 31/08 • 21:15 hs",
     "stadium": "José Dellagiovanna (Victoria)",
     "isInterzonal": false,
-    "status": "SCHEDULED",
+    "status": "FINISHED",
+    "homeScore": 0,
+    "awayScore": 0,
     "events": []
   },
   {
@@ -3399,7 +3427,9 @@ export const FIXTURES_DATA: MatchFixture[] = [
     "displayTime": "Lunes 31/08 • 21:15 hs",
     "stadium": "Juan Domingo Perón (Alta Córdoba)",
     "isInterzonal": false,
-    "status": "SCHEDULED",
+    "status": "FINISHED",
+    "homeScore": 1,
+    "awayScore": 0,
     "events": []
   },
   {
@@ -3407,9 +3437,9 @@ export const FIXTURES_DATA: MatchFixture[] = [
     "fecha": 8,
     "homeTeam": "Estudiantes de Río Cuarto",
     "awayTeam": "Sarmiento de Junín",
-    "dateStr": "Domingo 6 de Septiembre de 2026",
-    "kickoff": "2026-09-06T14:00:00-03:00",
-    "displayTime": "Domingo 06/09 • 14:00 hs",
+    "dateStr": "Viernes 4 de Septiembre de 2026",
+    "kickoff": "2026-09-04T16:45:00-03:00",
+    "displayTime": "Viernes 04/09 • 16:45 hs",
     "stadium": "Antonio Candini (Río Cuarto)",
     "isInterzonal": false,
     "status": "SCHEDULED",
@@ -3420,9 +3450,9 @@ export const FIXTURES_DATA: MatchFixture[] = [
     "fecha": 8,
     "homeTeam": "Belgrano de Córdoba",
     "awayTeam": "Huracán",
-    "dateStr": "Domingo 6 de Septiembre de 2026",
-    "kickoff": "2026-09-06T14:00:00-03:00",
-    "displayTime": "Domingo 06/09 • 14:00 hs",
+    "dateStr": "Viernes 4 de Septiembre de 2026",
+    "kickoff": "2026-09-04T19:00:00-03:00",
+    "displayTime": "Viernes 04/09 • 19:00 hs",
     "stadium": "Julio César Villagra - Gigante de Alberdi",
     "isInterzonal": false,
     "status": "SCHEDULED",
@@ -3431,12 +3461,12 @@ export const FIXTURES_DATA: MatchFixture[] = [
   {
     "id": "f8-3",
     "fecha": 8,
-    "homeTeam": "Racing Club",
-    "awayTeam": "Atlético Tucumán",
-    "dateStr": "Domingo 6 de Septiembre de 2026",
-    "kickoff": "2026-09-06T14:00:00-03:00",
-    "displayTime": "Domingo 06/09 • 14:00 hs",
-    "stadium": "Presidente Perón - Cilindro de Avellaneda",
+    "homeTeam": "Platense",
+    "awayTeam": "Deportivo Riestra",
+    "dateStr": "Viernes 4 de Septiembre de 2026",
+    "kickoff": "2026-09-04T19:00:00-03:00",
+    "displayTime": "Viernes 04/09 • 19:00 hs",
+    "stadium": "Ciudad de Vicente López",
     "isInterzonal": false,
     "status": "SCHEDULED",
     "events": []
@@ -3444,12 +3474,12 @@ export const FIXTURES_DATA: MatchFixture[] = [
   {
     "id": "f8-4",
     "fecha": 8,
-    "homeTeam": "River Plate",
-    "awayTeam": "Independiente Rivadavia",
-    "dateStr": "Domingo 6 de Septiembre de 2026",
-    "kickoff": "2026-09-06T14:00:00-03:00",
-    "displayTime": "Domingo 06/09 • 14:00 hs",
-    "stadium": "Más Monumental",
+    "homeTeam": "Aldosivi",
+    "awayTeam": "Banfield",
+    "dateStr": "Sábado 5 de Septiembre de 2026",
+    "kickoff": "2026-09-05T13:30:00-03:00",
+    "displayTime": "Sábado 05/09 • 13:30 hs",
+    "stadium": "José María Minella (Mar del Plata)",
     "isInterzonal": false,
     "status": "SCHEDULED",
     "events": []
@@ -3457,12 +3487,12 @@ export const FIXTURES_DATA: MatchFixture[] = [
   {
     "id": "f8-5",
     "fecha": 8,
-    "homeTeam": "Aldosivi",
-    "awayTeam": "Banfield",
-    "dateStr": "Domingo 6 de Septiembre de 2026",
-    "kickoff": "2026-09-06T14:00:00-03:00",
-    "displayTime": "Domingo 06/09 • 14:00 hs",
-    "stadium": "José María Minella (Mar del Plata)",
+    "homeTeam": "Gimnasia y Esgrima La Plata",
+    "awayTeam": "Tigre",
+    "dateStr": "Sábado 5 de Septiembre de 2026",
+    "kickoff": "2026-09-05T14:30:00-03:00",
+    "displayTime": "Sábado 05/09 • 14:30 hs",
+    "stadium": "Juan Carmelo Zerillo - El Bosque",
     "isInterzonal": false,
     "status": "SCHEDULED",
     "events": []
@@ -3470,12 +3500,12 @@ export const FIXTURES_DATA: MatchFixture[] = [
   {
     "id": "f8-6",
     "fecha": 8,
-    "homeTeam": "Barracas Central",
-    "awayTeam": "Argentinos Juniors",
-    "dateStr": "Domingo 6 de Septiembre de 2026",
-    "kickoff": "2026-09-06T14:00:00-03:00",
-    "displayTime": "Domingo 06/09 • 14:00 hs",
-    "stadium": "Claudio Fabián Tapia",
+    "homeTeam": "Gimnasia y Esgrima de Mendoza",
+    "awayTeam": "Boca Juniors",
+    "dateStr": "Sábado 5 de Septiembre de 2026",
+    "kickoff": "2026-09-05T16:30:00-03:00",
+    "displayTime": "Sábado 05/09 • 16:30 hs",
+    "stadium": "Víctor Antonio Legrotaglie (Mendoza)",
     "isInterzonal": false,
     "status": "SCHEDULED",
     "events": []
@@ -3483,12 +3513,12 @@ export const FIXTURES_DATA: MatchFixture[] = [
   {
     "id": "f8-7",
     "fecha": 8,
-    "homeTeam": "Gimnasia y Esgrima La Plata",
-    "awayTeam": "Tigre",
-    "dateStr": "Domingo 6 de Septiembre de 2026",
-    "kickoff": "2026-09-06T14:00:00-03:00",
-    "displayTime": "Domingo 06/09 • 14:00 hs",
-    "stadium": "Juan Carmelo Zerillo - El Bosque",
+    "homeTeam": "San Lorenzo de Almagro",
+    "awayTeam": "Talleres de Córdoba",
+    "dateStr": "Sábado 5 de Septiembre de 2026",
+    "kickoff": "2026-09-05T19:00:00-03:00",
+    "displayTime": "Sábado 05/09 • 19:00 hs",
+    "stadium": "Pedro Bidegain - Nuevo Gasómetro",
     "isInterzonal": false,
     "status": "SCHEDULED",
     "events": []
@@ -3496,12 +3526,12 @@ export const FIXTURES_DATA: MatchFixture[] = [
   {
     "id": "f8-8",
     "fecha": 8,
-    "homeTeam": "Unión de Santa Fe",
-    "awayTeam": "Instituto de Córdoba",
-    "dateStr": "Domingo 6 de Septiembre de 2026",
-    "kickoff": "2026-09-06T14:00:00-03:00",
-    "displayTime": "Domingo 06/09 • 14:00 hs",
-    "stadium": "15 de Abril (Santa Fe)",
+    "homeTeam": "Vélez Sarsfield",
+    "awayTeam": "Estudiantes de La Plata",
+    "dateStr": "Sábado 5 de Septiembre de 2026",
+    "kickoff": "2026-09-05T21:15:00-03:00",
+    "displayTime": "Sábado 05/09 • 21:15 hs",
+    "stadium": "José Amalfitani",
     "isInterzonal": false,
     "status": "SCHEDULED",
     "events": []
@@ -3509,13 +3539,13 @@ export const FIXTURES_DATA: MatchFixture[] = [
   {
     "id": "f8-9",
     "fecha": 8,
-    "homeTeam": "San Lorenzo de Almagro",
-    "awayTeam": "Talleres de Córdoba",
+    "homeTeam": "Rosario Central",
+    "awayTeam": "Newell's Old Boys",
     "dateStr": "Domingo 6 de Septiembre de 2026",
-    "kickoff": "2026-09-06T14:00:00-03:00",
-    "displayTime": "Domingo 06/09 • 14:00 hs",
-    "stadium": "Pedro Bidegain - Nuevo Gasómetro",
-    "isInterzonal": false,
+    "kickoff": "2026-09-06T14:45:00-03:00",
+    "displayTime": "Domingo 06/09 • 14:45 hs",
+    "stadium": "Gigante de Arroyito",
+    "isInterzonal": true,
     "status": "SCHEDULED",
     "events": []
   },
@@ -3525,8 +3555,8 @@ export const FIXTURES_DATA: MatchFixture[] = [
     "homeTeam": "Central Córdoba de SDE",
     "awayTeam": "Independiente",
     "dateStr": "Domingo 6 de Septiembre de 2026",
-    "kickoff": "2026-09-06T14:00:00-03:00",
-    "displayTime": "Domingo 06/09 • 14:00 hs",
+    "kickoff": "2026-09-06T17:00:00-03:00",
+    "displayTime": "Domingo 06/09 • 17:00 hs",
     "stadium": "Madre de Ciudades (Santiago del Estero)",
     "isInterzonal": false,
     "status": "SCHEDULED",
@@ -3535,12 +3565,12 @@ export const FIXTURES_DATA: MatchFixture[] = [
   {
     "id": "f8-11",
     "fecha": 8,
-    "homeTeam": "Gimnasia y Esgrima de Mendoza",
-    "awayTeam": "Boca Juniors",
+    "homeTeam": "Lanús",
+    "awayTeam": "Defensa y Justicia",
     "dateStr": "Domingo 6 de Septiembre de 2026",
-    "kickoff": "2026-09-06T14:00:00-03:00",
-    "displayTime": "Domingo 06/09 • 14:00 hs",
-    "stadium": "Víctor Antonio Legrotaglie (Mendoza)",
+    "kickoff": "2026-09-06T17:00:00-03:00",
+    "displayTime": "Domingo 06/09 • 17:00 hs",
+    "stadium": "Ciudad de Lanús - Néstor Díaz Pérez",
     "isInterzonal": false,
     "status": "SCHEDULED",
     "events": []
@@ -3548,12 +3578,12 @@ export const FIXTURES_DATA: MatchFixture[] = [
   {
     "id": "f8-12",
     "fecha": 8,
-    "homeTeam": "Lanús",
-    "awayTeam": "Defensa y Justicia",
+    "homeTeam": "River Plate",
+    "awayTeam": "Independiente Rivadavia",
     "dateStr": "Domingo 6 de Septiembre de 2026",
-    "kickoff": "2026-09-06T14:00:00-03:00",
-    "displayTime": "Domingo 06/09 • 14:00 hs",
-    "stadium": "Ciudad de Lanús - Néstor Díaz Pérez",
+    "kickoff": "2026-09-06T19:15:00-03:00",
+    "displayTime": "Domingo 06/09 • 19:15 hs",
+    "stadium": "Más Monumental",
     "isInterzonal": false,
     "status": "SCHEDULED",
     "events": []
@@ -3561,12 +3591,12 @@ export const FIXTURES_DATA: MatchFixture[] = [
   {
     "id": "f8-13",
     "fecha": 8,
-    "homeTeam": "Platense",
-    "awayTeam": "Deportivo Riestra",
+    "homeTeam": "Racing Club",
+    "awayTeam": "Atlético Tucumán",
     "dateStr": "Domingo 6 de Septiembre de 2026",
-    "kickoff": "2026-09-06T14:00:00-03:00",
-    "displayTime": "Domingo 06/09 • 14:00 hs",
-    "stadium": "Ciudad de Vicente López",
+    "kickoff": "2026-09-06T21:30:00-03:00",
+    "displayTime": "Domingo 06/09 • 21:30 hs",
+    "stadium": "Presidente Perón - Cilindro de Avellaneda",
     "isInterzonal": false,
     "status": "SCHEDULED",
     "events": []
@@ -3574,12 +3604,12 @@ export const FIXTURES_DATA: MatchFixture[] = [
   {
     "id": "f8-14",
     "fecha": 8,
-    "homeTeam": "Vélez Sarsfield",
-    "awayTeam": "Estudiantes de La Plata",
-    "dateStr": "Domingo 6 de Septiembre de 2026",
-    "kickoff": "2026-09-06T14:00:00-03:00",
-    "displayTime": "Domingo 06/09 • 14:00 hs",
-    "stadium": "José Amalfitani",
+    "homeTeam": "Barracas Central",
+    "awayTeam": "Argentinos Juniors",
+    "dateStr": "Lunes 7 de Septiembre de 2026",
+    "kickoff": "2026-09-07T19:00:00-03:00",
+    "displayTime": "Lunes 07/09 • 19:00 hs",
+    "stadium": "Claudio Fabián Tapia",
     "isInterzonal": false,
     "status": "SCHEDULED",
     "events": []
@@ -3587,12 +3617,12 @@ export const FIXTURES_DATA: MatchFixture[] = [
   {
     "id": "f8-15",
     "fecha": 8,
-    "homeTeam": "Rosario Central",
-    "awayTeam": "Newell's Old Boys",
-    "dateStr": "Domingo 6 de Septiembre de 2026",
-    "kickoff": "2026-09-06T14:00:00-03:00",
-    "displayTime": "Domingo 06/09 • 14:00 hs",
-    "stadium": "Gigante de Arroyito",
+    "homeTeam": "Unión de Santa Fe",
+    "awayTeam": "Instituto de Córdoba",
+    "dateStr": "Lunes 7 de Septiembre de 2026",
+    "kickoff": "2026-09-07T21:15:00-03:00",
+    "displayTime": "Lunes 07/09 • 21:15 hs",
+    "stadium": "15 de Abril (Santa Fe)",
     "isInterzonal": false,
     "status": "SCHEDULED",
     "events": []
@@ -5285,7 +5315,7 @@ export interface RoundStatusInfo {
 }
 
 /**
- * Agrupa los partidos por número de fecha.
+ * Agrupa los partidos por número de fecha, ordenados cronológicamente por horario de inicio.
  */
 export function getFixturesGroupedByRound(): Record<number, MatchFixture[]> {
   const grouped: Record<number, MatchFixture[]> = {};
@@ -5294,6 +5324,13 @@ export function getFixturesGroupedByRound(): Record<number, MatchFixture[]> {
       grouped[match.fecha] = [];
     }
     grouped[match.fecha].push(match);
+  }
+  for (const fNum in grouped) {
+    grouped[fNum].sort((a, b) => {
+      const aT = a.kickoff ? new Date(a.kickoff).getTime() : 0;
+      const bT = b.kickoff ? new Date(b.kickoff).getTime() : 0;
+      return aT - bT;
+    });
   }
   return grouped;
 }
@@ -5304,7 +5341,11 @@ export function getAllAvailableFechas(): number[] {
 }
 
 export function getRoundFixtures(fechaNum: number): MatchFixture[] {
-  return FIXTURES_DATA.filter(m => m.fecha === fechaNum);
+  return [...FIXTURES_DATA.filter(m => m.fecha === fechaNum)].sort((a, b) => {
+    const aT = a.kickoff ? new Date(a.kickoff).getTime() : 0;
+    const bT = b.kickoff ? new Date(b.kickoff).getTime() : 0;
+    return aT - bT;
+  });
 }
 
 /**
@@ -5336,8 +5377,13 @@ export function getTournamentRoundStatus(currentDate: Date = new Date()): RoundS
     const firstKickoffMs = firstMatch.kickoff ? new Date(firstMatch.kickoff).getTime() : 0;
     const lastKickoffEndMs = (lastMatch.kickoff ? new Date(lastMatch.kickoff).getTime() : 0) + MATCH_DURATION_MS;
 
-    // Si todos los partidos de la fecha tienen status FINISHED, saltar a la siguiente
-    const allFinished = matches.every(m => m.status === 'FINISHED');
+    // Si todos los partidos de la fecha tienen status FINISHED o ya concluyeron por horario, saltar a la siguiente
+    const allFinished = matches.every(m => {
+      if (m.status === 'FINISHED') return true;
+      const kMs = m.kickoff ? new Date(m.kickoff).getTime() : 0;
+      return kMs > 0 && nowMs >= kMs + MATCH_DURATION_MS;
+    }) || (lastKickoffEndMs > 0 && nowMs > lastKickoffEndMs);
+
     if (allFinished) {
       continue;
     }
@@ -5603,6 +5649,12 @@ export function updateFixturesFromPromiedos(
   });
 
   if (hasChanges) {
+    FIXTURES_DATA.sort((a, b) => {
+      if (a.fecha !== b.fecha) return a.fecha - b.fecha;
+      const aT = a.kickoff ? new Date(a.kickoff).getTime() : 0;
+      const bT = b.kickoff ? new Date(b.kickoff).getTime() : 0;
+      return aT - bT;
+    });
     notifyFixtureListeners();
   }
 

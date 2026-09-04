@@ -382,7 +382,11 @@ async function fetchPromiedosLiveData(targetRound?: number): Promise<PromiedosCa
       const settledResults = await Promise.allSettled(roundFetchPromises);
       settledResults.forEach(r => {
         if (r.status === 'fulfilled' && r.value) {
-          allRounds[r.value.fechaNum] = r.value.matches;
+          allRounds[r.value.fechaNum] = [...r.value.matches].sort((a, b) => {
+            const aT = a.kickoff ? new Date(a.kickoff).getTime() : 0;
+            const bT = b.kickoff ? new Date(b.kickoff).getTime() : 0;
+            return aT - bT;
+          });
         }
       });
     }
@@ -403,7 +407,11 @@ async function fetchPromiedosLiveData(targetRound?: number): Promise<PromiedosCa
             const parsedMatches = latestData.games.map((g: any, idx: number) =>
               parsePromiedosGame(g, roundNum, idx)
             );
-            allRounds[roundNum] = parsedMatches;
+            allRounds[roundNum] = [...parsedMatches].sort((a, b) => {
+              const aT = a.kickoff ? new Date(a.kickoff).getTime() : 0;
+              const bT = b.kickoff ? new Date(b.kickoff).getTime() : 0;
+              return aT - bT;
+            });
           }
         }
       } catch (err) {
@@ -1657,6 +1665,12 @@ apiRouter.get('/promiedos/fixture', async (req, res) => {
       }));
     }
 
+    matchesToSend = [...matchesToSend].sort((a, b) => {
+      const aT = a.kickoff ? new Date(a.kickoff).getTime() : 0;
+      const bT = b.kickoff ? new Date(b.kickoff).getTime() : 0;
+      return aT - bT;
+    });
+
     const isLive = data.source === 'promiedos' && matchesToSend.length > 0;
 
     res.json({
@@ -1677,21 +1691,27 @@ apiRouter.get('/promiedos/fixture', async (req, res) => {
     console.warn('[PROMIEDOS_FIXTURE_NOTICE] Serving fallback fixture due to:', (error as Error).message);
     const currentRoundNum = getTournamentRoundStatus().roundNumber;
     const roundNum = req.query.round ? parseInt(req.query.round as string, 10) : currentRoundNum;
-    const staticMatches = FIXTURES_DATA.filter(f => f.fecha === roundNum).map((f, idx) => ({
-      id: f.id || `fix-${roundNum}-${idx + 1}`,
-      fecha: roundNum,
-      homeTeam: f.homeTeam,
-      awayTeam: f.awayTeam,
-      homeScore: f.homeScore,
-      awayScore: f.awayScore,
-      status: f.status || 'SCHEDULED',
-      liveMinute: f.liveMinute || '',
-      displayTime: f.displayTime,
-      dateStr: f.dateStr,
-      kickoff: f.kickoff,
-      stadium: f.stadium,
-      events: f.events || [],
-    }));
+    const staticMatches = FIXTURES_DATA.filter(f => f.fecha === roundNum)
+      .sort((a, b) => {
+        const aT = a.kickoff ? new Date(a.kickoff).getTime() : 0;
+        const bT = b.kickoff ? new Date(b.kickoff).getTime() : 0;
+        return aT - bT;
+      })
+      .map((f, idx) => ({
+        id: f.id || `fix-${roundNum}-${idx + 1}`,
+        fecha: roundNum,
+        homeTeam: f.homeTeam,
+        awayTeam: f.awayTeam,
+        homeScore: f.homeScore,
+        awayScore: f.awayScore,
+        status: f.status || 'SCHEDULED',
+        liveMinute: f.liveMinute || '',
+        displayTime: f.displayTime,
+        dateStr: f.dateStr,
+        kickoff: f.kickoff,
+        stadium: f.stadium,
+        events: f.events || [],
+      }));
 
     res.json({
       success: true,

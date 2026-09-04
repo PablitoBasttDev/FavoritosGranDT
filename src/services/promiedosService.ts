@@ -39,21 +39,27 @@ const REFRESH_INTERVAL_SECONDS = 45;
 function getLocalFallbackFixture(targetRound?: number): PromiedosApiResponse {
   const currentRoundNum = getTournamentRoundStatus().roundNumber;
   const roundNum = targetRound || currentRoundNum;
-  const matches: PromiedosMatchData[] = FIXTURES_DATA.filter(f => f.fecha === roundNum).map((f, idx) => ({
-    id: f.id || `fix-${roundNum}-${idx + 1}`,
-    fecha: roundNum,
-    homeTeam: f.homeTeam,
-    awayTeam: f.awayTeam,
-    homeScore: f.homeScore,
-    awayScore: f.awayScore,
-    status: f.status || 'SCHEDULED',
-    liveMinute: f.liveMinute || '',
-    displayTime: f.displayTime,
-    dateStr: f.dateStr,
-    kickoff: f.kickoff,
-    stadium: f.stadium,
-    events: f.events || [],
-  }));
+  const matches: PromiedosMatchData[] = FIXTURES_DATA.filter(f => f.fecha === roundNum)
+    .sort((a, b) => {
+      const aT = a.kickoff ? new Date(a.kickoff).getTime() : 0;
+      const bT = b.kickoff ? new Date(b.kickoff).getTime() : 0;
+      return aT - bT;
+    })
+    .map((f, idx) => ({
+      id: f.id || `fix-${roundNum}-${idx + 1}`,
+      fecha: roundNum,
+      homeTeam: f.homeTeam,
+      awayTeam: f.awayTeam,
+      homeScore: f.homeScore,
+      awayScore: f.awayScore,
+      status: f.status || 'SCHEDULED',
+      liveMinute: f.liveMinute || '',
+      displayTime: f.displayTime,
+      dateStr: f.dateStr,
+      kickoff: f.kickoff,
+      stadium: f.stadium,
+      events: f.events || [],
+    }));
 
   return {
     success: true,
@@ -173,10 +179,14 @@ export function mergeWithPromiedosMatches(
   promiedosMatches: PromiedosMatchData[]
 ): MatchFixture[] {
   if (!promiedosMatches || promiedosMatches.length === 0) {
-    return baseFixtures;
+    return [...baseFixtures].sort((a, b) => {
+      const aT = a.kickoff ? new Date(a.kickoff).getTime() : 0;
+      const bT = b.kickoff ? new Date(b.kickoff).getTime() : 0;
+      return aT - bT;
+    });
   }
 
-  return baseFixtures.map(base => {
+  const merged = baseFixtures.map(base => {
     // Buscar coincidencia en Promiedos por nombres canónicos (directo o invertido)
     const match = promiedosMatches.find(pm => {
       const direct = areTeamNamesEqual(pm.homeTeam, base.homeTeam) && areTeamNamesEqual(pm.awayTeam, base.awayTeam);
@@ -209,6 +219,12 @@ export function mergeWithPromiedosMatches(
       liveMinute: match.liveMinute || base.liveMinute,
       events: adaptedEvents && adaptedEvents.length > 0 ? adaptedEvents : base.events,
     };
+  });
+
+  return merged.sort((a, b) => {
+    const aT = a.kickoff ? new Date(a.kickoff).getTime() : 0;
+    const bT = b.kickoff ? new Date(b.kickoff).getTime() : 0;
+    return aT - bT;
   });
 }
 

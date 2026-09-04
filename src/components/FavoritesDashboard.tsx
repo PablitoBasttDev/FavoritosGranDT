@@ -112,11 +112,6 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
   const [clubPickerSearch, setClubPickerSearch] = useState('');
   const [clubPickerPos, setClubPickerPos] = useState<string>('ALL');
 
-  // Unavailable / Suspended / Injured players inside user's favorites
-  const unavailableFavorites = useMemo(() => {
-    return favorites.filter(f => !!f.statusInfo);
-  }, [favorites]);
-
   // Copy notification
   const [copied, setCopied] = useState(false);
 
@@ -635,26 +630,6 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
             </span>
           </div>
         </div>
-
-        {/* Unavailable Players Warning Banner for User's Favorites */}
-        {unavailableFavorites.length > 0 && (
-          <div className="mt-2.5 p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-800/80 flex items-center justify-between flex-wrap gap-2 text-xs shadow-xs animate-in fade-in duration-200">
-            <div className="flex items-center gap-2 text-rose-950 dark:text-rose-200 min-w-0 flex-1">
-              <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
-              <div className="min-w-0">
-                <span className="font-black text-[11px] uppercase tracking-wider text-rose-700 dark:text-rose-300 mr-1.5">
-                  ⚠️ {unavailableFavorites.length} {unavailableFavorites.length === 1 ? 'Baja' : 'Bajas'} en tus Favoritos:
-                </span>
-                <span className="font-medium text-[11px] text-rose-900 dark:text-rose-100">
-                  {unavailableFavorites.map(f => `${f.nombre} (${f.equipo})`).join(', ')}
-                </span>
-              </div>
-            </div>
-            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-600 text-white shrink-0">
-              No juegan la Fecha 7
-            </span>
-          </div>
-        )}
 
         {/* Cloud Recovery Suggestion Bar when 0 favorites */}
         {favorites.length === 0 && (
