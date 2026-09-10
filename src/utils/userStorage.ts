@@ -1,6 +1,6 @@
 import { UserProfile, FavoritePlayer } from '../types.js';
-import { hashPassword, generateSalt } from './crypto.js';
-import { db } from '../firebase.js';
+import { hashPassword } from './crypto.js';
+import { db, auth } from '../firebase.js';
 import { hydrateFavorites } from './hydrateFavorites.js';
 import {
   collection,
@@ -11,6 +11,13 @@ import {
   deleteDoc,
   updateDoc,
 } from 'firebase/firestore';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  deleteUser,
+  updatePassword,
+} from 'firebase/auth';
 
 const USERS_STORAGE_KEY = 'gran_dt_users_list_v2';
 const ACTIVE_USER_ID_KEY = 'gran_dt_active_user_id_v2';
@@ -46,6 +53,34 @@ export function normalizeUsername(username: string): string {
 
 function sanitizeForFirestore<T>(data: T): T {
   return JSON.parse(JSON.stringify(data));
+}
+
+// Firebase Authentication requires an email-shaped identifier. Usernames are mapped to a
+// synthetic address on a domain we don't own or send mail through — it never leaves this app.
+function toAuthEmail(normalizedUsername: string): string {
+  return `${normalizedUsername}@grandt.users`;
+}
+
+function mapFirebaseAuthError(e: any): string {
+  const code = e?.code || '';
+  switch (code) {
+    case 'auth/email-already-in-use':
+      return 'Ese nombre de usuario ya está registrado. Elegí otro o iniciá sesión.';
+    case 'auth/weak-password':
+      return 'La contraseña debe tener al menos 6 caracteres.';
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+    case 'auth/user-not-found':
+      return 'Usuario o contraseña incorrectos.';
+    case 'auth/too-many-requests':
+      return 'Demasiados intentos fallidos. Esperá unos minutos e intentá de nuevo.';
+    case 'auth/network-request-failed':
+      return 'Error de conexión. Verificá tu internet e intentá de nuevo.';
+    case 'auth/requires-recent-login':
+      return 'Por seguridad, volvé a iniciar sesión antes de repetir esta acción.';
+    default:
+      return e?.message || 'Ocurrió un error inesperado. Intentá de nuevo.';
+  }
 }
 
 // ----------------------------------------------------
@@ -216,8 +251,8 @@ export async function registerUser({
     };
   }
 
-  if (!password || password.length < 4) {
-    return { success: false, error: 'La contraseña debe tener al menos 4 caracteres.' };
+  if (!password || password.length < 6) {
+    return { success: false, error: 'La contraseña debe tener al menos 6 caracteres.' };
   }
 
   // Sync latest users to check uniqueness
@@ -229,43 +264,128 @@ export async function registerUser({
     };
   }
 
-  const salt = generateSalt();
-  const passwordHash = await hashPassword(password, salt);
   const now = Date.now();
 
-  const userId = 'user_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now().toString(36);
-  const newUser: UserProfile = {
-    id: userId,
-    username: username.trim(),
-    name: displayName?.trim() || username.trim(),
-    passwordHash,
-    salt,
-    favoriteClub,
-    avatarColor: avatarColor || AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
-    createdAt: now,
-    lastActive: now,
-  };
-
-  // 1. Save locally for instant UI
-  const users = getStoredUsers();
-  users.push(newUser);
-  saveStoredUsers(users);
-  setActiveUserId(newUser.id);
-  saveUserFavorites(newUser.id, []);
-
-  // 2. Persist to Firestore Cloud permanently
   try {
-    await setDoc(doc(db, 'users', newUser.id), sanitizeForFirestore(newUser));
-    await setDoc(doc(db, 'user_favorites', newUser.id), sanitizeForFirestore({
-      userId: newUser.id,
+    // Firebase Authentication owns credential storage/verification from here on — the app
+    // never sees or persists a password hash itself.
+    const credential = await createUserWithEmailAndPassword(auth, toAuthEmail(normUser), password);
+    const userId = credential.user.uid;
+
+    const newUser: UserProfile = {
+      id: userId,
+      username: username.trim(),
+      name: displayName?.trim() || username.trim(),
+      favoriteClub,
+      avatarColor: avatarColor || AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
+      createdAt: now,
+      lastActive: now,
+    };
+
+    await setDoc(doc(db, 'users', userId), sanitizeForFirestore(newUser));
+    await setDoc(doc(db, 'user_favorites', userId), sanitizeForFirestore({
+      userId,
+      username: newUser.username,
       items: [],
       updatedAt: now,
     }));
+
+    // Local cache for instant UI / offline access
+    const users = getStoredUsers();
+    users.push(newUser);
+    saveStoredUsers(users);
+    setActiveUserId(newUser.id);
+    saveUserFavorites(newUser.id, [], false);
+
+    return { success: true, user: newUser };
+  } catch (e: any) {
+    return { success: false, error: mapFirebaseAuthError(e) };
+  }
+}
+
+/**
+ * One-time bridge for accounts created before the Firebase Authentication migration, whose
+ * password was verified against a salted hash stored directly on the Firestore user doc.
+ * Verifies that legacy hash once, then creates the equivalent Firebase Auth account so every
+ * later login for this user goes through the secure path and the plaintext-crackable hash can
+ * be dropped from the (publicly readable) profile doc.
+ */
+async function tryLegacyLoginAndMigrate(
+  normUser: string,
+  passwordInput: string
+): Promise<{ success: boolean; user?: UserProfile; error?: string } | null> {
+  let legacyData: any = null;
+  let legacyId = '';
+
+  try {
+    const snap = await getDocs(collection(db, 'users'));
+    snap.forEach(d => {
+      const data = d.data();
+      if (!legacyData && data && data.passwordHash && data.salt && normalizeUsername(data.username) === normUser) {
+        legacyData = data;
+        legacyId = d.id;
+      }
+    });
   } catch (e) {
-    console.error('Error saving user to Firestore (saved locally):', e);
+    return null;
   }
 
-  return { success: true, user: newUser };
+  if (!legacyData) return null;
+
+  const computedHash = await hashPassword(passwordInput, legacyData.salt);
+  if (computedHash !== legacyData.passwordHash) {
+    return { success: false, error: 'Usuario o contraseña incorrectos.' };
+  }
+
+  try {
+    const credential = await createUserWithEmailAndPassword(auth, toAuthEmail(normUser), passwordInput);
+    const newId = credential.user.uid;
+    const now = Date.now();
+
+    const migratedUser: UserProfile = {
+      id: newId,
+      username: legacyData.username,
+      name: legacyData.name || legacyData.username,
+      favoriteClub: legacyData.favoriteClub,
+      avatarColor: legacyData.avatarColor || AVATAR_COLORS[0],
+      createdAt: legacyData.createdAt || now,
+      lastActive: now,
+    };
+
+    await setDoc(doc(db, 'users', newId), sanitizeForFirestore(migratedUser));
+
+    // Carry the old favorites doc over to the new uid so nothing is lost in the migration.
+    try {
+      const oldFavSnap = await getDoc(doc(db, 'user_favorites', legacyId));
+      if (oldFavSnap.exists()) {
+        const favData = oldFavSnap.data();
+        await setDoc(doc(db, 'user_favorites', newId), { ...favData, userId: newId }, { merge: true });
+      }
+    } catch (e) {
+      // Non-fatal: the user can still restore favorites manually from the Cloud Sync panel.
+    }
+
+    // Best-effort cleanup of the legacy doc; the new Firestore rules only allow the signed-in
+    // uid to write its own doc, so this legacy doc (a different id) may not be deletable from
+    // the client. If it isn't, it's harmless going forward since it no longer grants access to
+    // anything (this account now authenticates through Firebase Auth, not this hash).
+    deleteDoc(doc(db, 'users', legacyId)).catch(() => {});
+
+    const localUsers = getStoredUsers().filter(u => u.id !== legacyId);
+    localUsers.push(migratedUser);
+    saveStoredUsers(localUsers);
+    setActiveUserId(migratedUser.id);
+
+    try {
+      localStorage.removeItem(FAVORITES_PREFIX + legacyId);
+    } catch (e) {
+      // Ignore
+    }
+
+    return { success: true, user: migratedUser };
+  } catch (e: any) {
+    return { success: false, error: mapFirebaseAuthError(e) };
+  }
 }
 
 export async function loginUser(
@@ -282,45 +402,49 @@ export async function loginUser(
     return { success: false, error: 'Por favor ingresá tu contraseña.' };
   }
 
-  // Look up user from cloud (with local fallback)
-  const user = await fetchUserByUsername(normUser);
-
-  if (!user) {
-    return { success: false, error: 'Usuario no encontrado. Verificá los datos o creá una cuenta nueva.' };
-  }
-
-  // Verify password hash
-  const computedHash = await hashPassword(passwordInput, user.salt);
-  if (computedHash !== user.passwordHash) {
-    return { success: false, error: 'Contraseña incorrecta. Por favor volvé a intentar.' };
-  }
-
-  // Update last active
-  user.lastActive = Date.now();
-
-  // Save to local cache
-  const localUsers = getStoredUsers();
-  const idx = localUsers.findIndex(u => u.id === user.id);
-  if (idx >= 0) {
-    localUsers[idx] = user;
-  } else {
-    localUsers.push(user);
-  }
-  saveStoredUsers(localUsers);
-  setActiveUserId(user.id);
-
-  // Sync to Firestore in background
   try {
-    updateDoc(doc(db, 'users', user.id), { lastActive: user.lastActive }).catch(() => {});
-  } catch (e) {
-    // Ignore offline update error
-  }
+    const credential = await signInWithEmailAndPassword(auth, toAuthEmail(normUser), passwordInput);
+    const userId = credential.user.uid;
+    const now = Date.now();
 
-  return { success: true, user };
+    const profileSnap = await getDoc(doc(db, 'users', userId));
+    const user: UserProfile = profileSnap.exists()
+      ? { ...(profileSnap.data() as UserProfile), lastActive: now }
+      : {
+          id: userId,
+          username: usernameInput.trim(),
+          name: usernameInput.trim(),
+          avatarColor: AVATAR_COLORS[0],
+          createdAt: now,
+          lastActive: now,
+        };
+
+    const localUsers = getStoredUsers();
+    const idx = localUsers.findIndex(u => u.id === user.id);
+    if (idx >= 0) {
+      localUsers[idx] = user;
+    } else {
+      localUsers.push(user);
+    }
+    saveStoredUsers(localUsers);
+    setActiveUserId(user.id);
+
+    updateDoc(doc(db, 'users', user.id), { lastActive: now }).catch(() => {});
+
+    return { success: true, user };
+  } catch (e: any) {
+    const code = e?.code || '';
+    if (code === 'auth/user-not-found' || code === 'auth/invalid-credential' || code === 'auth/wrong-password') {
+      const migrated = await tryLegacyLoginAndMigrate(normUser, passwordInput);
+      if (migrated) return migrated;
+    }
+    return { success: false, error: mapFirebaseAuthError(e) };
+  }
 }
 
 export function logoutUser(): void {
   setActiveUserId(null);
+  signOut(auth).catch(() => {});
 }
 
 export async function changeUserPassword(
@@ -328,45 +452,40 @@ export async function changeUserPassword(
   currentPassword: string,
   newPassword: string
 ): Promise<{ success: boolean; error?: string }> {
-  if (!newPassword || newPassword.length < 4) {
-    return { success: false, error: 'La nueva contraseña debe tener al menos 4 caracteres.' };
+  if (!newPassword || newPassword.length < 6) {
+    return { success: false, error: 'La nueva contraseña debe tener al menos 6 caracteres.' };
   }
 
   const users = getStoredUsers();
-  const index = users.findIndex(u => u.id === userId);
+  const user = users.find(u => u.id === userId);
 
-  if (index === -1) {
+  if (!user) {
     return { success: false, error: 'Usuario no encontrado.' };
   }
 
-  const user = users[index];
-  const computedCurrentHash = await hashPassword(currentPassword, user.salt);
-
-  if (computedCurrentHash !== user.passwordHash) {
-    return { success: false, error: 'La contraseña actual no es correcta.' };
-  }
-
-  const newSalt = generateSalt();
-  const newHash = await hashPassword(newPassword, newSalt);
-
-  user.salt = newSalt;
-  user.passwordHash = newHash;
-  user.lastActive = Date.now();
-
-  saveStoredUsers(users);
-
-  // Update in Firestore
   try {
-    await updateDoc(doc(db, 'users', user.id), {
-      salt: newSalt,
-      passwordHash: newHash,
-      lastActive: user.lastActive,
-    });
-  } catch (e) {
-    console.error('Error updating password in Firestore:', e);
-  }
+    // Re-authenticating with the current password both verifies it and refreshes the session,
+    // which Firebase requires before allowing a sensitive change like updatePassword.
+    await signInWithEmailAndPassword(auth, toAuthEmail(normalizeUsername(user.username)), currentPassword);
 
-  return { success: true };
+    if (!auth.currentUser) {
+      return { success: false, error: 'La contraseña actual no es correcta.' };
+    }
+
+    await updatePassword(auth.currentUser, newPassword);
+
+    user.lastActive = Date.now();
+    saveStoredUsers(users);
+    updateDoc(doc(db, 'users', user.id), { lastActive: user.lastActive }).catch(() => {});
+
+    return { success: true };
+  } catch (e: any) {
+    const code = e?.code || '';
+    if (code === 'auth/invalid-credential' || code === 'auth/wrong-password') {
+      return { success: false, error: 'La contraseña actual no es correcta.' };
+    }
+    return { success: false, error: mapFirebaseAuthError(e) };
+  }
 }
 
 export function updateUserProfileMetadata(
@@ -402,7 +521,9 @@ export function updateUserProfileMetadata(
   return users[index];
 }
 
-export function deleteUserProfile(userId: string): { remainingUsers: UserProfile[]; deleted: boolean } {
+export async function deleteUserProfile(
+  userId: string
+): Promise<{ remainingUsers: UserProfile[]; deleted: boolean }> {
   let users = getStoredUsers();
   const filtered = users.filter(u => u.id !== userId);
 
@@ -418,12 +539,21 @@ export function deleteUserProfile(userId: string): { remainingUsers: UserProfile
     setActiveUserId(null);
   }
 
-  // Delete from Firestore
+  // Delete the Firestore docs first, while still authenticated as this user — the rules require
+  // request.auth.uid === userId, and deleteUser() below invalidates that session immediately.
   try {
-    deleteDoc(doc(db, 'users', userId)).catch(() => {});
-    deleteDoc(doc(db, 'user_favorites', userId)).catch(() => {});
+    await deleteDoc(doc(db, 'users', userId));
+    await deleteDoc(doc(db, 'user_favorites', userId));
   } catch (e) {
-    console.error('Error deleting user from Firestore:', e);
+    console.error('Error deleting user data from Firestore:', e);
+  }
+
+  try {
+    if (auth.currentUser && auth.currentUser.uid === userId) {
+      await deleteUser(auth.currentUser);
+    }
+  } catch (e) {
+    console.error('Error deleting Firebase Auth account:', e);
   }
 
   return { remainingUsers: filtered, deleted: true };

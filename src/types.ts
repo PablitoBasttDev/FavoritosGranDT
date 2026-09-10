@@ -41,11 +41,13 @@ export interface FavoritePlayer extends Player {
 }
 
 export interface UserProfile {
-  id: string;
+  id: string; // Firebase Auth uid
   username: string; // Nombre de usuario único para login
   name: string; // Nombre visible / apodo
-  passwordHash: string; // Hash SHA-256 seguro
-  salt: string; // Salt único por usuario
+  // Campos legacy de cuentas creadas antes de migrar a Firebase Authentication.
+  // Ya no se generan; solo se leen una vez para migrar la cuenta automáticamente en el próximo login.
+  passwordHash?: string;
+  salt?: string;
   favoriteClub?: string;
   avatarColor: string;
   createdAt: number;

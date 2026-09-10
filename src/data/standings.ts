@@ -520,7 +520,11 @@ export function calculateDynamicStandings(
 
     if (!homeTeam || !awayTeam) return;
 
-    if (dynamicState.status === 'FINISHED' || dynamicState.status === 'LIVE') {
+    // RAW_STANDINGS_DATA ya incluye acumulado hasta la fecha anterior a la activa (ej. "played: 7" =
+    // 105 partidos FINISHED de fechas 1-7 cuando activeRound=8). Sin este filtro por fecha activa,
+    // el loop volvía a sumar esos mismos 105 partidos ya contabilizados en la base, duplicando
+    // puntos/PJ/goles de TODA la tabla.
+    if ((dynamicState.status === 'FINISHED' || dynamicState.status === 'LIVE') && match.fecha === activeRound) {
       const hScore = dynamicState.homeScore ?? 0;
       const aScore = dynamicState.awayScore ?? 0;
       const isLive = dynamicState.status === 'LIVE';

@@ -360,10 +360,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                     <input
                       type={showRegPassword ? 'text' : 'password'}
                       required
-                      minLength={4}
+                      minLength={6}
                       value={regPassword}
                       onChange={e => setRegPassword(e.target.value)}
-                      placeholder="Mínimo 4 caracteres"
+                      placeholder="Mínimo 6 caracteres"
                       className="w-full pl-3 pr-8 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition font-mono"
                     />
                     <button
@@ -383,7 +383,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
                   <input
                     type={showRegPassword ? 'text' : 'password'}
                     required
-                    minLength={4}
+                    minLength={6}
                     value={regConfirmPassword}
                     onChange={e => setRegConfirmPassword(e.target.value)}
                     placeholder="Repetí la clave"

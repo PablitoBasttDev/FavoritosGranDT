@@ -166,7 +166,7 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({
       return;
     }
 
-    const { remainingUsers } = deleteUserProfile(userId);
+    const { remainingUsers } = await deleteUserProfile(userId);
     onUserListUpdated();
     setDeleteChallengeId(null);
     setDeletePassword('');
@@ -532,10 +532,10 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({
                   <input
                     type="password"
                     required
-                    minLength={4}
+                    minLength={6}
                     value={newPassword}
                     onChange={e => setNewPassword(e.target.value)}
-                    placeholder="Mínimo 4 caracteres"
+                    placeholder="Mínimo 6 caracteres"
                     className="w-full px-3 py-2 text-xs rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 focus:bg-white focus:ring-2 focus:ring-[#1b55e2] outline-none text-slate-900 dark:text-white font-mono"
                   />
                 </div>
@@ -547,7 +547,7 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({
                   <input
                     type="password"
                     required
-                    minLength={4}
+                    minLength={6}
                     value={newConfirmPassword}
                     onChange={e => setNewConfirmPassword(e.target.value)}
                     placeholder="Repetí la clave"
@@ -658,10 +658,10 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({
                 <input
                   type="password"
                   required
-                  minLength={4}
+                  minLength={6}
                   value={newPassInput}
                   onChange={e => setNewPassInput(e.target.value)}
-                  placeholder="Mínimo 4 caracteres"
+                  placeholder="Mínimo 6 caracteres"
                   className="w-full px-3 py-2 text-xs rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 focus:bg-white focus:ring-2 focus:ring-[#1b55e2] outline-none text-slate-900 dark:text-white font-mono"
                 />
               </div>
@@ -673,7 +673,7 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({
                 <input
                   type="password"
                   required
-                  minLength={4}
+                  minLength={6}
                   value={confirmNewPassInput}
                   onChange={e => setConfirmNewPassInput(e.target.value)}
                   placeholder="Repetí la nueva contraseña"

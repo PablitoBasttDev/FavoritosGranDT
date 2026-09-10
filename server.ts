@@ -85,22 +85,16 @@ function formatPromiedosSchedule(start_time: string) {
   const hour = parseInt(hourStr, 10);
   const min = parseInt(minStr, 10);
 
-  // Promiedos raw API start_time is in UTC-7. Adding 4 hours produces the exact Argentine match time (ART, UTC-3).
-  // Use Date.UTC and getUTC* methods to guarantee identical results across all deployed environments.
-  const dateUtc = new Date(Date.UTC(year, month, day, hour + 4, min, 0));
-  const adjYear = dateUtc.getUTCFullYear();
-  const adjMonth = dateUtc.getUTCMonth();
-  const adjDay = dateUtc.getUTCDate();
-  const adjHour = dateUtc.getUTCHours();
-  const adjMin = dateUtc.getUTCMinutes();
-
-  const dayOfWeek = DAYS_ES[dateUtc.getUTCDay()];
-  const monthName = MONTHS_ES[adjMonth];
+  // Promiedos raw API start_time is already Argentina local time (ART, UTC-3, fixed, no DST).
+  // Verified against real fixtures (e.g. Unión vs. Instituto 07-09-2026 21:15 kicked off at 21:15 ART) —
+  // no conversion is needed. Use Date.UTC only to derive the day of week from the calendar date.
+  const dayOfWeek = DAYS_ES[new Date(Date.UTC(year, month, day)).getUTCDay()];
+  const monthName = MONTHS_ES[month];
 
   const pad = (n: number) => n.toString().padStart(2, '0');
-  const isoKickoff = `${adjYear}-${pad(adjMonth + 1)}-${pad(adjDay)}T${pad(adjHour)}:${pad(adjMin)}:00-03:00`;
-  const dateStr = `${dayOfWeek} ${adjDay} de ${monthName} de ${adjYear}`;
-  const displayTime = `${dayOfWeek} ${pad(adjDay)}/${pad(adjMonth + 1)} • ${pad(adjHour)}:${pad(adjMin)} hs`;
+  const isoKickoff = `${year}-${pad(month + 1)}-${pad(day)}T${pad(hour)}:${pad(min)}:00-03:00`;
+  const dateStr = `${dayOfWeek} ${day} de ${monthName} de ${year}`;
+  const displayTime = `${dayOfWeek} ${pad(day)}/${pad(month + 1)} • ${pad(hour)}:${pad(min)} hs`;
 
   return { dateStr, kickoff: isoKickoff, displayTime };
 }

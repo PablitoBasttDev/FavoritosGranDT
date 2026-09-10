@@ -1,11 +1,20 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Public, non-sensitive profile info (username, display name, avatar color, favorite club).
+    // Credentials live in Firebase Authentication, never here — only the owner (matched by
+    // Firebase Auth uid, which is this doc's id) may create/modify/delete their own profile.
     match /users/{userId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
+
+    // Favorite-player lists. Reading stays public so the "cloud lists" browser/restore feature
+    // keeps working (this data is just saved squads, not sensitive) — but only the owner can
+    // write, so nobody can overwrite, wipe, or plant favorites on someone else's account.
     match /user_favorites/{userId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
