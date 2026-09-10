@@ -134,7 +134,7 @@ function normalizeTeamName(raw: string): string {
   if (c.includes('rivadavia') || c.includes('ind rivadavia') || c.includes('independiente rivadavia')) return 'Independiente Rivadavia';
   if (c.includes('independiente')) return 'Independiente';
   if (c.includes('central cordoba') || c.includes('central cba') || c.includes('sde') || c.includes('santiago del estero')) return 'Central Córdoba de SDE';
-  if (c.includes('rosario central') || (c.includes('central') && !c.includes('barracas') && !c.includes('cordoba'))) return 'Rosario Central';
+  if (c.includes('rosario') || (c.includes('central') && !c.includes('barracas') && !c.includes('cordoba'))) return 'Rosario Central';
   if (c.includes('barracas')) return 'Barracas Central';
   if (c.includes('sarmiento')) return 'Sarmiento de Junín';
   if (c.includes('talleres')) return 'Talleres de Córdoba';
@@ -144,7 +144,7 @@ function normalizeTeamName(raw: string): string {
   if (c.includes('union') || c.includes('unión')) return 'Unión de Santa Fe';
   if (c.includes('velez') || c.includes('vélez')) return 'Vélez Sarsfield';
   if (c.includes('newell') || c.includes('nob')) return "Newell's Old Boys";
-  if (c.includes('defensa')) return 'Defensa y Justicia';
+  if (c.includes('defensa') || c.includes('justicia')) return 'Defensa y Justicia';
   if (c.includes('riestra')) return 'Deportivo Riestra';
   if (c.includes('boca')) return 'Boca Juniors';
   if (c.includes('river')) return 'River Plate';
@@ -1148,7 +1148,7 @@ function normalizePromiedosTeamName(raw: string): string {
   if (c.includes('atletico') && c.includes('tucuman')) return 'Atlético Tucumán';
   if (c.includes('barracas')) return 'Barracas Central';
   if (c.includes('boca')) return 'Boca Juniors';
-  if (c.includes('defensa')) return 'Defensa y Justicia';
+  if (c.includes('defensa') || c.includes('justicia')) return 'Defensa y Justicia';
   if (c.includes('riestra')) return 'Deportivo Riestra';
   if (c.includes('huracan')) return 'Huracán';
   if (c.includes('independiente')) return 'Independiente';
