@@ -339,11 +339,18 @@ async function fetchPromiedosLiveData(targetRound?: number): Promise<PromiedosCa
     if (activeRoundNumber > 1) targetRoundNumbers.add(activeRoundNumber - 1);
     if (activeRoundNumber < 16) targetRoundNumbers.add(activeRoundNumber + 1);
 
-    // Filter down to only needed round filters that aren't already loaded
+    // Filter down to only needed round filters that aren't already loaded - except the
+    // specifically-requested round, which is always re-fetched from this per-round endpoint
+    // even if the HTML league-page scrape above already preloaded it. That HTML page sits
+    // behind heavier CDN caching and has been observed to serve schedule times a couple of
+    // hours stale compared to this endpoint (which matched every independently-verified real
+    // kickoff time) - so for the round actually being shown to a user, freshness wins.
     const filtersToFetch = effectiveFilters.filter(f => {
       const matchFecha = f.name?.match(/Fecha\s+(\d+)/i);
       const fechaNum = matchFecha ? parseInt(matchFecha[1], 10) : 0;
-      return fechaNum > 0 && targetRoundNumbers.has(fechaNum) && (!allRounds[fechaNum] || allRounds[fechaNum].length === 0);
+      if (fechaNum <= 0 || !targetRoundNumbers.has(fechaNum)) return false;
+      if (fechaNum === targetRound) return true;
+      return !allRounds[fechaNum] || allRounds[fechaNum].length === 0;
     });
 
     // Fetch only the 2-3 focused rounds concurrently
