@@ -121,9 +121,12 @@ export function isSamePlayer(
     const t1 = normalizePlayerTeam(p1.equipo);
     const t2 = normalizePlayerTeam(p2.equipo);
     if (t1 && t2 && t1 !== t2) {
-      // Different clubs -> unless positions also match and name has 3+ tokens
+      // Different clubs: two different real people can share a common full name, so only
+      // treat this as the same person when the name is distinctive (3+ tokens) AND the
+      // listed position also matches - otherwise this is almost certainly a false match.
       const p1Tokens = sig1.split(' ');
-      if (p1Tokens.length < 2) return false;
+      const posMatch = !!p1.posicion && !!p2.posicion && p1.posicion === p2.posicion;
+      if (p1Tokens.length < 3 || !posMatch) return false;
     }
     return true;
   }

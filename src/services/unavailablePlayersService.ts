@@ -185,27 +185,19 @@ export function getPlayerStatusInfo(
     }
   }
 
-  // Check direct player properties if present
-  if (player.rojas && player.rojas > 0) {
-    return {
-      status: 'SUSPENDED',
-      type: 'suspension',
-      badgeText: 'SUSPENDIDO',
-      reason: 'Tarjeta Roja (Expulsión)',
-      detail: `Registra ${player.rojas} tarjeta roja en estadísticas del torneo`,
-      returnEstimate: 'Baja Fecha 7',
-      source: 'promiedos',
-    };
-  }
-
+  // Last-resort local heuristic when Promiedos live data has nothing for this player.
+  // IMPORTANT: `rojas`/`amarillas` are season-cumulative totals with no per-round breakdown,
+  // so we cannot know if a past card's suspension was already served — asserting "SUSPENDIDO"
+  // from a career red-card count would be wrong for most players most of the time (e.g. a red
+  // card in fecha 2 doesn't mean anything by fecha 10). We only surface a soft, honestly-labeled
+  // "en duda" signal for heavy yellow-card accumulation, never a hard, dated suspension claim.
   if (player.amarillas && player.amarillas >= 5) {
     return {
-      status: 'SUSPENDED',
-      type: 'suspension',
-      badgeText: '5 AMARILLAS',
-      reason: 'Suspendido por 5 Tarjetas Amarillas',
-      detail: `Acumula ${player.amarillas} tarjetas amarillas en el torneo`,
-      returnEstimate: 'Baja Fecha 7',
+      status: 'DOUBT',
+      type: 'duda',
+      badgeText: 'EN DUDA',
+      reason: 'Acumulación de tarjetas amarillas',
+      detail: `Acumula ${player.amarillas} amarillas en el torneo — podría estar sancionado, confirmar en Promiedos`,
       source: 'promiedos',
     };
   }
