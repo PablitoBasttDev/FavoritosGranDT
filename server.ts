@@ -2,7 +2,7 @@ import express from 'express';
 import path from 'path';
 import * as cheerio from 'cheerio';
 import defaultPlayersSnapshot from './src/data/liveSheetSnapshot.js';
-import { FIXTURES_DATA, getTournamentRoundStatus, toCanonicalTeamName } from './src/data/fixture.js';
+import { FIXTURES_DATA, getTournamentRoundStatus, toCanonicalTeamName, areTeamNamesEqual } from './src/data/fixture.js';
 import { RAW_STANDINGS_DATA, getDynamicStandings } from './src/data/standings.js';
 import { getDynamicTopScorers, getDynamicClubDefenseStats } from './src/data/tournamentStats.js';
 
@@ -261,6 +261,23 @@ function parsePromiedosGame(g: any, roundNumber: number, idx: number): Promiedos
   const tvList = (g.tv_networks || []).map((t: any) => t.name).filter(Boolean);
   const scheduleInfo = formatPromiedosSchedule(g.start_time || '');
 
+  // Promiedos' start_time has been observed, repeatedly and reproducibly, to come back ~2h off
+  // specifically for requests made from this app's Vercel deployment (identical code, running
+  // with TZ=UTC locally to mirror it exactly, always gets the correct time from the same
+  // endpoint) - almost certainly some IP-based geolocation/timezone guess on their end that
+  // Vercel's outbound IP trips and a local machine doesn't. There's no reliable way to control
+  // that from here, so kickoff/dateStr/displayTime are trusted from our own manually-verified
+  // static schedule whenever we have one for this match, and only taken from the live payload
+  // as a last resort (e.g. future rounds not yet in FIXTURES_DATA). Scores/status/events, which
+  // aren't timezone-sensitive, still always come from the live feed.
+  const staticMatch = FIXTURES_DATA.find(
+    f => f.fecha === roundNumber && areTeamNamesEqual(f.homeTeam, homeTeam) && areTeamNamesEqual(f.awayTeam, awayTeam)
+  );
+  const trustedSchedule =
+    staticMatch && staticMatch.kickoff && staticMatch.displayTime !== 'Horario a confirmar'
+      ? { dateStr: staticMatch.dateStr, kickoff: staticMatch.kickoff, displayTime: staticMatch.displayTime }
+      : scheduleInfo;
+
   return {
     id: `prom-${g.id || `${roundNumber}-${idx + 1}`}`,
     promiedosId: g.id,
@@ -271,9 +288,9 @@ function parsePromiedosGame(g: any, roundNumber: number, idx: number): Promiedos
     awayScore,
     status,
     liveMinute,
-    displayTime: scheduleInfo.displayTime,
-    dateStr: scheduleInfo.dateStr,
-    kickoff: scheduleInfo.kickoff,
+    displayTime: trustedSchedule.displayTime,
+    dateStr: trustedSchedule.dateStr,
+    kickoff: trustedSchedule.kickoff,
     tvNetworks: tvList,
     events,
   };
