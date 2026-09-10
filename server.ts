@@ -1639,9 +1639,13 @@ apiRouter.get('/promiedos/fixture', async (req, res) => {
     const data = await fetchPromiedosLiveData(roundQuery);
 
     let matchesToSend = data.matches;
+    let usedStaticFallbackForRound = false;
     if (roundQuery && data.allRounds[roundQuery]) {
       matchesToSend = data.allRounds[roundQuery];
     } else if (roundQuery) {
+      // The live scrape didn't have this specific round cached (still loading, or the
+      // per-round fetch failed/timed out) - fall back to the static local schedule for it.
+      usedStaticFallbackForRound = true;
       matchesToSend = FIXTURES_DATA.filter(f => f.fecha === roundQuery).map((f, idx) => ({
         id: f.id || `fix-${roundQuery}-${idx + 1}`,
         fecha: roundQuery,
@@ -1665,7 +1669,10 @@ apiRouter.get('/promiedos/fixture', async (req, res) => {
       return aT - bT;
     });
 
-    const isLive = data.source === 'promiedos' && matchesToSend.length > 0;
+    // isLive/isFallback/source must reflect what THIS response's round actually used, not
+    // just the overall cache's status - otherwise a round served from the static fallback
+    // gets mislabeled as live, hiding exactly the case callers most need to know about.
+    const isLive = !usedStaticFallbackForRound && data.source === 'promiedos' && matchesToSend.length > 0;
 
     res.json({
       success: true,
@@ -1678,7 +1685,7 @@ apiRouter.get('/promiedos/fixture', async (req, res) => {
       round: roundQuery || data.currentRound,
       matches: matchesToSend,
       allRoundsCount: Object.keys(data.allRounds).length,
-      source: data.source,
+      source: usedStaticFallbackForRound ? 'fallback' : data.source,
       ttl: 45,
     });
   } catch (error) {
