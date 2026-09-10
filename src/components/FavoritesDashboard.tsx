@@ -11,6 +11,7 @@ import { SHEET_TEAM_MAP } from '../services/sheetsService.js';
 import { isSamePlayer, generateDeterministicPlayerId } from '../utils/playerIdentity.js';
 import { CountdownBanner } from './CountdownBanner.js';
 import { PlayerTraitsDetail } from './PlayerTraitsDetail.js';
+import { RecommendedLineup } from './RecommendedLineup.js';
 import { usePromiedosStandings } from '../services/promiedosService.js';
 import {
   Search,
@@ -100,6 +101,9 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
 
   // View mode: 'all_30_clubs' by default so all club cards are visible immediately
   const [viewMode, setViewMode] = useState<'all_30_clubs' | 'with_favorites'>('all_30_clubs');
+
+  // Recommended lineup ("once ideal") panel toggle
+  const [showRecommended, setShowRecommended] = useState(false);
 
   // Filters & Sorting for Club Cards
   const [cardRoleFilter, setCardRoleFilter] = useState<'ALL' | 'LOCAL' | 'VISITANTE'>('ALL');
@@ -354,6 +358,30 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
     <div className="w-full space-y-2.5 pb-6">
       {/* 1. DYNAMIC OFFICIAL COUNTDOWN BANNER */}
       <CountdownBanner onSelectClub={onNavigateToDatabase} />
+
+      {/* 1.5. RECOMMENDED LINEUP FROM FAVORITES FOR THE NEXT ROUND */}
+      <div className="bg-white dark:bg-slate-900 rounded-lg sm:rounded-xl shadow-xs border border-slate-300/90 dark:border-slate-800 transition overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowRecommended(!showRecommended)}
+          className="w-full flex items-center justify-between gap-2 px-2.5 sm:px-3.5 py-2 cursor-pointer"
+        >
+          <span className="flex items-center gap-1.5 font-black text-xs sm:text-sm text-slate-950 dark:text-white">
+            <Sparkles className="w-4 h-4 text-amber-500" />
+            Once Ideal de tus Favoritos (próxima fecha)
+          </span>
+          {showRecommended ? (
+            <ChevronUp className="w-4 h-4 text-slate-400 shrink-0" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+          )}
+        </button>
+        {showRecommended && (
+          <div className="px-2.5 sm:px-3.5 pb-3.5 pt-1 border-t border-slate-200 dark:border-slate-800">
+            <RecommendedLineup favorites={favorites} />
+          </div>
+        )}
+      </div>
 
       {/* 2. PURE WHITE SEARCH & CONTROL PANEL (Clean Gran DT Aesthetic) */}
       <div className="bg-white dark:bg-slate-900 rounded-lg sm:rounded-xl shadow-xs border border-slate-300/90 dark:border-slate-800 p-1 sm:p-2.5 transition">
