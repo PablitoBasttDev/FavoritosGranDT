@@ -989,8 +989,8 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                           <div className="flex items-center gap-1.5 min-w-0 flex-1">
                             <PositionBadge position={expandedPlayerInCard.posicion} size="sm" />
                             <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1 flex-wrap">
-                                <span className={`font-black text-[11px] truncate leading-tight block ${
+                              <div className="flex items-center gap-1 min-w-0">
+                                <span className={`font-black text-[11px] truncate leading-tight block min-w-0 flex-1 ${
                                   expandedPlayerInCard.statusInfo ? 'text-red-700 dark:text-red-400' : 'text-slate-950 dark:text-slate-100'
                                 } group-hover/pinned:text-[#1b55e2] transition-colors`}>
                                   {expandedPlayerInCard.nombre}
@@ -1079,8 +1079,8 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                             <div className="flex items-center gap-1.5 min-w-0 flex-1">
                               <PositionBadge position={player.posicion} size="sm" />
                               <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1 flex-wrap">
-                                  <span className={`font-black text-[11px] truncate leading-tight block ${
+                                <div className="flex items-center gap-1 min-w-0">
+                                  <span className={`font-black text-[11px] truncate leading-tight block min-w-0 flex-1 ${
                                     isPlayerUnavailable
                                       ? 'text-red-700 dark:text-red-400 font-black'
                                       : 'text-slate-950 dark:text-slate-100 group-hover/item:text-[#1b55e2]'
@@ -1307,9 +1307,9 @@ export const FavoritesDashboard: React.FC<FavoritesDashboardProps> = ({
                       >
                         <div className="flex items-center gap-1.5 min-w-0 flex-1 pr-1">
                           <PositionBadge position={p.posicion} size="xs" />
-                          <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
                             <span
-                              className={`font-black text-xs sm:text-[13px] truncate ${
+                              className={`font-black text-xs sm:text-[13px] truncate min-w-0 flex-1 ${
                                 p.statusInfo ? 'text-red-700 dark:text-red-400' : 'text-slate-900 dark:text-slate-100'
                               }`}
                               title={p.nombre}

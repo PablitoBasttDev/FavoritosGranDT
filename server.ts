@@ -1105,21 +1105,6 @@ interface UnavailablePlayersCache {
 
 let cachedUnavailableData: UnavailablePlayersCache | null = null;
 
-// Official confirmed injury reports and medical bajas for Clausura 2026
-const CONFIRMED_MEDICAL_INJURIES = [
-  { name: 'Blondel, Lucas', team: 'Boca Juniors', reason: 'Rotura de ligamento cruzado anterior', detail: 'Parte médico oficial: rehabilitación de rodilla', returnEstimate: 'En recuperación' },
-  { name: 'Martínez, Gonzalo', team: 'River Plate', reason: 'Rotura de ligamentos cruzados', detail: 'Parte médico oficial: etapa final de recuperación', returnEstimate: 'En recuperación' },
-  { name: 'Aliendro, Rodrigo', team: 'River Plate', reason: 'Luxación de hombro', detail: 'Parte médico: reposo articular e inmovilización', returnEstimate: 'En recuperación' },
-  { name: 'Hernández, Gastón', team: 'San Lorenzo de Almagro', reason: 'Rotura de ligamento cruzado anterior', detail: 'Parte médico: postoperatorio y kinesiología', returnEstimate: 'En recuperación' },
-  { name: 'Catalán, Matías', team: 'Talleres de Córdoba', reason: 'Rotura de ligamento cruzado anterior', detail: 'Parte médico oficial: rehabilitación quirúrgica', returnEstimate: 'En recuperación' },
-  { name: 'Sánchez, Ulises', team: 'Belgrano de Córdoba', reason: 'Rotura de ligamento cruzado', detail: 'Rehabilitación y acondicionamiento físico', returnEstimate: 'En recuperación' },
-  { name: 'Passerini, Lucas', team: 'Belgrano de Córdoba', reason: 'Rotura de ligamento cruzado anterior', detail: 'Parte médico oficial: kinesiología intensiva', returnEstimate: 'En recuperación' },
-  { name: 'Loaiza, Raúl', team: 'Lanús', reason: 'Rotura de ligamento cruzado', detail: 'Parte médico oficial: recuperación post-quirúrgica', returnEstimate: 'En recuperación' },
-  { name: 'Bravo, Agustín', team: 'Rosario Central', reason: 'Rotura de ligamento cruzado', detail: 'Parte médico: recuperación de rodilla', returnEstimate: 'En recuperación' },
-  { name: 'Monzón, Florián', team: 'Vélez Sarsfield', reason: 'Rotura de ligamento cruzado anterior', detail: 'Parte médico oficial: recuperación', returnEstimate: 'En recuperación' },
-  { name: 'Méndez, Mauro', team: 'Estudiantes de La Plata', reason: 'Rotura de ligamento cruzado', detail: 'Parte médico: postoperatorio', returnEstimate: 'En recuperación' },
-];
-
 function normalizePromiedosTeamName(raw: string): string {
   const c = (raw || '')
     .toLowerCase()
@@ -1407,7 +1392,7 @@ export async function fetchPromiedosUnavailablePlayers(): Promise<UnavailablePla
                     ? 'EN DUDA'
                     : 'LESIONADO';
 
-                  const matched = matchPlayerAgainstSnapshot(p.name, p.sname || p.name, teamName, allPlayers);
+                  const matched = matchPlayerAgainstSnapshot(p.name, p.player_short_name || p.name, teamName, allPlayers);
                   if (matched) {
                     addUnavailable(matched, {
                       status,
@@ -1429,22 +1414,6 @@ export async function fetchPromiedosUnavailablePlayers(): Promise<UnavailablePla
   } catch (err) {
     console.warn('[UNAVAILABLE_PLAYERS_NOTICE] Live match scrape notice:', (err as Error).message);
   }
-
-  // 2. Integrate confirmed medical injuries if not already added
-  CONFIRMED_MEDICAL_INJURIES.forEach(inj => {
-    const matched = matchPlayerAgainstSnapshot(inj.name, inj.name.split(',')[0], inj.team, allPlayers);
-    if (matched && !unavailableMap[String(matched.id)]) {
-      addUnavailable(matched, {
-        status: 'INJURED',
-        type: 'lesion',
-        badgeText: 'LESIONADO',
-        reason: inj.reason,
-        detail: inj.detail,
-        returnEstimate: inj.returnEstimate,
-        source: 'parte_medico',
-      });
-    }
-  });
 
   // Sort unavailable players: Suspensions first, then Injuries, then Doubt, then by team name
   playersList.sort((a, b) => {

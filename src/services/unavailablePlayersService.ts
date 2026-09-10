@@ -185,23 +185,9 @@ export function getPlayerStatusInfo(
     }
   }
 
-  // Last-resort local heuristic when Promiedos live data has nothing for this player.
-  // IMPORTANT: `rojas`/`amarillas` are season-cumulative totals with no per-round breakdown,
-  // so we cannot know if a past card's suspension was already served — asserting "SUSPENDIDO"
-  // from a career red-card count would be wrong for most players most of the time (e.g. a red
-  // card in fecha 2 doesn't mean anything by fecha 10). We only surface a soft, honestly-labeled
-  // "en duda" signal for heavy yellow-card accumulation, never a hard, dated suspension claim.
-  if (player.amarillas && player.amarillas >= 5) {
-    return {
-      status: 'DOUBT',
-      type: 'duda',
-      badgeText: 'EN DUDA',
-      reason: 'Acumulación de tarjetas amarillas',
-      detail: `Acumula ${player.amarillas} amarillas en el torneo — podría estar sancionado, confirmar en Promiedos`,
-      source: 'promiedos',
-    };
-  }
-
+  // No local heuristics: unavailability status comes exclusively from the Promiedos
+  // per-match "alineación" data (missing_players), never guessed from season-cumulative
+  // stats like career yellow/red card counts.
   return null;
 }
 
