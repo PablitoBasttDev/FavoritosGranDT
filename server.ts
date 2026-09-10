@@ -69,7 +69,7 @@ interface PromiedosLiveMatch {
 const DAYS_ES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const MONTHS_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-function formatPromiedosSchedule(start_time: string) {
+export function formatPromiedosSchedule(start_time: string) {
   if (!start_time) {
     return { dateStr: 'A confirmar', kickoff: '', displayTime: 'Horario a confirmar' };
   }
