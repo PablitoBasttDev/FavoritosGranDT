@@ -238,6 +238,11 @@ export function getDynamicTopScorers(
     if (totalGoals > 0) {
       const split = lookupHomeAwaySplit(homeAwaySplits, player.nombre);
       const roundGoals = lookupRoundGoals(goalsByRound, player.nombre, lastCompletedRound);
+      // `totalGoals` comes from the Gran DT sheet, while the split comes from our own event-level
+      // scrape of Promiedos match data - two independent sources that can disagree (e.g. the
+      // sheet hasn't caught up with a very recent goal, or our event coverage is incomplete).
+      // Only report the split when it actually reconciles with the total.
+      const hasReliableSplit = split.home + split.away === totalGoals;
       results.push({
         id: String(player.id),
         playerId: player.id,
@@ -252,8 +257,8 @@ export function getDynamicTopScorers(
         penalties,
         puntosTotales: player.puntosTotales || 0,
         partidosJugados: player.partidosJugados || 0,
-        homeGoals: split.home,
-        awayGoals: split.away,
+        homeGoals: hasReliableSplit ? split.home : undefined,
+        awayGoals: hasReliableSplit ? split.away : undefined,
         playerObj: player,
       });
     }

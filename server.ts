@@ -955,12 +955,68 @@ interface MergedPlayerGoalStats {
   byFecha: Record<number, number>;
 }
 
+// Full-season, per-fecha match+event cache, built up lazily and kept for the lifetime of this
+// server instance. FIXTURES_DATA's baked-in static events only cover whichever rounds happened
+// to be synced into the repo, and cachedData.allRounds (from the Fixture tab's live sync) only
+// covers whichever rounds a user happened to browse to - neither guarantees full-season
+// coverage, which is exactly why most players were showing no L/V split at all: our own event
+// data was simply missing for most of their goals. A fecha is fetched here ONCE and never
+// refetched once it has real data and isn't the most recently completed one (finished results
+// don't change), so this one-time backfill cost is paid at most once per server instance.
+const fullSeasonMatchCache: Record<number, PromiedosLiveMatch[]> = {};
+let fullSeasonCacheRefreshedAt = 0;
+
+async function ensureFullSeasonMatchCoverage(uptoFecha: number): Promise<void> {
+  const now = Date.now();
+  const fechasToFetch: number[] = [];
+
+  for (let f = 1; f <= uptoFecha; f++) {
+    const hasData = fullSeasonMatchCache[f] && fullSeasonMatchCache[f].length > 0;
+    const isMostRecent = f === uptoFecha;
+    if (!hasData || (isMostRecent && now - fullSeasonCacheRefreshedAt >= CACHE_TTL_MS)) {
+      fechasToFetch.push(f);
+    }
+  }
+
+  if (fechasToFetch.length === 0) return;
+
+  // Fetch in small concurrent batches rather than all at once - hammering the same host with a
+  // dozen+ simultaneous requests (this, plus whatever else is already in flight for the current
+  // round/standings/scorers) has been observed to make some of them queue behind connection
+  // limits long enough to hit their own timeout, even though the endpoint itself responds in
+  // ~1s under normal load.
+  const BATCH_SIZE = 4;
+  for (let i = 0; i < fechasToFetch.length; i += BATCH_SIZE) {
+    const batch = fechasToFetch.slice(i, i + BATCH_SIZE);
+    await Promise.allSettled(
+      batch.map(async f => {
+        try {
+          const res = await fetch(`https://api.promiedos.com.ar/league/games/hc/72_228_8_${f}`, {
+            headers: PROMIEDOS_HEADERS,
+            signal: safeTimeoutSignal(9000),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.games && Array.isArray(data.games) && data.games.length > 0) {
+              fullSeasonMatchCache[f] = await parseAndEnrichRoundGames(data.games, f);
+            }
+          }
+        } catch (err) {
+          console.warn(`[PROMIEDOS_FETCH_NOTICE] Season coverage fecha ${f} notice:`, (err as Error).message);
+        }
+      })
+    );
+  }
+
+  fullSeasonCacheRefreshedAt = now;
+}
+
 /**
  * Goles reales por jugador (local/visitante y por fecha), a partir de los eventos de partido de
- * Promiedos. Usa la MISMA fuente combinada (FIXTURES_DATA de base, sobrescrita por cualquier
- * ronda ya scrapeada en cachedData.allRounds) que ya usa el cómputo de vallas invictas más abajo,
- * para que el desglose local/visitante siempre sume exactamente el total oficial de goles de
- * Promiedos - nunca un dato aparte que pueda quedar desincronizado.
+ * Promiedos. Usa fullSeasonMatchCache (backfill completo de todas las fechas jugadas) como
+ * fuente principal, con FIXTURES_DATA como base solo para las fechas que ese backfill todavía no
+ * cubre - así el desglose local/visitante puede terminar sumando exactamente el total oficial de
+ * goles de Promiedos, en vez de quedar incompleto para la mayoría de los jugadores.
  */
 function computeMergedPlayerGoalSplits(): Record<string, MergedPlayerGoalStats> {
   const stats: Record<string, MergedPlayerGoalStats> = {};
@@ -980,18 +1036,31 @@ function computeMergedPlayerGoalSplits(): Record<string, MergedPlayerGoalStats> 
     });
   };
 
+  const coveredFechas = new Set(
+    Object.keys(fullSeasonMatchCache)
+      .map(Number)
+      .filter(f => fullSeasonMatchCache[f].length > 0)
+  );
+
   FIXTURES_DATA.forEach(m => {
+    if (coveredFechas.has(m.fecha)) return; // the richer cache below already has this fecha
     if (m.status === 'FINISHED') tallyMatch(m);
   });
 
+  Object.values(fullSeasonMatchCache).forEach(roundMatches => {
+    roundMatches.forEach(m => {
+      if (m.status === 'FINISHED') tallyMatch(m);
+    });
+  });
+
+  // Also fold in cachedData.allRounds for any fecha still outside the season backfill's range
+  // (e.g. a live/in-progress round beyond lastCompletedFecha).
   if (cachedData?.allRounds) {
     Object.values(cachedData.allRounds).forEach(roundMatches => {
       roundMatches.forEach(m => {
-        if (m.status !== 'FINISHED') return;
+        if (m.status !== 'FINISHED' || coveredFechas.has(m.fecha)) return;
         const hCanonical = toCanonicalTeamName(m.homeTeam);
         const existing = FIXTURES_DATA.find(f => f.fecha === m.fecha && toCanonicalTeamName(f.homeTeam) === hCanonical);
-        // Only add from the live/cached round when the static snapshot doesn't already have
-        // this match as FINISHED, to avoid double-counting the same goals twice.
         if (!existing || existing.status !== 'FINISHED') {
           tallyMatch(m);
         }
@@ -1038,6 +1107,13 @@ async function fetchPromiedosLeagueDetails(): Promise<PromiedosLeagueData> {
   const standingsZoneA: any[] = [];
   const standingsZoneB: any[] = [];
   let topScorers: any[] = [];
+
+  // Kick off the full-season match+event backfill (kept warm afterwards, so it's a no-op on
+  // every call after the first) CONCURRENTLY with the league page fetch below, rather than
+  // waiting for it first - it's only actually needed once we get to building the L/V splits
+  // further down, by which point this has often already finished.
+  const lastCompletedFecha = getLastCompletedRoundNumber();
+  const seasonCoveragePromise = ensureFullSeasonMatchCoverage(lastCompletedFecha);
 
   try {
     // Standings + scorers only exist embedded in this HTML page's data (no lighter JSON
@@ -1100,8 +1176,8 @@ async function fetchPromiedosLeagueDetails(): Promise<PromiedosLeagueData> {
       // 2. Parse players_statistics -> Goles (Top Scorers)
       const scorersTable = data.players_statistics?.tables?.find((t: any) => t.name === 'Goles');
       if (scorersTable && Array.isArray(scorersTable.rows)) {
+        await seasonCoveragePromise;
         const goalSplits = computeMergedPlayerGoalSplits();
-        const lastCompletedFecha = getLastCompletedRoundNumber();
         topScorers = scorersTable.rows.map((r: any) => {
           const pName = r.entity?.object?.name || '';
           const teamId = r.entity?.object?.team_id || '';
@@ -1163,6 +1239,7 @@ async function fetchPromiedosLeagueDetails(): Promise<PromiedosLeagueData> {
   });
 
   // 4. Compute Clean Sheets for Clubs from finished Promiedos matches, fixtures and fallback
+  await seasonCoveragePromise;
   const cleanSheetsClubs: any[] = [];
   const clubCleanSheetsMap: Record<
     string,
@@ -1174,41 +1251,54 @@ async function fetchPromiedosLeagueDetails(): Promise<PromiedosLeagueData> {
     clubCleanSheetsMap[cName] = { cleanSheets: 0, homeCleanSheets: 0, awayCleanSheets: 0, matches: t.played || 0, ga: t.goalsAgainst || 0 };
   });
 
+  const tallyCleanSheet = (m: { homeTeam: string; awayTeam: string; homeScore?: number; awayScore?: number }) => {
+    const hCanonical = toCanonicalTeamName(m.homeTeam);
+    const aCanonical = toCanonicalTeamName(m.awayTeam);
+    if (m.awayScore === 0 && clubCleanSheetsMap[hCanonical]) {
+      clubCleanSheetsMap[hCanonical].cleanSheets += 1;
+      clubCleanSheetsMap[hCanonical].homeCleanSheets += 1;
+    }
+    if (m.homeScore === 0 && clubCleanSheetsMap[aCanonical]) {
+      clubCleanSheetsMap[aCanonical].cleanSheets += 1;
+      clubCleanSheetsMap[aCanonical].awayCleanSheets += 1;
+    }
+  };
+
+  const cleanSheetCoveredFechas = new Set(
+    Object.keys(fullSeasonMatchCache)
+      .map(Number)
+      .filter(f => fullSeasonMatchCache[f].length > 0)
+  );
+
   // Calculate clean sheets from all finished fixtures - home/away tallied in the exact same
-  // pass as the overall total, so the L/V split can never drift out of sync with it.
+  // pass as the overall total, so the L/V split can never drift out of sync with it. Fechas
+  // already covered by the richer full-season backfill are skipped here to avoid double-counting.
   FIXTURES_DATA.forEach(m => {
+    if (cleanSheetCoveredFechas.has(m.fecha)) return;
     if (m.status === 'FINISHED' && typeof m.homeScore === 'number' && typeof m.awayScore === 'number') {
-      const hCanonical = toCanonicalTeamName(m.homeTeam);
-      const aCanonical = toCanonicalTeamName(m.awayTeam);
-      if (m.awayScore === 0 && clubCleanSheetsMap[hCanonical]) {
-        clubCleanSheetsMap[hCanonical].cleanSheets += 1;
-        clubCleanSheetsMap[hCanonical].homeCleanSheets += 1;
-      }
-      if (m.homeScore === 0 && clubCleanSheetsMap[aCanonical]) {
-        clubCleanSheetsMap[aCanonical].cleanSheets += 1;
-        clubCleanSheetsMap[aCanonical].awayCleanSheets += 1;
-      }
+      tallyCleanSheet(m);
     }
   });
 
-  // Also include any live or cached scraped rounds from Promiedos that might override/enrich
+  Object.values(fullSeasonMatchCache).forEach(roundMatches => {
+    roundMatches.forEach(m => {
+      if (m.status === 'FINISHED' && typeof m.homeScore === 'number' && typeof m.awayScore === 'number') {
+        tallyCleanSheet(m);
+      }
+    });
+  });
+
+  // Also include any live-cached round from Promiedos beyond the season backfill's range
+  // (e.g. a live/in-progress round past lastCompletedFecha).
   if (cachedData?.allRounds) {
     Object.values(cachedData.allRounds).forEach(roundMatches => {
       roundMatches.forEach(m => {
+        if (cleanSheetCoveredFechas.has(m.fecha)) return;
         if (m.status === 'FINISHED' && typeof m.homeScore === 'number' && typeof m.awayScore === 'number') {
           const hCanonical = toCanonicalTeamName(m.homeTeam);
-          const aCanonical = toCanonicalTeamName(m.awayTeam);
-          // If match was not already in fixtures with finished status
           const existing = FIXTURES_DATA.find(f => f.fecha === m.fecha && toCanonicalTeamName(f.homeTeam) === hCanonical);
           if (!existing || existing.status !== 'FINISHED') {
-            if (m.awayScore === 0 && clubCleanSheetsMap[hCanonical]) {
-              clubCleanSheetsMap[hCanonical].cleanSheets += 1;
-              clubCleanSheetsMap[hCanonical].homeCleanSheets += 1;
-            }
-            if (m.homeScore === 0 && clubCleanSheetsMap[aCanonical]) {
-              clubCleanSheetsMap[aCanonical].cleanSheets += 1;
-              clubCleanSheetsMap[aCanonical].awayCleanSheets += 1;
-            }
+            tallyCleanSheet(m);
           }
         }
       });
