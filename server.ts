@@ -2,7 +2,7 @@ import express from 'express';
 import path from 'path';
 import * as cheerio from 'cheerio';
 import defaultPlayersSnapshot from './src/data/liveSheetSnapshot.js';
-import { FIXTURES_DATA, getTournamentRoundStatus, toCanonicalTeamName, areTeamNamesEqual } from './src/data/fixture.js';
+import { FIXTURES_DATA, getTournamentRoundStatus, getLastCompletedRoundNumber, toCanonicalTeamName, areTeamNamesEqual } from './src/data/fixture.js';
 import { RAW_STANDINGS_DATA, getDynamicStandings } from './src/data/standings.js';
 import { getDynamicTopScorers, getDynamicClubDefenseStats } from './src/data/tournamentStats.js';
 
@@ -939,11 +939,99 @@ async function fetchPlanetaGranDTStats(customUrl?: string): Promise<PlanetaGranD
   return result;
 }
 
+function normalizePlayerNameServer(name: string): string {
+  return (name || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+interface MergedPlayerGoalStats {
+  home: number;
+  away: number;
+  byFecha: Record<number, number>;
+}
+
+/**
+ * Goles reales por jugador (local/visitante y por fecha), a partir de los eventos de partido de
+ * Promiedos. Usa la MISMA fuente combinada (FIXTURES_DATA de base, sobrescrita por cualquier
+ * ronda ya scrapeada en cachedData.allRounds) que ya usa el cómputo de vallas invictas más abajo,
+ * para que el desglose local/visitante siempre sume exactamente el total oficial de goles de
+ * Promiedos - nunca un dato aparte que pueda quedar desincronizado.
+ */
+function computeMergedPlayerGoalSplits(): Record<string, MergedPlayerGoalStats> {
+  const stats: Record<string, MergedPlayerGoalStats> = {};
+
+  const addGoal = (playerName: string, side: 'home' | 'away', fecha: number) => {
+    const key = normalizePlayerNameServer(playerName);
+    if (!key) return;
+    if (!stats[key]) stats[key] = { home: 0, away: 0, byFecha: {} };
+    stats[key][side] += 1;
+    stats[key].byFecha[fecha] = (stats[key].byFecha[fecha] || 0) + 1;
+  };
+
+  const tallyMatch = (m: { fecha: number; events?: { type: string; team: 'home' | 'away'; playerName: string }[] }) => {
+    (m.events || []).forEach(ev => {
+      if (ev.type !== 'goal' && ev.type !== 'penalty_goal') return;
+      addGoal(ev.playerName, ev.team, m.fecha);
+    });
+  };
+
+  FIXTURES_DATA.forEach(m => {
+    if (m.status === 'FINISHED') tallyMatch(m);
+  });
+
+  if (cachedData?.allRounds) {
+    Object.values(cachedData.allRounds).forEach(roundMatches => {
+      roundMatches.forEach(m => {
+        if (m.status !== 'FINISHED') return;
+        const hCanonical = toCanonicalTeamName(m.homeTeam);
+        const existing = FIXTURES_DATA.find(f => f.fecha === m.fecha && toCanonicalTeamName(f.homeTeam) === hCanonical);
+        // Only add from the live/cached round when the static snapshot doesn't already have
+        // this match as FINISHED, to avoid double-counting the same goals twice.
+        if (!existing || existing.status !== 'FINISHED') {
+          tallyMatch(m);
+        }
+      });
+    });
+  }
+
+  return stats;
+}
+
+function lookupMergedPlayerGoalStats(
+  splits: Record<string, MergedPlayerGoalStats>,
+  playerName: string
+): MergedPlayerGoalStats {
+  const direct = splits[normalizePlayerNameServer(playerName)];
+  if (direct) return direct;
+
+  const parts = playerName.split(',').map(s => s.trim());
+  if (parts.length === 2) {
+    const inverted = splits[normalizePlayerNameServer(`${parts[1]} ${parts[0]}`)];
+    if (inverted) return inverted;
+  }
+
+  return { home: 0, away: 0, byFecha: {} };
+}
+
+// If a scrape attempt silently fell back to local data (scrape timeout/failure), don't make
+// callers wait out the full 45s cache TTL before the next attempt - retry much sooner instead,
+// so a transient failure self-heals in a few seconds rather than up to ~90s (this cache's TTL
+// plus the client's own 45s poll interval) of showing stale/inaccurate totals.
+const FALLBACK_RETRY_TTL_MS = 5 * 1000;
+
 // Fetch and build Promiedos full Clausura 2026 data (Standings, Scorers, Clean Sheets)
 async function fetchPromiedosLeagueDetails(): Promise<PromiedosLeagueData> {
   const now = Date.now();
-  if (cachedLeagueData && now - cachedLeagueData.lastFetched < CACHE_TTL_MS) {
-    return cachedLeagueData;
+  if (cachedLeagueData) {
+    const effectiveTtl = cachedLeagueData.hasLiveScorers ? CACHE_TTL_MS : FALLBACK_RETRY_TTL_MS;
+    if (now - cachedLeagueData.lastFetched < effectiveTtl) {
+      return cachedLeagueData;
+    }
   }
 
   const teamIdMap: Record<string, string> = {};
@@ -1012,17 +1100,29 @@ async function fetchPromiedosLeagueDetails(): Promise<PromiedosLeagueData> {
       // 2. Parse players_statistics -> Goles (Top Scorers)
       const scorersTable = data.players_statistics?.tables?.find((t: any) => t.name === 'Goles');
       if (scorersTable && Array.isArray(scorersTable.rows)) {
+        const goalSplits = computeMergedPlayerGoalSplits();
+        const lastCompletedFecha = getLastCompletedRoundNumber();
         topScorers = scorersTable.rows.map((r: any) => {
           const pName = r.entity?.object?.name || '';
           const teamId = r.entity?.object?.team_id || '';
           const teamName = teamIdMap[teamId] || normalizeTeamName(r.entity?.object?.team_name || '');
           const goals = parseInt(r.values?.find((v: any) => v.key === 'Goals')?.value || '0', 10);
+          const split = lookupMergedPlayerGoalStats(goalSplits, pName);
+          // The L/V split comes from our own event-level scrape (a different, less complete
+          // channel than Promiedos' official "Goles" total above) - if a recent fecha's match
+          // events aren't scraped/cached yet, home+away undercounts. Only report the split when
+          // it actually reconciles with the official total; otherwise leave it undefined so the
+          // UI shows "no disponible" instead of a breakdown that visibly doesn't add up.
+          const hasReliableSplit = split.home + split.away === goals;
           return {
             rank: r.num,
             playerName: pName,
             team: teamName,
             position: r.entity?.object?.position || 'Delanteros',
             goals,
+            homeGoals: hasReliableSplit ? split.home : undefined,
+            awayGoals: hasReliableSplit ? split.away : undefined,
+            roundGoals: split.byFecha[lastCompletedFecha] || 0,
             promiedosPlayerId: r.entity?.object?.id,
           };
         });
@@ -1064,23 +1164,29 @@ async function fetchPromiedosLeagueDetails(): Promise<PromiedosLeagueData> {
 
   // 4. Compute Clean Sheets for Clubs from finished Promiedos matches, fixtures and fallback
   const cleanSheetsClubs: any[] = [];
-  const clubCleanSheetsMap: Record<string, { cleanSheets: number; matches: number; ga: number }> = {};
+  const clubCleanSheetsMap: Record<
+    string,
+    { cleanSheets: number; homeCleanSheets: number; awayCleanSheets: number; matches: number; ga: number }
+  > = {};
 
   standingsGeneral.forEach(t => {
     const cName = toCanonicalTeamName(t.teamName);
-    clubCleanSheetsMap[cName] = { cleanSheets: 0, matches: t.played || 0, ga: t.goalsAgainst || 0 };
+    clubCleanSheetsMap[cName] = { cleanSheets: 0, homeCleanSheets: 0, awayCleanSheets: 0, matches: t.played || 0, ga: t.goalsAgainst || 0 };
   });
 
-  // Calculate clean sheets from all finished fixtures
+  // Calculate clean sheets from all finished fixtures - home/away tallied in the exact same
+  // pass as the overall total, so the L/V split can never drift out of sync with it.
   FIXTURES_DATA.forEach(m => {
     if (m.status === 'FINISHED' && typeof m.homeScore === 'number' && typeof m.awayScore === 'number') {
       const hCanonical = toCanonicalTeamName(m.homeTeam);
       const aCanonical = toCanonicalTeamName(m.awayTeam);
       if (m.awayScore === 0 && clubCleanSheetsMap[hCanonical]) {
         clubCleanSheetsMap[hCanonical].cleanSheets += 1;
+        clubCleanSheetsMap[hCanonical].homeCleanSheets += 1;
       }
       if (m.homeScore === 0 && clubCleanSheetsMap[aCanonical]) {
         clubCleanSheetsMap[aCanonical].cleanSheets += 1;
+        clubCleanSheetsMap[aCanonical].awayCleanSheets += 1;
       }
     }
   });
@@ -1097,9 +1203,11 @@ async function fetchPromiedosLeagueDetails(): Promise<PromiedosLeagueData> {
           if (!existing || existing.status !== 'FINISHED') {
             if (m.awayScore === 0 && clubCleanSheetsMap[hCanonical]) {
               clubCleanSheetsMap[hCanonical].cleanSheets += 1;
+              clubCleanSheetsMap[hCanonical].homeCleanSheets += 1;
             }
             if (m.homeScore === 0 && clubCleanSheetsMap[aCanonical]) {
               clubCleanSheetsMap[aCanonical].cleanSheets += 1;
+              clubCleanSheetsMap[aCanonical].awayCleanSheets += 1;
             }
           }
         }
@@ -1109,12 +1217,14 @@ async function fetchPromiedosLeagueDetails(): Promise<PromiedosLeagueData> {
 
   standingsGeneral.forEach(t => {
     const cName = toCanonicalTeamName(t.teamName);
-    const stat = clubCleanSheetsMap[cName] || { cleanSheets: 0, matches: t.played || 0, ga: t.goalsAgainst || 0 };
+    const stat = clubCleanSheetsMap[cName] || { cleanSheets: 0, homeCleanSheets: 0, awayCleanSheets: 0, matches: t.played || 0, ga: t.goalsAgainst || 0 };
     const rate = stat.matches > 0 ? Math.round((stat.cleanSheets / stat.matches) * 100) : 0;
     cleanSheetsClubs.push({
       teamName: t.teamName,
       zone: t.zone,
       cleanSheets: stat.cleanSheets,
+      homeCleanSheets: stat.homeCleanSheets,
+      awayCleanSheets: stat.awayCleanSheets,
       played: stat.matches,
       cleanSheetRate: rate,
       goalsAgainst: stat.ga,
@@ -1162,6 +1272,9 @@ function getDefaultScorers() {
     team: s.team,
     position: s.posicion,
     goals: s.totalGoals,
+    homeGoals: s.homeGoals,
+    awayGoals: s.awayGoals,
+    roundGoals: s.roundGoals,
   }));
 }
 
@@ -1171,6 +1284,8 @@ function getDefaultCleanSheets() {
     teamName: c.teamName,
     zone: c.zone,
     cleanSheets: c.cleanSheetsTotal,
+    homeCleanSheets: c.homeCleanSheets,
+    awayCleanSheets: c.awayCleanSheets,
     played: c.played,
     cleanSheetRate: c.cleanSheetRate,
     goalsAgainst: c.goalsAgainst,

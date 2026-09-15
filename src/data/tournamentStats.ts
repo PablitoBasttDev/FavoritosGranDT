@@ -18,8 +18,10 @@ export interface ScorerStat {
   penalties: number;
   puntosTotales: number;
   partidosJugados: number;
-  homeGoals: number;
-  awayGoals: number;
+  // Undefined when the local/visitante breakdown can't be verified against totalGoals yet (e.g.
+  // a recent fecha's match events aren't scraped/cached) - never a mismatched pair of numbers.
+  homeGoals?: number;
+  awayGoals?: number;
   playerObj?: Player;
 }
 
@@ -27,8 +29,8 @@ export interface ClubDefenseStat {
   teamName: string;
   zone: 'Zona A' | 'Zona B';
   cleanSheetsTotal: number; // Fechas / Partidos sin recibir goles
-  homeCleanSheets: number; // Vallas invictas jugando de local
-  awayCleanSheets: number; // Vallas invictas jugando de visitante
+  homeCleanSheets?: number; // Vallas invictas jugando de local
+  awayCleanSheets?: number; // Vallas invictas jugando de visitante
   baseCleanSheets: number; // Hasta Fecha 5
   roundCleanSheet: boolean; // Mantuvo arco en cero en Fecha 6
   played: number;

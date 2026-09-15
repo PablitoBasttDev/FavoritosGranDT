@@ -261,6 +261,12 @@ export interface PromiedosScorerRow {
   team: string;
   position: string;
   goals: number;
+  // Undefined (not 0) when the home/away or last-fecha breakdown can't be verified against
+  // `goals` yet (e.g. a recent fecha's match events haven't been scraped/cached) - the caller
+  // should show "no disponible" rather than a breakdown that doesn't add up to the total.
+  homeGoals?: number;
+  awayGoals?: number;
+  roundGoals?: number;
   promiedosPlayerId?: string;
 }
 
@@ -268,6 +274,8 @@ export interface PromiedosCleanSheetRow {
   teamName: string;
   zone: string;
   cleanSheets: number;
+  homeCleanSheets?: number;
+  awayCleanSheets?: number;
   played: number;
   cleanSheetRate: number;
   goalsAgainst: number;
@@ -325,6 +333,9 @@ function getDefaultScorersList(): PromiedosScorerRow[] {
     team: s.team,
     position: s.posicion,
     goals: s.totalGoals,
+    homeGoals: s.homeGoals,
+    awayGoals: s.awayGoals,
+    roundGoals: s.roundGoals,
   }));
 }
 
@@ -333,6 +344,8 @@ function getDefaultCleanSheetsList(): PromiedosCleanSheetRow[] {
     teamName: c.teamName,
     zone: c.zone,
     cleanSheets: c.cleanSheetsTotal,
+    homeCleanSheets: c.homeCleanSheets,
+    awayCleanSheets: c.awayCleanSheets,
     played: c.played,
     cleanSheetRate: c.cleanSheetRate,
     goalsAgainst: c.goalsAgainst,

@@ -8,10 +8,6 @@ import {
   getTeamsPerformanceMetrics,
   getDynamicGoalkeeperDefenseStats,
   getDynamicClubDefenseStats,
-  getPlayerHomeAwayGoalSplits,
-  lookupHomeAwaySplit,
-  getPlayerGoalsByRound,
-  lookupRoundGoals,
   findPlayerByNameOrTeam,
   ScorerStat,
   GoalkeeperDefenseStat,
@@ -117,20 +113,16 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
   const fallbackClubDefenseStats = useMemo(() => getDynamicClubDefenseStats(now, players), [now, players]);
   const goalkeeperStats = useMemo(() => getDynamicGoalkeeperDefenseStats(now, players), [now, players]);
 
-  // Split de goles de local/visitante, y goles por fecha, por jugador - calculados a partir de
-  // los eventos reales de cada partido disputado
-  const homeAwayGoalSplits = useMemo(() => getPlayerHomeAwayGoalSplits(now), [now]);
-  const goalsByRound = useMemo(() => getPlayerGoalsByRound(now), [now]);
-
-  // Top Scorers: Promiedos official table for Clausura 2026 enriched with Planeta Gran DT stats & prices
+  // Top Scorers: Promiedos official table for Clausura 2026 enriched with Planeta Gran DT stats & prices.
+  // Local/visitante and goles-de-la-última-fecha come straight from the server (computed from the
+  // same Promiedos data as the total, in the same pass) - never recomputed client-side, so they
+  // can't drift out of sync with `goals` the way a separately-sourced client computation could.
   const topScorers: ScorerStat[] = useMemo(() => {
     const currentPlayers = players && players.length > 0 ? players : ALL_PLAYERS;
     if (promiedosScorers && promiedosScorers.length > 0) {
       return promiedosScorers.map(ps => {
         const playerObj = findPlayerByNameOrTeam(ps.playerName, ps.team);
         const pos = playerObj?.posicion || (ps.position?.toLowerCase().includes('del') ? 'DEL' : ps.position?.toLowerCase().includes('vol') ? 'VOL' : ps.position?.toLowerCase().includes('def') ? 'DEF' : 'DEL');
-        const split = lookupHomeAwaySplit(homeAwayGoalSplits, ps.playerName);
-        const roundGoals = lookupRoundGoals(goalsByRound, ps.playerName, lastCompletedRound);
         return {
           id: ps.promiedosPlayerId || ps.playerName,
           playerId: playerObj?.id,
@@ -141,20 +133,21 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           precioNum: playerObj?.precioNum || 6000000,
           totalGoals: ps.goals,
           baseGoals: ps.goals,
-          roundGoals,
+          roundGoals: ps.roundGoals || 0,
           penalties: 0,
           puntosTotales: playerObj?.puntosTotales || 0,
           partidosJugados: playerObj?.partidosJugados || 0,
-          homeGoals: split.home,
-          awayGoals: split.away,
+          homeGoals: ps.homeGoals,
+          awayGoals: ps.awayGoals,
           playerObj,
         };
       });
     }
     return fallbackTopScorers;
-  }, [promiedosScorers, players, fallbackTopScorers, homeAwayGoalSplits, goalsByRound, lastCompletedRound]);
+  }, [promiedosScorers, players, fallbackTopScorers]);
 
-  // Clean Sheets: Promiedos official matches in Clausura 2026
+  // Clean Sheets: Promiedos official matches in Clausura 2026. Same rule as goals above: the L/V
+  // split comes straight from the server response, computed in the same pass as the total.
   const clubDefenseStats: ClubDefenseStat[] = useMemo(() => {
     if (promiedosCleanSheets && promiedosCleanSheets.length > 0) {
       return promiedosCleanSheets.map(cs => {
@@ -163,8 +156,8 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           teamName: cs.teamName,
           zone: (cs.zone as 'Zona A' | 'Zona B') || fallback?.zone || 'Zona A',
           cleanSheetsTotal: cs.cleanSheets,
-          homeCleanSheets: fallback?.homeCleanSheets || 0,
-          awayCleanSheets: fallback?.awayCleanSheets || 0,
+          homeCleanSheets: cs.homeCleanSheets,
+          awayCleanSheets: cs.awayCleanSheets,
           baseCleanSheets: cs.cleanSheets,
           roundCleanSheet: fallback?.roundCleanSheet || false,
           played: cs.played,
@@ -761,14 +754,20 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                             {scorer.totalGoals}
                           </td>
                           <td className="py-1.5 sm:py-2 px-0.5 sm:px-1 text-center">
-                            <span
-                              className="inline-flex items-center gap-0.5 sm:gap-1 font-mono text-[9px] sm:text-[10px] font-bold whitespace-nowrap"
-                              title={`${scorer.homeGoals} de local, ${scorer.awayGoals} de visitante`}
-                            >
-                              <span className="text-[#1b55e2] dark:text-cyan-400">{scorer.homeGoals}L</span>
-                              <span className="text-slate-300 dark:text-slate-600">/</span>
-                              <span className="text-slate-600 dark:text-slate-400">{scorer.awayGoals}V</span>
-                            </span>
+                            {scorer.homeGoals !== undefined && scorer.awayGoals !== undefined ? (
+                              <span
+                                className="inline-flex items-center gap-0.5 sm:gap-1 font-mono text-[9px] sm:text-[10px] font-bold whitespace-nowrap"
+                                title={`${scorer.homeGoals} de local, ${scorer.awayGoals} de visitante`}
+                              >
+                                <span className="text-[#1b55e2] dark:text-cyan-400">{scorer.homeGoals}L</span>
+                                <span className="text-slate-300 dark:text-slate-600">/</span>
+                                <span className="text-slate-600 dark:text-slate-400">{scorer.awayGoals}V</span>
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 font-mono text-[9px] sm:text-[10px]" title="Todavía no disponible">
+                                -
+                              </span>
+                            )}
                           </td>
                           <td className="py-1.5 sm:py-2 px-1 sm:px-2 text-center font-mono font-black text-[#1b55e2] dark:text-cyan-400 bg-blue-50/30 dark:bg-blue-950/20 text-xs">
                             {scorer.puntosTotales}
@@ -919,14 +918,20 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                         </td>
 
                         <td className="py-1.5 sm:py-2 px-0.5 sm:px-1 text-center">
-                          <span
-                            className="inline-flex items-center gap-0.5 sm:gap-1 font-mono text-[9px] sm:text-[10px] font-bold whitespace-nowrap"
-                            title={`${team.homeCleanSheets} vallas invictas de local, ${team.awayCleanSheets} de visitante`}
-                          >
-                            <span className="text-[#1b55e2] dark:text-cyan-400">{team.homeCleanSheets}L</span>
-                            <span className="text-slate-300 dark:text-slate-600">/</span>
-                            <span className="text-slate-600 dark:text-slate-400">{team.awayCleanSheets}V</span>
-                          </span>
+                          {team.homeCleanSheets !== undefined && team.awayCleanSheets !== undefined ? (
+                            <span
+                              className="inline-flex items-center gap-0.5 sm:gap-1 font-mono text-[9px] sm:text-[10px] font-bold whitespace-nowrap"
+                              title={`${team.homeCleanSheets} vallas invictas de local, ${team.awayCleanSheets} de visitante`}
+                            >
+                              <span className="text-[#1b55e2] dark:text-cyan-400">{team.homeCleanSheets}L</span>
+                              <span className="text-slate-300 dark:text-slate-600">/</span>
+                              <span className="text-slate-600 dark:text-slate-400">{team.awayCleanSheets}V</span>
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 font-mono text-[9px] sm:text-[10px]" title="Todavía no disponible">
+                              -
+                            </span>
+                          )}
                         </td>
 
                         <td className="py-1.5 sm:py-2 px-1 text-center font-mono font-bold text-slate-800 dark:text-slate-200 text-[10px] sm:text-xs hidden xs:table-cell">
