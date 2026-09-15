@@ -706,8 +706,8 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                       <th className="py-2 px-1 sm:px-1.5 text-center font-black text-slate-900 dark:text-slate-200">
                         Goles
                       </th>
-                      <th className="py-2 px-1 text-center hidden sm:table-cell" title="Goles de local / Goles de visitante">
-                        L / V
+                      <th className="py-2 px-0.5 sm:px-1 text-center" title="Goles de local / Goles de visitante">
+                        L/V
                       </th>
                       <th className="py-2 px-1 sm:px-2 text-center bg-blue-50/60 dark:bg-blue-950/40 text-[#1b55e2] dark:text-cyan-300" title="Puntaje total acumulado actual del jugador">
                         <span className="hidden sm:inline">Puntaje Actual</span>
@@ -765,9 +765,9 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                           <td className="py-1.5 sm:py-2 px-1 sm:px-1.5 text-center font-mono font-black text-amber-600 dark:text-amber-400 text-xs sm:text-sm bg-amber-50/50 dark:bg-amber-950/20">
                             {scorer.totalGoals}
                           </td>
-                          <td className="py-1.5 sm:py-2 px-1 text-center hidden sm:table-cell">
+                          <td className="py-1.5 sm:py-2 px-0.5 sm:px-1 text-center">
                             <span
-                              className="inline-flex items-center gap-1 font-mono text-[10px] font-bold"
+                              className="inline-flex items-center gap-0.5 sm:gap-1 font-mono text-[9px] sm:text-[10px] font-bold whitespace-nowrap"
                               title={`${scorer.homeGoals} de local, ${scorer.awayGoals} de visitante`}
                             >
                               <span className="text-[#1b55e2] dark:text-cyan-400">{scorer.homeGoals}L</span>

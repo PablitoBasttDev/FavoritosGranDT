@@ -405,9 +405,12 @@ async function fetchPromiedosLiveData(targetRound?: number): Promise<PromiedosCa
     let initialSelectedRound = 7;
 
     try {
+      // This HTML page (unlike the JSON API endpoints below, which reply in ~1s) has been
+      // observed to occasionally take several seconds to respond - 3.5s was cutting it off
+      // before it had a real chance to complete, well within the 30s function budget.
       const leagueRes = await fetch('https://www.promiedos.com.ar/league/liga-profesional/hc', {
         headers: PROMIEDOS_HEADERS,
-        signal: safeTimeoutSignal(3500),
+        signal: safeTimeoutSignal(9000),
       });
       if (leagueRes.ok) {
         const html = await leagueRes.text();
@@ -436,7 +439,19 @@ async function fetchPromiedosLiveData(targetRound?: number): Promise<PromiedosCa
     const clausuraFilters = filterList.filter(
       f => f.key?.startsWith('72_228_8_') || f.key?.includes('_8_')
     );
-    const effectiveFilters = clausuraFilters.length > 0 ? clausuraFilters : filterList;
+
+    // The league-phase filter keys follow a fully predictable "72_228_8_<fecha>" pattern
+    // (verified against Promiedos' own scraped filter list for every fecha 1-16) - so a
+    // specifically-requested round never has to depend on the HTML league-page scrape above
+    // succeeding. That page has been observed to occasionally take 30s+ to respond (vs. ~1s for
+    // this JSON API), and when it times out, filterList/clausuraFilters end up empty, which used
+    // to silently drop the per-round fetch entirely and fall back to the "latest" endpoint - a
+    // summary view that mixes adjacent fechas together and omits goal scorer detail entirely.
+    const deterministicFilters: Array<{ name: string; key: string }> = Array.from(
+      { length: 16 },
+      (_, i) => ({ name: `Fecha ${i + 1}`, key: `72_228_8_${i + 1}` })
+    );
+    const effectiveFilters = clausuraFilters.length > 0 ? clausuraFilters : deterministicFilters;
 
     // 2. Determine target rounds to fetch: focused on active round, neighbors (±1), and any requested round
     const targetRoundNumbers = new Set<number>();
@@ -628,6 +643,7 @@ interface PromiedosLeagueData {
   cleanSheetsClubs: any[];
   teamIdMap: Record<string, string>;
   lastFetched: number;
+  hasLiveScorers: boolean;
 }
 
 let cachedLeagueData: PromiedosLeagueData | null = null;
@@ -936,9 +952,12 @@ async function fetchPromiedosLeagueDetails(): Promise<PromiedosLeagueData> {
   let topScorers: any[] = [];
 
   try {
+    // Standings + scorers only exist embedded in this HTML page's data (no lighter JSON
+    // endpoint for them, unlike per-round fixtures) - give it the same headroom as the fixture
+    // fetch above rather than the tighter budget used for the fast JSON API calls elsewhere.
     const res = await fetch('https://www.promiedos.com.ar/league/liga-profesional/hc', {
       headers: PROMIEDOS_HEADERS,
-      signal: safeTimeoutSignal(3500),
+      signal: safeTimeoutSignal(9000),
     });
 
     if (res.ok) {
@@ -1120,6 +1139,7 @@ async function fetchPromiedosLeagueDetails(): Promise<PromiedosLeagueData> {
     cleanSheetsClubs: finalCleanSheets,
     teamIdMap,
     lastFetched: now,
+    hasLiveScorers: topScorers.length > 0,
   };
 
   return cachedLeagueData;
@@ -1660,12 +1680,16 @@ apiRouter.get('/promiedos/standings', async (req, res) => {
 apiRouter.get('/promiedos/scorers', async (req, res) => {
   try {
     const data = await fetchPromiedosLeagueDetails();
+    // isLive/isFallback must reflect whether the scrape actually produced live scorer data,
+    // not just that this request didn't throw - fetchPromiedosLeagueDetails silently falls back
+    // to getDefaultScorers() internally when the league page scrape fails/times out, which used
+    // to get mislabeled here as 'promiedos.com.ar'/isLive:true regardless.
     res.json({
       success: true,
-      isLive: true,
-      isFallback: false,
+      isLive: data.hasLiveScorers,
+      isFallback: !data.hasLiveScorers,
       tournament: 'Torneo Clausura 2026',
-      source: 'promiedos.com.ar',
+      source: data.hasLiveScorers ? 'promiedos.com.ar' : 'local-fallback',
       timestamp: data.lastFetched,
       scorers: data.topScorers,
     });
