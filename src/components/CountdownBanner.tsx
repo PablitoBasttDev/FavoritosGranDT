@@ -117,7 +117,7 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({ onSelectClub }
       if (dynamic.isFinished) finishedCount++;
       if (dynamic.isLive) liveCount++;
       dynamic.visibleEvents?.forEach(e => {
-        if (e.type === 'goal' || e.type === 'penalty_goal') totalGoals++;
+        if (e.type === 'goal' || e.type === 'penalty_goal' || e.type === 'own_goal') totalGoals++;
         if (e.type === 'red_card' || e.type === 'second_yellow') totalReds++;
       });
     });
@@ -519,18 +519,23 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({ onSelectClub }
                           </span>
                           {homeEvents.map((e, idx) => {
                             const isRed = e.type === 'red_card' || e.type === 'second_yellow';
+                            const isOwnGoal = e.type === 'own_goal';
                             return (
                               <span
                                 key={`home-event-${f.id}-${e.id || idx}-${idx}`}
+                                title={`${e.playerName}${isOwnGoal ? ' (en contra, jugador de ' + f.awayTeam + ')' : e.detail ? ' - ' + e.detail : ''}`}
                                 className={`inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[9.5px] font-semibold ${
                                   isRed
                                     ? 'bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 font-bold border border-rose-200 dark:border-rose-900'
+                                    : isOwnGoal
+                                    ? 'bg-orange-100 dark:bg-orange-950/80 text-orange-700 dark:text-orange-300 font-bold border border-orange-200 dark:border-orange-900'
                                     : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200/60 dark:border-slate-800'
                                 }`}
                               >
                                 <span>{isRed ? '🟥' : '⚽'}</span>
                                 <span className="font-mono">{e.minute}'</span>
                                 <span>{e.playerName.split(' ').pop()}</span>
+                                {isOwnGoal && <span className="font-black">(EC)</span>}
                               </span>
                             );
                           })}
@@ -544,18 +549,23 @@ export const CountdownBanner: React.FC<CountdownBannerProps> = ({ onSelectClub }
                           </span>
                           {awayEvents.map((e, idx) => {
                             const isRed = e.type === 'red_card' || e.type === 'second_yellow';
+                            const isOwnGoal = e.type === 'own_goal';
                             return (
                               <span
                                 key={`away-event-${f.id}-${e.id || idx}-${idx}`}
+                                title={`${e.playerName}${isOwnGoal ? ' (en contra, jugador de ' + f.homeTeam + ')' : e.detail ? ' - ' + e.detail : ''}`}
                                 className={`inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[9.5px] font-semibold ${
                                   isRed
                                     ? 'bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 font-bold border border-rose-200 dark:border-rose-900'
+                                    : isOwnGoal
+                                    ? 'bg-orange-100 dark:bg-orange-950/80 text-orange-700 dark:text-orange-300 font-bold border border-orange-200 dark:border-orange-900'
                                     : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-200/60 dark:border-slate-800'
                                 }`}
                               >
                                 <span>{isRed ? '🟥' : '⚽'}</span>
                                 <span className="font-mono">{e.minute}'</span>
                                 <span>{e.playerName.split(' ').pop()}</span>
+                                {isOwnGoal && <span className="font-black">(EC)</span>}
                               </span>
                             );
                           })}

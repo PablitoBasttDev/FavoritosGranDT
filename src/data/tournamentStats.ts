@@ -18,6 +18,8 @@ export interface ScorerStat {
   penalties: number;
   puntosTotales: number;
   partidosJugados: number;
+  homeGoals: number;
+  awayGoals: number;
   playerObj?: Player;
 }
 
@@ -56,7 +58,7 @@ export interface GoalkeeperDefenseStat {
 
 export interface IncidentStat {
   id: string;
-  type: 'goal' | 'penalty_goal' | 'red_card' | 'second_yellow';
+  type: 'goal' | 'penalty_goal' | 'own_goal' | 'red_card' | 'second_yellow';
   minute: number;
   playerName: string;
   team: string;
@@ -120,6 +122,52 @@ export function findPlayerByNameOrTeam(name: string, teamHint?: string): Player 
 }
 
 /**
+ * Agrega, por jugador, la cantidad de goles convertidos de local y de visitante a partir de los
+ * eventos de partido disputados (FIXTURES_DATA). Los autogoles ('own_goal') se excluyen: un gol
+ * en contra no se le acredita como gol convertido al jugador que lo hizo.
+ */
+export function getPlayerHomeAwayGoalSplits(
+  currentDate: Date = new Date()
+): Record<string, { home: number; away: number }> {
+  const splits: Record<string, { home: number; away: number }> = {};
+
+  FIXTURES_DATA.forEach(match => {
+    const dynamic = getDynamicMatchState(match, currentDate);
+    (dynamic.visibleEvents || []).forEach(ev => {
+      if (ev.type !== 'goal' && ev.type !== 'penalty_goal') return;
+      const key = normalizeForMatch(ev.playerName);
+      if (!key) return;
+      if (!splits[key]) splits[key] = { home: 0, away: 0 };
+      if (ev.team === 'home') splits[key].home += 1;
+      else splits[key].away += 1;
+    });
+  });
+
+  return splits;
+}
+
+/**
+ * Busca el split local/visitante de un jugador probando su nombre tal cual y, si viene en
+ * formato "Apellido, Nombre" (como en la base de Planeta Gran DT), también su forma invertida,
+ * ya que los eventos de partido de Promiedos usan "Nombre Apellido".
+ */
+export function lookupHomeAwaySplit(
+  splits: Record<string, { home: number; away: number }>,
+  playerName: string
+): { home: number; away: number } {
+  const norm = normalizeForMatch(playerName);
+  if (splits[norm]) return splits[norm];
+
+  const parts = playerName.split(',').map(s => s.trim());
+  if (parts.length === 2) {
+    const inverted = normalizeForMatch(`${parts[1]} ${parts[0]}`);
+    if (splits[inverted]) return splits[inverted];
+  }
+
+  return { home: 0, away: 0 };
+}
+
+/**
  * Obtiene la lista completa y precisa de todos los goleadores del Torneo Clausura 2026.
  * Extrae la base oficial de Planeta Gran DT (Google Sheet de Estadísticas) correspondiente
  * a la última fecha completa jugada.
@@ -130,12 +178,14 @@ export function getDynamicTopScorers(
 ): ScorerStat[] {
   const activeList = playersList && playersList.length > 0 ? playersList : ALL_PLAYERS;
   const results: ScorerStat[] = [];
+  const homeAwaySplits = getPlayerHomeAwayGoalSplits(currentDate);
 
   activeList.forEach(player => {
     const totalGoals = player.goles || 0;
     const penalties = player.golesPenal || 0;
 
     if (totalGoals > 0) {
+      const split = lookupHomeAwaySplit(homeAwaySplits, player.nombre);
       results.push({
         id: String(player.id),
         playerId: player.id,
@@ -150,6 +200,8 @@ export function getDynamicTopScorers(
         penalties,
         puntosTotales: player.puntosTotales || 0,
         partidosJugados: player.partidosJugados || 0,
+        homeGoals: split.home,
+        awayGoals: split.away,
         playerObj: player,
       });
     }
@@ -324,6 +376,7 @@ export function getDynamicRoundIncidents(currentDate: Date = new Date()): Incide
       if (
         ev.type === 'goal' ||
         ev.type === 'penalty_goal' ||
+        ev.type === 'own_goal' ||
         ev.type === 'red_card' ||
         ev.type === 'second_yellow'
       ) {
@@ -484,4 +537,74 @@ export function getTeamsPerformanceMetrics(currentDate: Date = new Date()): {
     liveMatches,
     totalMatches: roundFixtures.length,
   };
+}
+
+export interface StreakStat {
+  playerId: number;
+  playerName: string;
+  team: string;
+  posicion: 'ARQ' | 'DEF' | 'VOL' | 'DEL';
+  precio: string;
+  streakLength: number;
+  recentScores: number[]; // Fecha más reciente primero
+  recentPointsSum: number;
+  playerObj: Player;
+}
+
+/**
+ * Jugadores "en racha": aquellos que vienen rindiendo por encima de su propio promedio del
+ * torneo en fechas recientes consecutivas (sin fechas salteadas). Se usa el promedio propio del
+ * jugador como umbral - en vez de un número fijo - para que la racha refleje una mejora real de
+ * forma, y no solo que el jugador ya sea bueno de por sí.
+ */
+export function getPlayersOnStreak(
+  playersList: Player[] = ALL_PLAYERS,
+  minStreak: number = 2
+): StreakStat[] {
+  const activeList = playersList && playersList.length > 0 ? playersList : ALL_PLAYERS;
+  const results: StreakStat[] = [];
+
+  activeList.forEach(player => {
+    const fechas = player.fechasPuntajes || {};
+    const entries = Object.entries(fechas)
+      .map(([key, val]) => {
+        const fechaNum = parseInt(key.replace(/[^0-9]/g, ''), 10);
+        const score = typeof val === 'number' ? val : parseFloat(String(val).replace(',', '.'));
+        return { fechaNum, score };
+      })
+      .filter(e => !isNaN(e.fechaNum) && !isNaN(e.score))
+      .sort((a, b) => b.fechaNum - a.fechaNum);
+
+    if (entries.length < minStreak) return;
+
+    const baseline = player.promedio && player.promedio > 0 ? player.promedio : 5;
+    let streakLength = 0;
+    let expectedFecha = entries[0].fechaNum;
+
+    for (const e of entries) {
+      if (e.fechaNum !== expectedFecha || e.score < baseline) break;
+      streakLength++;
+      expectedFecha--;
+    }
+
+    if (streakLength >= minStreak) {
+      const recent = entries.slice(0, streakLength);
+      results.push({
+        playerId: player.id,
+        playerName: player.nombre,
+        team: player.equipo,
+        posicion: player.posicion,
+        precio: player.precio,
+        streakLength,
+        recentScores: recent.map(e => e.score),
+        recentPointsSum: recent.reduce((sum, e) => sum + e.score, 0),
+        playerObj: player,
+      });
+    }
+  });
+
+  return results.sort((a, b) => {
+    if (b.streakLength !== a.streakLength) return b.streakLength - a.streakLength;
+    return b.recentPointsSum - a.recentPointsSum;
+  });
 }

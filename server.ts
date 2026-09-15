@@ -161,6 +161,93 @@ function normalizeTeamName(raw: string): string {
   return raw.trim();
 }
 
+function isOwnGoalType(goalType?: string): boolean {
+  if (!goalType) return false;
+  const g = goalType.toLowerCase().replace(/[.\s]/g, '');
+  return g === 'ec' || g.includes('contra') || g.includes('own');
+}
+
+interface PromiedosCardDetail {
+  minute: number;
+  team: 'home' | 'away';
+  playerName: string;
+  isSecondYellow: boolean;
+}
+
+/**
+ * Promiedos' round-listing endpoint only exposes a red_cards COUNT per team, not who was sent
+ * off - the per-match detail page (SSR'd Next.js data) is the only place with named card events
+ * (type 5 = straight red, type 6 = red via second yellow). Only called for matches that actually
+ * have a red card, to keep this off the hot path for the other ~90% of matches each round.
+ */
+async function fetchPromiedosMatchCardEvents(urlName: string, gameId: string): Promise<PromiedosCardDetail[]> {
+  try {
+    const res = await fetch(`https://www.promiedos.com.ar/game/${urlName}/${gameId}`, {
+      headers: PROMIEDOS_HEADERS,
+      signal: safeTimeoutSignal(3500),
+    });
+    if (!res.ok) return [];
+    const html = await res.text();
+    const $ = cheerio.load(html);
+    const nextData = JSON.parse($('#__NEXT_DATA__').html() || '{}');
+    const stages = nextData.props?.pageProps?.initialData?.game?.events || [];
+
+    const cards: PromiedosCardDetail[] = [];
+    stages.forEach((stage: any) => {
+      (stage.rows || []).forEach((row: any) => {
+        (row.events || []).forEach((ev: any) => {
+          if (ev.type !== 5 && ev.type !== 6) return;
+          const playerName = ev.texts?.[0];
+          if (!playerName) return;
+          const minuteMatch = String(ev.time || '').match(/^(\d+)/);
+          cards.push({
+            minute: minuteMatch ? parseInt(minuteMatch[1], 10) : 0,
+            team: ev.team === 1 ? 'home' : 'away',
+            playerName,
+            isSecondYellow: ev.type === 6,
+          });
+        });
+      });
+    });
+
+    return cards.sort((a, b) => a.minute - b.minute);
+  } catch (err) {
+    console.warn('[PROMIEDOS_FETCH_NOTICE] Match card detail notice:', (err as Error).message);
+    return [];
+  }
+}
+
+/**
+ * Parses a round's raw games and, for any match with a red card, enriches the generic
+ * 'Tarjeta Roja' placeholder events with the real player name/minute from the match detail page.
+ */
+async function parseAndEnrichRoundGames(games: any[], roundNumber: number): Promise<PromiedosLiveMatch[]> {
+  return Promise.all(
+    games.map(async (g: any, idx: number) => {
+      const match = parsePromiedosGame(g, roundNumber, idx);
+      const hasRedCard = (g.teams?.[0]?.red_cards || 0) > 0 || (g.teams?.[1]?.red_cards || 0) > 0;
+
+      if (hasRedCard && g.url_name && g.id) {
+        const cardDetails = await fetchPromiedosMatchCardEvents(g.url_name, g.id);
+        if (cardDetails.length > 0) {
+          const nonCardEvents = match.events.filter(e => e.type !== 'red_card');
+          const namedCardEvents = cardDetails.map((cd, i) => ({
+            id: `ev-prom-${g.id}-card-${i}`,
+            minute: cd.minute,
+            type: 'red_card' as const,
+            team: cd.team,
+            playerName: cd.playerName,
+            detail: cd.isSecondYellow ? 'Doble amarilla' : 'Expulsión',
+          }));
+          match.events = [...nonCardEvents, ...namedCardEvents].sort((a, b) => a.minute - b.minute);
+        }
+      }
+
+      return match;
+    })
+  );
+}
+
 function parsePromiedosGame(g: any, roundNumber: number, idx: number): PromiedosLiveMatch {
   const homeRaw = g.teams?.[0]?.name || g.teams?.[0]?.short_name || '';
   const awayRaw = g.teams?.[1]?.name || g.teams?.[1]?.short_name || '';
@@ -210,10 +297,14 @@ function parsePromiedosGame(g: any, roundNumber: number, idx: number): Promiedos
       events.push({
         id: `ev-prom-${g.id || idx}-h-${gIdx}`,
         minute: typeof goal.time === 'number' ? goal.time : 0,
-        type: goal.goal_type?.toLowerCase().includes('pen') ? 'penalty_goal' : 'goal',
+        // Promiedos marks own goals with goal_type "E.C" ("En Contra"). The scorer's name in
+        // this case belongs to the CONCEDING side, credited here to the benefiting team - so
+        // it must be tagged 'own_goal', never a plain 'goal', or the UI shows it as if that
+        // player scored for the team it's listed under.
+        type: isOwnGoalType(goal.goal_type) ? 'own_goal' : goal.goal_type?.toLowerCase().includes('pen') ? 'penalty_goal' : 'goal',
         team: 'home',
         playerName: goal.player_name || goal.player_sname || 'Gol',
-        detail: goal.goal_type || 'Gol',
+        detail: isOwnGoalType(goal.goal_type) ? 'Gol en contra' : goal.goal_type || 'Gol',
       });
     });
 
@@ -235,10 +326,10 @@ function parsePromiedosGame(g: any, roundNumber: number, idx: number): Promiedos
       events.push({
         id: `ev-prom-${g.id || idx}-a-${gIdx}`,
         minute: typeof goal.time === 'number' ? goal.time : 0,
-        type: goal.goal_type?.toLowerCase().includes('pen') ? 'penalty_goal' : 'goal',
+        type: isOwnGoalType(goal.goal_type) ? 'own_goal' : goal.goal_type?.toLowerCase().includes('pen') ? 'penalty_goal' : 'goal',
         team: 'away',
         playerName: goal.player_name || goal.player_sname || 'Gol',
-        detail: goal.goal_type || 'Gol',
+        detail: isOwnGoalType(goal.goal_type) ? 'Gol en contra' : goal.goal_type || 'Gol',
       });
     });
 
@@ -331,9 +422,7 @@ async function fetchPromiedosLiveData(targetRound?: number): Promise<PromiedosCa
           const selectedFilter = filterList.find(f => f.selected);
           const roundNameMatch = (preloadedGames[0]?.stage_round_name || selectedFilter?.name || '').match(/Fecha\s+(\d+)/i);
           initialSelectedRound = roundNameMatch ? parseInt(roundNameMatch[1], 10) : 7;
-          allRounds[initialSelectedRound] = preloadedGames.map((g: any, idx: number) =>
-            parsePromiedosGame(g, initialSelectedRound, idx)
-          );
+          allRounds[initialSelectedRound] = await parseAndEnrichRoundGames(preloadedGames, initialSelectedRound);
           activeRoundNumber = initialSelectedRound;
         }
       } else {
@@ -384,9 +473,7 @@ async function fetchPromiedosLiveData(targetRound?: number): Promise<PromiedosCa
             if (res.ok) {
               const data = await res.json();
               if (data.games && Array.isArray(data.games)) {
-                const parsed = data.games.map((g: any, idx: number) =>
-                  parsePromiedosGame(g, fechaNum, idx)
-                );
+                const parsed = await parseAndEnrichRoundGames(data.games, fechaNum);
                 return { fechaNum, matches: parsed };
               }
             }
@@ -422,9 +509,7 @@ async function fetchPromiedosLiveData(targetRound?: number): Promise<PromiedosCa
             const matchFecha = latestData.games[0]?.stage_round_name?.match(/Fecha\s+(\d+)/i);
             const roundNum = matchFecha ? parseInt(matchFecha[1], 10) : 6;
 
-            const parsedMatches = latestData.games.map((g: any, idx: number) =>
-              parsePromiedosGame(g, roundNum, idx)
-            );
+            const parsedMatches = await parseAndEnrichRoundGames(latestData.games, roundNum);
             allRounds[roundNum] = [...parsedMatches].sort((a, b) => {
               const aT = a.kickoff ? new Date(a.kickoff).getTime() : 0;
               const bT = b.kickoff ? new Date(b.kickoff).getTime() : 0;

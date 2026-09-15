@@ -94,11 +94,11 @@ export const FIXTURES_DATA: MatchFixture[] = [
       },
       {
         "id": "ev-1-1-a-red-1",
-        "minute": 80,
+        "minute": 90,
         "type": "red_card",
         "team": "away",
-        "playerName": "Tarjeta Roja",
-        "detail": "Expulsión"
+        "playerName": "Diego Porcel",
+        "detail": "Doble amarilla"
       },
       {
         "id": "ev-1-1-a-3",
@@ -293,10 +293,10 @@ export const FIXTURES_DATA: MatchFixture[] = [
       {
         "id": "ev-1-7-h-1",
         "minute": 24,
-        "type": "goal",
+        "type": "own_goal",
         "team": "home",
         "playerName": "Tomas Fagioli",
-        "detail": "E.C"
+        "detail": "Gol en contra"
       },
       {
         "id": "ev-1-7-a-1",
@@ -399,11 +399,11 @@ export const FIXTURES_DATA: MatchFixture[] = [
       },
       {
         "id": "ev-1-10-a-red-1",
-        "minute": 80,
+        "minute": 86,
         "type": "red_card",
         "team": "away",
-        "playerName": "Tarjeta Roja",
-        "detail": "Expulsión"
+        "playerName": "Román Riquelme",
+        "detail": "Doble amarilla"
       }
     ]
   },
@@ -859,10 +859,10 @@ export const FIXTURES_DATA: MatchFixture[] = [
       },
       {
         "id": "ev-2-9-a-red-1",
-        "minute": 80,
+        "minute": 90,
         "type": "red_card",
         "team": "away",
-        "playerName": "Tarjeta Roja",
+        "playerName": "Leandro Lescano",
         "detail": "Expulsión"
       }
     ]
@@ -1016,11 +1016,11 @@ export const FIXTURES_DATA: MatchFixture[] = [
     "events": [
       {
         "id": "ev-2-14-a-red-1",
-        "minute": 80,
+        "minute": 87,
         "type": "red_card",
         "team": "away",
-        "playerName": "Tarjeta Roja",
-        "detail": "Expulsión"
+        "playerName": "Adrián Sánchez",
+        "detail": "Doble amarilla"
       }
     ]
   },
@@ -1139,10 +1139,10 @@ export const FIXTURES_DATA: MatchFixture[] = [
       },
       {
         "id": "ev-3-3-h-red-1",
-        "minute": 80,
+        "minute": 38,
         "type": "red_card",
         "team": "home",
-        "playerName": "Tarjeta Roja",
+        "playerName": "Franco Vazquez",
         "detail": "Expulsión"
       }
     ]
@@ -1370,18 +1370,18 @@ export const FIXTURES_DATA: MatchFixture[] = [
       {
         "id": "ev-3-9-a-1",
         "minute": 27,
-        "type": "goal",
+        "type": "own_goal",
         "team": "away",
         "playerName": "Nicolás Otamendi",
-        "detail": "E.C"
+        "detail": "Gol en contra"
       },
       {
         "id": "ev-3-9-a-red-1",
-        "minute": 80,
+        "minute": 83,
         "type": "red_card",
         "team": "away",
-        "playerName": "Tarjeta Roja",
-        "detail": "Expulsión"
+        "playerName": "Emanuel Coronel",
+        "detail": "Doble amarilla"
       }
     ]
   },
@@ -1592,10 +1592,10 @@ export const FIXTURES_DATA: MatchFixture[] = [
       {
         "id": "ev-4-1-h-1",
         "minute": 61,
-        "type": "goal",
+        "type": "own_goal",
         "team": "home",
         "playerName": "Nicolás Zalazar",
-        "detail": "E.C"
+        "detail": "Gol en contra"
       },
       {
         "id": "ev-4-1-h-2",
@@ -1863,10 +1863,10 @@ export const FIXTURES_DATA: MatchFixture[] = [
       },
       {
         "id": "ev-4-9-h-red-1",
-        "minute": 80,
+        "minute": 62,
         "type": "red_card",
         "team": "home",
-        "playerName": "Tarjeta Roja",
+        "playerName": "Orlando Gill",
         "detail": "Expulsión"
       }
     ]
@@ -1937,11 +1937,11 @@ export const FIXTURES_DATA: MatchFixture[] = [
       },
       {
         "id": "ev-4-11-a-red-1",
-        "minute": 80,
+        "minute": 40,
         "type": "red_card",
         "team": "away",
-        "playerName": "Tarjeta Roja",
-        "detail": "Expulsión"
+        "playerName": "Jerónimo Russo",
+        "detail": "Doble amarilla"
       },
       {
         "id": "ev-4-11-a-1",
@@ -1994,10 +1994,10 @@ export const FIXTURES_DATA: MatchFixture[] = [
       },
       {
         "id": "ev-4-12-a-red-1",
-        "minute": 80,
+        "minute": 21,
         "type": "red_card",
         "team": "away",
-        "playerName": "Tarjeta Roja",
+        "playerName": "Adrian Martinez",
         "detail": "Expulsión"
       }
     ]
@@ -2159,11 +2159,11 @@ export const FIXTURES_DATA: MatchFixture[] = [
     "events": [
       {
         "id": "ev-5-2-a-red-1",
-        "minute": 80,
+        "minute": 78,
         "type": "red_card",
         "team": "away",
-        "playerName": "Tarjeta Roja",
-        "detail": "Expulsión"
+        "playerName": "Gonzalo Requena",
+        "detail": "Doble amarilla"
       }
     ]
   },
@@ -2233,19 +2233,19 @@ export const FIXTURES_DATA: MatchFixture[] = [
       },
       {
         "id": "ev-5-4-a-red-1",
-        "minute": 80,
+        "minute": 35,
         "type": "red_card",
         "team": "away",
-        "playerName": "Tarjeta Roja",
+        "playerName": "Alexis Steimbach",
         "detail": "Expulsión"
       },
       {
         "id": "ev-5-4-a-red-2",
-        "minute": 80,
+        "minute": 53,
         "type": "red_card",
         "team": "away",
-        "playerName": "Tarjeta Roja",
-        "detail": "Expulsión"
+        "playerName": "Germán Conti",
+        "detail": "Doble amarilla"
       },
       {
         "id": "ev-5-4-h-4",
@@ -2275,10 +2275,10 @@ export const FIXTURES_DATA: MatchFixture[] = [
       {
         "id": "ev-5-5-h-1",
         "minute": 42,
-        "type": "goal",
+        "type": "own_goal",
         "team": "home",
         "playerName": "Tomas Bottari",
-        "detail": "E.C"
+        "detail": "Gol en contra"
       },
       {
         "id": "ev-5-5-h-2",
@@ -2381,10 +2381,10 @@ export const FIXTURES_DATA: MatchFixture[] = [
       },
       {
         "id": "ev-5-8-a-red-1",
-        "minute": 80,
+        "minute": 66,
         "type": "red_card",
         "team": "away",
-        "playerName": "Tarjeta Roja",
+        "playerName": "Jordy Caicedo",
         "detail": "Expulsión"
       },
       {
@@ -2497,11 +2497,11 @@ export const FIXTURES_DATA: MatchFixture[] = [
     "events": [
       {
         "id": "ev-5-12-a-red-1",
-        "minute": 80,
+        "minute": 89,
         "type": "red_card",
         "team": "away",
-        "playerName": "Tarjeta Roja",
-        "detail": "Expulsión"
+        "playerName": "Ignacio Galván",
+        "detail": "Doble amarilla"
       },
       {
         "id": "ev-5-12-a-1",
@@ -2554,11 +2554,11 @@ export const FIXTURES_DATA: MatchFixture[] = [
       },
       {
         "id": "ev-5-13-h-red-1",
-        "minute": 80,
+        "minute": 90,
         "type": "red_card",
         "team": "home",
-        "playerName": "Tarjeta Roja",
-        "detail": "Expulsión"
+        "playerName": "Ramiro Carrera",
+        "detail": "Doble amarilla"
       },
       {
         "id": "ev-5-13-a-3",
@@ -2644,18 +2644,18 @@ export const FIXTURES_DATA: MatchFixture[] = [
       },
       {
         "id": "ev-5-15-h-red-1",
-        "minute": 80,
+        "minute": 67,
         "type": "red_card",
         "team": "home",
-        "playerName": "Tarjeta Roja",
+        "playerName": "Juan Franco",
         "detail": "Expulsión"
       },
       {
         "id": "ev-5-15-a-red-1",
-        "minute": 80,
+        "minute": 68,
         "type": "red_card",
         "team": "away",
-        "playerName": "Tarjeta Roja",
+        "playerName": "Román Riquelme",
         "detail": "Expulsión"
       },
       {
@@ -2717,10 +2717,10 @@ export const FIXTURES_DATA: MatchFixture[] = [
       },
       {
         "id": "ev-6-1-a-red-1",
-        "minute": 80,
+        "minute": 85,
         "type": "red_card",
         "team": "away",
-        "playerName": "Tarjeta Roja",
+        "playerName": "Julián Palacios",
         "detail": "Expulsión"
       }
     ]
@@ -3028,10 +3028,10 @@ export const FIXTURES_DATA: MatchFixture[] = [
       {
         "id": "ev-6-11-h-2",
         "minute": 43,
-        "type": "goal",
+        "type": "own_goal",
         "team": "home",
         "playerName": "Thiago Silvero",
-        "detail": "E.C"
+        "detail": "Gol en contra"
       },
       {
         "id": "ev-6-11-a-1",

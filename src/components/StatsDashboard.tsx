@@ -5,14 +5,17 @@ import { FIXTURES_DATA, subscribeToFixturesUpdate, areTeamNamesEqual } from '../
 import { getDynamicStandings, TeamStanding } from '../data/standings.js';
 import {
   getDynamicTopScorers,
-  getDynamicRoundIncidents,
   getTeamsPerformanceMetrics,
   getDynamicGoalkeeperDefenseStats,
   getDynamicClubDefenseStats,
+  getPlayerHomeAwayGoalSplits,
+  lookupHomeAwaySplit,
+  getPlayersOnStreak,
   findPlayerByNameOrTeam,
   ScorerStat,
   GoalkeeperDefenseStat,
   ClubDefenseStat,
+  StreakStat,
 } from '../data/tournamentStats.js';
 import { TeamBadge } from './TeamBadge.js';
 import { PositionBadge } from './PositionBadge.js';
@@ -40,6 +43,7 @@ import {
   Info,
   Sparkles,
   RefreshCw,
+  TrendingUp,
 } from 'lucide-react';
 import { Player } from '../types';
 
@@ -99,10 +103,16 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
   // Cálculos dinámicos reactivos extraídos de las fuentes oficiales
   const dynamicStandings = useMemo(() => getDynamicStandings(now), [now]);
   const fallbackTopScorers = useMemo(() => getDynamicTopScorers(now, players), [now, players]);
-  const roundIncidents = useMemo(() => getDynamicRoundIncidents(now), [now]);
+  const playersOnStreak: StreakStat[] = useMemo(
+    () => getPlayersOnStreak(players && players.length > 0 ? players : ALL_PLAYERS),
+    [players]
+  );
   const teamMetrics = useMemo(() => getTeamsPerformanceMetrics(now), [now]);
   const fallbackClubDefenseStats = useMemo(() => getDynamicClubDefenseStats(now, players), [now, players]);
   const goalkeeperStats = useMemo(() => getDynamicGoalkeeperDefenseStats(now, players), [now, players]);
+
+  // Split de goles de local/visitante por jugador, calculado a partir de los eventos de partido disputados
+  const homeAwayGoalSplits = useMemo(() => getPlayerHomeAwayGoalSplits(now), [now]);
 
   // Top Scorers: Promiedos official table for Clausura 2026 enriched with Planeta Gran DT stats & prices
   const topScorers: ScorerStat[] = useMemo(() => {
@@ -111,6 +121,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       return promiedosScorers.map(ps => {
         const playerObj = findPlayerByNameOrTeam(ps.playerName, ps.team);
         const pos = playerObj?.posicion || (ps.position?.toLowerCase().includes('del') ? 'DEL' : ps.position?.toLowerCase().includes('vol') ? 'VOL' : ps.position?.toLowerCase().includes('def') ? 'DEF' : 'DEL');
+        const split = lookupHomeAwaySplit(homeAwayGoalSplits, ps.playerName);
         return {
           id: ps.promiedosPlayerId || ps.playerName,
           playerId: playerObj?.id,
@@ -125,12 +136,14 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           penalties: 0,
           puntosTotales: playerObj?.puntosTotales || 0,
           partidosJugados: playerObj?.partidosJugados || 0,
+          homeGoals: split.home,
+          awayGoals: split.away,
           playerObj,
         };
       });
     }
     return fallbackTopScorers;
-  }, [promiedosScorers, players, fallbackTopScorers]);
+  }, [promiedosScorers, players, fallbackTopScorers, homeAwayGoalSplits]);
 
   // Clean Sheets: Promiedos official matches in Clausura 2026
   const clubDefenseStats: ClubDefenseStat[] = useMemo(() => {
@@ -675,9 +688,11 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                       <th className="py-2 px-1 sm:px-1.5 text-center font-black text-slate-900 dark:text-slate-200">
                         Goles
                       </th>
-                      <th className="py-2 px-1 text-center hidden md:table-cell">Penales</th>
-                      <th className="py-2 px-1 sm:px-2 text-center bg-blue-50/60 dark:bg-blue-950/40 text-[#1b55e2] dark:text-cyan-300">
-                        <span className="hidden sm:inline">Pts F5</span>
+                      <th className="py-2 px-1 text-center hidden sm:table-cell" title="Goles de local / Goles de visitante">
+                        L / V
+                      </th>
+                      <th className="py-2 px-1 sm:px-2 text-center bg-blue-50/60 dark:bg-blue-950/40 text-[#1b55e2] dark:text-cyan-300" title="Puntaje total acumulado actual del jugador">
+                        <span className="hidden sm:inline">Puntaje Actual</span>
                         <span className="sm:hidden">Pts</span>
                       </th>
                       <th className="py-2 px-1 sm:px-3 text-right">Precio</th>
@@ -732,8 +747,15 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                           <td className="py-1.5 sm:py-2 px-1 sm:px-1.5 text-center font-mono font-black text-amber-600 dark:text-amber-400 text-xs sm:text-sm bg-amber-50/50 dark:bg-amber-950/20">
                             {scorer.totalGoals}
                           </td>
-                          <td className="py-1.5 sm:py-2 px-1 text-center font-mono text-slate-500 hidden md:table-cell">
-                            {scorer.penalties > 0 ? scorer.penalties : '-'}
+                          <td className="py-1.5 sm:py-2 px-1 text-center hidden sm:table-cell">
+                            <span
+                              className="inline-flex items-center gap-1 font-mono text-[10px] font-bold"
+                              title={`${scorer.homeGoals} de local, ${scorer.awayGoals} de visitante`}
+                            >
+                              <span className="text-[#1b55e2] dark:text-cyan-400">{scorer.homeGoals}L</span>
+                              <span className="text-slate-300 dark:text-slate-600">/</span>
+                              <span className="text-slate-600 dark:text-slate-400">{scorer.awayGoals}V</span>
+                            </span>
                           </td>
                           <td className="py-1.5 sm:py-2 px-1 sm:px-2 text-center font-mono font-black text-[#1b55e2] dark:text-cyan-400 bg-blue-50/30 dark:bg-blue-950/20 text-xs">
                             {scorer.puntosTotales}
@@ -752,48 +774,48 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
               </div>
             </div>
 
-            {/* Incidents & Timeline */}
+            {/* Jugadores en Racha */}
             <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs p-4 space-y-3">
               <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-1.5">
-                  <Activity className="w-4 h-4 text-cyan-600" />
+                  <TrendingUp className="w-4 h-4 text-emerald-600" />
                   <h3 className="font-black text-xs uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                    Goles e Incidencias en Vivo
+                    Jugadores en Racha
                   </h3>
                 </div>
-                <span className="text-[10px] text-blue-600 font-bold uppercase">Fecha 6</span>
+                <span className="text-[10px] text-emerald-600 font-bold uppercase">{playersOnStreak.length}</span>
               </div>
+              <p className="text-[10.5px] text-slate-500 dark:text-slate-400 -mt-1.5">
+                Rindiendo por encima de su propio promedio en fechas consecutivas.
+              </p>
 
               <div className="space-y-2 max-h-[580px] overflow-y-auto">
-                {roundIncidents.length === 0 ? (
+                {playersOnStreak.length === 0 ? (
                   <p className="text-xs text-slate-500 py-6 text-center">
-                    No hay goles o incidencias registradas aún en esta fecha.
+                    Ningún jugador está en racha en este momento.
                   </p>
                 ) : (
-                  roundIncidents.map((inc, idx) => (
+                  playersOnStreak.slice(0, 20).map((p, idx) => (
                     <div
-                      key={`incident-${inc.id || inc.playerName}-${idx}`}
-                      className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs flex items-center justify-between gap-2"
+                      key={`streak-${p.playerId}-${idx}`}
+                      className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs flex items-center justify-between gap-2 cursor-pointer hover:border-emerald-300 dark:hover:border-emerald-800 transition"
+                      onClick={() => p.playerObj && onSelectPlayer?.(p.playerObj)}
+                      title={`Ver estadísticas de ${p.playerName}`}
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-900 dark:text-cyan-300 font-mono font-black text-[10px] shrink-0">
-                          {inc.minute}'
-                        </span>
+                        <TeamBadge teamName={p.team} size="xs" showName={false} />
                         <div className="min-w-0">
                           <span className="font-black text-slate-900 dark:text-slate-100 block truncate">
-                            {inc.type === 'goal'
-                              ? '⚽ Gol: '
-                              : inc.type === 'red_card'
-                              ? '🟥 Expulsión: '
-                              : '⚽ Gol de penal: '}
-                            {inc.playerName}
+                            {p.playerName}
                           </span>
                           <span className="text-[10px] text-slate-500 block truncate">
-                            {inc.team} vs {inc.rival} {inc.detail ? `(${inc.detail})` : ''}
+                            {p.team} · últimos puntajes: {p.recentScores.join(' · ')}
                           </span>
                         </div>
                       </div>
-                      <TeamBadge teamName={inc.team} size="xs" showName={false} />
+                      <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-mono font-black text-[10px] border border-emerald-300 dark:border-emerald-800">
+                        🔥 {p.streakLength}
+                      </span>
                     </div>
                   ))
                 )}
