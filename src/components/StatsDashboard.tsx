@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ALL_PLAYERS } from '../data/players.js';
 import { TEAMS_DATA } from '../data/teams.js';
-import { FIXTURES_DATA, subscribeToFixturesUpdate, areTeamNamesEqual } from '../data/fixture.js';
+import { FIXTURES_DATA, subscribeToFixturesUpdate, areTeamNamesEqual, getLastCompletedRoundNumber } from '../data/fixture.js';
 import { getDynamicStandings, TeamStanding } from '../data/standings.js';
 import {
   getDynamicTopScorers,
@@ -10,6 +10,8 @@ import {
   getDynamicClubDefenseStats,
   getPlayerHomeAwayGoalSplits,
   lookupHomeAwaySplit,
+  getPlayerGoalsByRound,
+  lookupRoundGoals,
   getPlayersOnStreak,
   findPlayerByNameOrTeam,
   ScorerStat,
@@ -24,6 +26,7 @@ import {
   usePromiedosStandings,
   usePromiedosScorers,
   usePromiedosCleanSheets,
+  usePromiedosLiveFixture,
 } from '../services/promiedosService.js';
 import { normalizeText } from '../utils/textUtils.js';
 import {
@@ -67,10 +70,20 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
   const [roundLabelState, setRoundLabelState] = useState<string>(() => getActiveRoundLabel());
   const [lastAutoSyncTime, setLastAutoSyncTime] = useState<Date>(new Date());
 
+  // Última fecha completamente jugada - a diferencia de la "fecha activa" del torneo, esta no
+  // salta a la fecha siguiente hasta que esa fecha siguiente arranca, así que sigue apuntando a
+  // los resultados recién terminados mientras se arma el equipo para la próxima fecha.
+  const lastCompletedRound = useMemo(() => getLastCompletedRoundNumber(now), [now]);
+
   // Promiedos Live Feeds (Torneo Clausura 2026)
   const { standings: promiedosStandings, refetch: refetchStandings } = usePromiedosStandings();
   const { scorers: promiedosScorers, refetch: refetchScorers } = usePromiedosScorers();
   const { cleanSheets: promiedosCleanSheets, refetch: refetchCleanSheets } = usePromiedosCleanSheets();
+  // Fuerza la sincronización de esa última fecha jugada específica: la sincronización global de
+  // la app (App.tsx) sigue a la "fecha activa", que ya avanzó a la próxima fecha (todavía sin
+  // jugar) apenas termina la anterior - sin este fetch explícito, los goles de la última fecha
+  // jugada podrían no estar disponibles todavía en FIXTURES_DATA.
+  usePromiedosLiveFixture(lastCompletedRound);
 
   // Actualización automática cada 2 segundos a medida que transcurre el tiempo/fecha
   useEffect(() => {
@@ -104,15 +117,17 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
   const dynamicStandings = useMemo(() => getDynamicStandings(now), [now]);
   const fallbackTopScorers = useMemo(() => getDynamicTopScorers(now, players), [now, players]);
   const playersOnStreak: StreakStat[] = useMemo(
-    () => getPlayersOnStreak(players && players.length > 0 ? players : ALL_PLAYERS),
-    [players]
+    () => getPlayersOnStreak(players && players.length > 0 ? players : ALL_PLAYERS, now),
+    [players, now]
   );
   const teamMetrics = useMemo(() => getTeamsPerformanceMetrics(now), [now]);
   const fallbackClubDefenseStats = useMemo(() => getDynamicClubDefenseStats(now, players), [now, players]);
   const goalkeeperStats = useMemo(() => getDynamicGoalkeeperDefenseStats(now, players), [now, players]);
 
-  // Split de goles de local/visitante por jugador, calculado a partir de los eventos de partido disputados
+  // Split de goles de local/visitante, y goles por fecha, por jugador - calculados a partir de
+  // los eventos reales de cada partido disputado
   const homeAwayGoalSplits = useMemo(() => getPlayerHomeAwayGoalSplits(now), [now]);
+  const goalsByRound = useMemo(() => getPlayerGoalsByRound(now), [now]);
 
   // Top Scorers: Promiedos official table for Clausura 2026 enriched with Planeta Gran DT stats & prices
   const topScorers: ScorerStat[] = useMemo(() => {
@@ -122,6 +137,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
         const playerObj = findPlayerByNameOrTeam(ps.playerName, ps.team);
         const pos = playerObj?.posicion || (ps.position?.toLowerCase().includes('del') ? 'DEL' : ps.position?.toLowerCase().includes('vol') ? 'VOL' : ps.position?.toLowerCase().includes('def') ? 'DEF' : 'DEL');
         const split = lookupHomeAwaySplit(homeAwayGoalSplits, ps.playerName);
+        const roundGoals = lookupRoundGoals(goalsByRound, ps.playerName, lastCompletedRound);
         return {
           id: ps.promiedosPlayerId || ps.playerName,
           playerId: playerObj?.id,
@@ -132,7 +148,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           precioNum: playerObj?.precioNum || 6000000,
           totalGoals: ps.goals,
           baseGoals: ps.goals,
-          roundGoals: 0,
+          roundGoals,
           penalties: 0,
           puntosTotales: playerObj?.puntosTotales || 0,
           partidosJugados: playerObj?.partidosJugados || 0,
@@ -143,7 +159,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       });
     }
     return fallbackTopScorers;
-  }, [promiedosScorers, players, fallbackTopScorers, homeAwayGoalSplits]);
+  }, [promiedosScorers, players, fallbackTopScorers, homeAwayGoalSplits, goalsByRound, lastCompletedRound]);
 
   // Clean Sheets: Promiedos official matches in Clausura 2026
   const clubDefenseStats: ClubDefenseStat[] = useMemo(() => {
@@ -684,7 +700,9 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                       <th className="py-2 px-1 sm:px-3">Jugador</th>
                       <th className="py-2 px-0.5 sm:px-1 text-center">Pos</th>
                       <th className="py-2 px-1 sm:px-2 text-center sm:text-left">Club</th>
-                      <th className="py-2 px-1 text-center hidden sm:table-cell">Goles F6</th>
+                      <th className="py-2 px-1 text-center hidden sm:table-cell" title={`Goles convertidos en la Fecha ${lastCompletedRound}, la última jugada`}>
+                        Goles F{lastCompletedRound}
+                      </th>
                       <th className="py-2 px-1 sm:px-1.5 text-center font-black text-slate-900 dark:text-slate-200">
                         Goles
                       </th>
@@ -786,13 +804,13 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 <span className="text-[10px] text-emerald-600 font-bold uppercase">{playersOnStreak.length}</span>
               </div>
               <p className="text-[10.5px] text-slate-500 dark:text-slate-400 -mt-1.5">
-                Rindiendo por encima de su propio promedio en fechas consecutivas.
+                Convirtieron gol en cada una de sus últimas fechas jugadas consecutivas.
               </p>
 
               <div className="space-y-2 max-h-[580px] overflow-y-auto">
                 {playersOnStreak.length === 0 ? (
                   <p className="text-xs text-slate-500 py-6 text-center">
-                    Ningún jugador está en racha en este momento.
+                    Ningún jugador está en racha goleadora en este momento.
                   </p>
                 ) : (
                   playersOnStreak.slice(0, 20).map((p, idx) => (
@@ -809,7 +827,7 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                             {p.playerName}
                           </span>
                           <span className="text-[10px] text-slate-500 block truncate">
-                            {p.team} · últimos puntajes: {p.recentScores.join(' · ')}
+                            {p.team} · últimos goles: {p.recentGoals.join(' · ')}
                           </span>
                         </div>
                       </div>

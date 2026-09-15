@@ -5349,6 +5349,27 @@ export function getRoundFixtures(fechaNum: number): MatchFixture[] {
 }
 
 /**
+ * Última fecha completamente jugada (todos sus partidos FINISHED), sin importar que el
+ * calendario ya haya "saltado" a la fecha siguiente. getTournamentRoundStatus().roundNumber pasa
+ * a apuntar a la fecha próxima en cuanto la anterior termina - incluso si esa próxima fecha
+ * todavía no arrancó - por lo que no sirve para mostrar "qué pasó en la última fecha jugada"
+ * durante la ventana entre fechas, que es justo cuando se arma el equipo para la siguiente.
+ */
+export function getLastCompletedRoundNumber(currentDate: Date = new Date()): number {
+  const grouped = getFixturesGroupedByRound();
+  const roundNumbers = Object.keys(grouped).map(Number).sort((a, b) => b - a);
+
+  for (const rNum of roundNumbers) {
+    const matches = grouped[rNum];
+    if (!matches || matches.length === 0) continue;
+    const allFinished = matches.every(m => getDynamicMatchState(m, currentDate).status === 'FINISHED');
+    if (allFinished) return rNum;
+  }
+
+  return roundNumbers[roundNumbers.length - 1] || 1;
+}
+
+/**
  * Calcula el estado de la fecha del torneo actual o próxima de manera totalmente automática:
  * - Si la fecha ya comenzó su primer partido y aún hay partidos pendientes o en juego:
  *   marca 'FECHA EN JUEGO' (isRoundInPlay = true).
