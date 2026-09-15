@@ -12,12 +12,10 @@ import {
   lookupHomeAwaySplit,
   getPlayerGoalsByRound,
   lookupRoundGoals,
-  getPlayersOnStreak,
   findPlayerByNameOrTeam,
   ScorerStat,
   GoalkeeperDefenseStat,
   ClubDefenseStat,
-  StreakStat,
 } from '../data/tournamentStats.js';
 import { TeamBadge } from './TeamBadge.js';
 import { PositionBadge } from './PositionBadge.js';
@@ -46,7 +44,6 @@ import {
   Info,
   Sparkles,
   RefreshCw,
-  TrendingUp,
 } from 'lucide-react';
 import { Player } from '../types';
 
@@ -116,10 +113,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
   // Cálculos dinámicos reactivos extraídos de las fuentes oficiales
   const dynamicStandings = useMemo(() => getDynamicStandings(now), [now]);
   const fallbackTopScorers = useMemo(() => getDynamicTopScorers(now, players), [now, players]);
-  const playersOnStreak: StreakStat[] = useMemo(
-    () => getPlayersOnStreak(players && players.length > 0 ? players : ALL_PLAYERS, now),
-    [players, now]
-  );
   const teamMetrics = useMemo(() => getTeamsPerformanceMetrics(now), [now]);
   const fallbackClubDefenseStats = useMemo(() => getDynamicClubDefenseStats(now, players), [now, players]);
   const goalkeeperStats = useMemo(() => getDynamicGoalkeeperDefenseStats(now, players), [now, players]);
@@ -170,6 +163,8 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
           teamName: cs.teamName,
           zone: (cs.zone as 'Zona A' | 'Zona B') || fallback?.zone || 'Zona A',
           cleanSheetsTotal: cs.cleanSheets,
+          homeCleanSheets: fallback?.homeCleanSheets || 0,
+          awayCleanSheets: fallback?.awayCleanSheets || 0,
           baseCleanSheets: cs.cleanSheets,
           roundCleanSheet: fallback?.roundCleanSheet || false,
           played: cs.played,
@@ -663,9 +658,9 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
       {/* TAB 2: TABLA DE GOLEADORES EN VIVO */}
       {activeTab === 'GOLEADORES' && (
         <div className="space-y-3">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 min-w-0">
+          <div className="grid grid-cols-1 gap-3 min-w-0">
             {/* Main Top Scorers Table */}
-            <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs p-2.5 sm:p-4 space-y-3">
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs p-2.5 sm:p-4 space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
                 <div>
                   <div className="flex items-center gap-1.5">
@@ -791,54 +786,6 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                 </table>
               </div>
             </div>
-
-            {/* Jugadores en Racha */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-300/90 dark:border-slate-800 shadow-xs p-4 space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
-                <div className="flex items-center gap-1.5">
-                  <TrendingUp className="w-4 h-4 text-emerald-600" />
-                  <h3 className="font-black text-xs uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                    Jugadores en Racha
-                  </h3>
-                </div>
-                <span className="text-[10px] text-emerald-600 font-bold uppercase">{playersOnStreak.length}</span>
-              </div>
-              <p className="text-[10.5px] text-slate-500 dark:text-slate-400 -mt-1.5">
-                Convirtieron gol en cada una de sus últimas fechas jugadas consecutivas.
-              </p>
-
-              <div className="space-y-2 max-h-[580px] overflow-y-auto">
-                {playersOnStreak.length === 0 ? (
-                  <p className="text-xs text-slate-500 py-6 text-center">
-                    Ningún jugador está en racha goleadora en este momento.
-                  </p>
-                ) : (
-                  playersOnStreak.slice(0, 20).map((p, idx) => (
-                    <div
-                      key={`streak-${p.playerId}-${idx}`}
-                      className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-xs flex items-center justify-between gap-2 cursor-pointer hover:border-emerald-300 dark:hover:border-emerald-800 transition"
-                      onClick={() => p.playerObj && onSelectPlayer?.(p.playerObj)}
-                      title={`Ver estadísticas de ${p.playerName}`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <TeamBadge teamName={p.team} size="xs" showName={false} />
-                        <div className="min-w-0">
-                          <span className="font-black text-slate-900 dark:text-slate-100 block truncate">
-                            {p.playerName}
-                          </span>
-                          <span className="text-[10px] text-slate-500 block truncate">
-                            {p.team} · últimos goles: {p.recentGoals.join(' · ')}
-                          </span>
-                        </div>
-                      </div>
-                      <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-mono font-black text-[10px] border border-emerald-300 dark:border-emerald-800">
-                        🔥 {p.streakLength}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
           </div>
         </div>
       )}
@@ -912,6 +859,9 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                         <span className="hidden sm:inline">Vallas Invictas</span>
                         <span className="sm:hidden">Vallas 0</span>
                       </th>
+                      <th className="py-2 px-0.5 sm:px-1 text-center" title="Vallas invictas de local / de visitante">
+                        L/V
+                      </th>
                       <th className="py-2 px-1 text-center hidden xs:table-cell">% 0</th>
                       <th className="py-2 px-1 text-center">PJ</th>
                       <th className="py-2 px-1 text-center">GC</th>
@@ -966,6 +916,17 @@ export const StatsDashboard: React.FC<StatsDashboardProps> = ({
                               </span>
                             )}
                           </div>
+                        </td>
+
+                        <td className="py-1.5 sm:py-2 px-0.5 sm:px-1 text-center">
+                          <span
+                            className="inline-flex items-center gap-0.5 sm:gap-1 font-mono text-[9px] sm:text-[10px] font-bold whitespace-nowrap"
+                            title={`${team.homeCleanSheets} vallas invictas de local, ${team.awayCleanSheets} de visitante`}
+                          >
+                            <span className="text-[#1b55e2] dark:text-cyan-400">{team.homeCleanSheets}L</span>
+                            <span className="text-slate-300 dark:text-slate-600">/</span>
+                            <span className="text-slate-600 dark:text-slate-400">{team.awayCleanSheets}V</span>
+                          </span>
                         </td>
 
                         <td className="py-1.5 sm:py-2 px-1 text-center font-mono font-bold text-slate-800 dark:text-slate-200 text-[10px] sm:text-xs hidden xs:table-cell">

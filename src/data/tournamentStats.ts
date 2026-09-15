@@ -27,6 +27,8 @@ export interface ClubDefenseStat {
   teamName: string;
   zone: 'Zona A' | 'Zona B';
   cleanSheetsTotal: number; // Fechas / Partidos sin recibir goles
+  homeCleanSheets: number; // Vallas invictas jugando de local
+  awayCleanSheets: number; // Vallas invictas jugando de visitante
   baseCleanSheets: number; // Hasta Fecha 5
   roundCleanSheet: boolean; // Mantuvo arco en cero en Fecha 6
   played: number;
@@ -269,6 +271,8 @@ export function getDynamicTopScorers(
  */
 export interface TeamDefenseMatchAggregation {
   cleanSheets: number;
+  homeCleanSheets: number;
+  awayCleanSheets: number;
   played: number;
   goalsAgainst: number;
   goalsFor: number;
@@ -291,6 +295,8 @@ export function calculateClubDefenseAggregations(
     if (!aggregations[homeCanonical]) {
       aggregations[homeCanonical] = {
         cleanSheets: 0,
+        homeCleanSheets: 0,
+        awayCleanSheets: 0,
         played: 0,
         goalsAgainst: 0,
         goalsFor: 0,
@@ -301,6 +307,8 @@ export function calculateClubDefenseAggregations(
     if (!aggregations[awayCanonical]) {
       aggregations[awayCanonical] = {
         cleanSheets: 0,
+        homeCleanSheets: 0,
+        awayCleanSheets: 0,
         played: 0,
         goalsAgainst: 0,
         goalsFor: 0,
@@ -335,10 +343,12 @@ export function calculateClubDefenseAggregations(
 
       if (aScore === 0) {
         aggregations[homeCanonical].cleanSheets += 1;
+        aggregations[homeCanonical].homeCleanSheets += 1;
         if (m.fecha === currentRound) aggregations[homeCanonical].roundCleanSheet = true;
       }
       if (hScore === 0) {
         aggregations[awayCanonical].cleanSheets += 1;
+        aggregations[awayCanonical].awayCleanSheets += 1;
         if (m.fecha === currentRound) aggregations[awayCanonical].roundCleanSheet = true;
       }
     } else if (isLive && typeof dynamic.homeScore === 'number' && typeof dynamic.awayScore === 'number' && m.fecha === currentRound) {
@@ -490,11 +500,15 @@ export function getDynamicClubDefenseStats(
     const points = agg ? agg.points : team.points;
     const averageGoalsAgainst = Number((goalsAgainst / played).toFixed(2));
     const roundCleanSheet = agg?.roundCleanSheet || false;
+    const homeCleanSheets = agg?.homeCleanSheets || 0;
+    const awayCleanSheets = agg?.awayCleanSheets || 0;
 
     return {
       teamName: team.teamName,
       zone: team.zone,
       cleanSheetsTotal,
+      homeCleanSheets,
+      awayCleanSheets,
       baseCleanSheets: cleanSheetsTotal,
       roundCleanSheet,
       played,
@@ -587,69 +601,3 @@ export function getTeamsPerformanceMetrics(currentDate: Date = new Date()): {
   };
 }
 
-export interface StreakStat {
-  playerId: number;
-  playerName: string;
-  team: string;
-  posicion: 'ARQ' | 'DEF' | 'VOL' | 'DEL';
-  precio: string;
-  streakLength: number;
-  recentGoals: number[]; // Goles por fecha jugada, la más reciente primero
-  playerObj: Player;
-}
-
-/**
- * Jugadores "en racha": SOLO aquellos que convirtieron al menos un gol en cada una de sus
- * últimas fechas jugadas consecutivas (mínimo `minStreak`). Se toman como "fechas jugadas" las
- * que tienen puntaje registrado en Planeta Gran DT (fechasPuntajes), y se cruzan con los goles
- * reales de cada partido (FIXTURES_DATA). La racha se corta apenas aparece una fecha jugada sin
- * gol - un jugador sin gol en su última fecha jamás entra en esta lista, sin importar su historial.
- */
-export function getPlayersOnStreak(
-  playersList: Player[] = ALL_PLAYERS,
-  currentDate: Date = new Date(),
-  minStreak: number = 2
-): StreakStat[] {
-  const activeList = playersList && playersList.length > 0 ? playersList : ALL_PLAYERS;
-  const goalsByRound = getPlayerGoalsByRound(currentDate);
-  const results: StreakStat[] = [];
-
-  activeList.forEach(player => {
-    const playedFechas = Object.keys(player.fechasPuntajes || {})
-      .map(key => parseInt(key.replace(/[^0-9]/g, ''), 10))
-      .filter(n => !isNaN(n))
-      .sort((a, b) => b - a); // Fecha más reciente primero
-
-    if (playedFechas.length < minStreak) return;
-
-    let streakLength = 0;
-    const recentGoals: number[] = [];
-
-    for (const fecha of playedFechas) {
-      const goals = lookupRoundGoals(goalsByRound, player.nombre, fecha);
-      if (goals <= 0) break;
-      streakLength++;
-      recentGoals.push(goals);
-    }
-
-    if (streakLength >= minStreak) {
-      results.push({
-        playerId: player.id,
-        playerName: player.nombre,
-        team: player.equipo,
-        posicion: player.posicion,
-        precio: player.precio,
-        streakLength,
-        recentGoals,
-        playerObj: player,
-      });
-    }
-  });
-
-  return results.sort((a, b) => {
-    if (b.streakLength !== a.streakLength) return b.streakLength - a.streakLength;
-    const aSum = a.recentGoals.reduce((sum, g) => sum + g, 0);
-    const bSum = b.recentGoals.reduce((sum, g) => sum + g, 0);
-    return bSum - aSum;
-  });
-}
